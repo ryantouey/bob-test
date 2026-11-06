@@ -1685,7 +1685,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.347.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.348.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -1895,7 +1895,10 @@ function barge(c, gy) { c.fillStyle = '#33291f'; c.fillRect(195 - 74, gy + 6, 14
 function windows(c, x, y, cols, rows, gapX, gapY, col, seed = 3) { for (let a = 0; a < cols; a++) for (let b = 0; b < rows; b++) if ((a * 7 + b * 5 + seed) % 3) { c.fillStyle = col; c.fillRect(x + a * gapX, y + b * gapY, gapX * 0.5, gapY * 0.55); } }
 // Detailed backdrops are painted once into a sprite, so they cost a phone almost nothing per frame.
 const HOLE_UP = 250, backdrops = new Map(), BACK = { up:210, h:340, res:2 };
-function backdrop(c, key, gy, ground, paint) { let b = backdrops.get(key); if (!b) { b = document.createElement('canvas'); b.width = 390 * BACK.res; b.height = BACK.h * BACK.res; const k = b.getContext('2d'); k.scale(BACK.res, BACK.res); paint(k, BACK.up); backdrops.set(key, b); } c.drawImage(b, 0, gy - BACK.up, 390, BACK.h); c.fillStyle = ground; c.fillRect(0, gy + BACK.h - BACK.up - 1, 390, 400); }
+// Version 348: a walking map's backdrop (sceneQuiet: painted once into the map's canvas) isn't kept; the cache holds at most 64 (each about
+// 2 MB; visiting every stage used to keep about 80 for the whole session); and a backdrop whose canvas can't be made (phones refuse new
+// canvases past a total memory limit) is skipped rather than throwing
+function backdrop(c, key, gy, ground, paint) { let b = backdrops.get(key); if (b) { backdrops.delete(key); backdrops.set(key, b); } else { b = document.createElement('canvas'); b.width = 390 * BACK.res; b.height = BACK.h * BACK.res; const k = b.getContext('2d'); if (!k) { c.fillStyle = ground; c.fillRect(0, gy + BACK.h - BACK.up - 1, 390, 400); return; } k.scale(BACK.res, BACK.res); paint(k, BACK.up); if (!sceneQuiet) { backdrops.set(key, b); while (backdrops.size > 64) backdrops.delete(backdrops.keys().next().value); } } c.drawImage(b, 0, gy - BACK.up, 390, BACK.h); c.fillStyle = ground; c.fillRect(0, gy + BACK.h - BACK.up - 1, 390, 400); }
 const rn = i => { const v = Math.sin(i * 12.9898) * 43758.5453; return v - Math.floor(v); };
 // A limestone karst: grey fluted rock, dark cracks and patches of jungle.
 function karstRock(c, pts, seed, green = 34) { let x0 = 999, x1 = -999, y0 = 9999, y1 = -9999; pts.forEach(([x, y]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }); c.save(); c.beginPath(); pts.forEach(([x, y], i) => c[i ? 'lineTo' : 'moveTo'](x, y)); c.closePath(); const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, '#6f7a80'); g.addColorStop(0.5, '#8a9092'); g.addColorStop(1, '#4e5a62'); c.fillStyle = g; c.fill(); c.clip(); c.strokeStyle = 'rgba(25,32,40,.45)'; c.lineWidth = 1; for (let i = 0; i < (x1 - x0) / 3; i++) { const x = x0 + rn(seed + i) * (x1 - x0), top = y0 + rn(seed + i * 3) * (y1 - y0) * 0.7; c.beginPath(); c.moveTo(x, top); c.lineTo(x + (rn(seed + i * 5) - 0.5) * 6, top + 10 + rn(seed + i * 7) * 34); c.stroke(); } for (let i = 0; i < green; i++) { const x = x0 + rn(seed + i * 11) * (x1 - x0), y = y0 + rn(seed + i * 13) * (y1 - y0), r = 1.6 + rn(seed + i * 17) * 4.4; c.fillStyle = i % 3 ? '#2a6236' : '#478a42'; for (let n = 0; n < 4; n++) { c.beginPath(); c.ellipse(x + (rn(seed + i + n * 19) - 0.5) * r * 3, y + (rn(seed + i + n * 23) - 0.5) * r * 2, r, r * 0.65, 0, 0, 7); c.fill(); } } c.restore(); }
@@ -13257,14 +13260,19 @@ function walkSync(ids, firstOpen) { const g = STAGES[viewStage - 1], th = WALK_T
   $('walkWrap').hidden = !on; $('lvlGrid').hidden = on; $('walkToMap').hidden = !can || on; $('levels').classList.toggle('walkon', on);
   if (!on) { if (walk) walk.on = false; return; }
   const cur = Math.max(0, firstOpen ? ids.indexOf(firstOpen) : ids.length - 1), fresh = !walk || walk.stage !== viewStage;
-  if (fresh) { const bg = document.createElement('canvas'); bg.width = 960; bg.height = 450; sceneQuiet = folkOff = true; try { paintScene(bg.getContext('2d'), g.theme, 3); } finally { sceneQuiet = folkOff = false; }
+  if (fresh) { const cv0 = $('walkCv'); cv0.width = cv0.width; const bg = document.createElement('canvas'); bg.width = 960; bg.height = 450; sceneQuiet = folkOff = true; try { const k0 = bg.getContext('2d'); if (k0) paintScene(k0, g.theme, 3); } catch (e) { console.error(e); } finally { sceneQuiet = folkOff = false; }
     walk = { stage:viewStage, th, bg, ids, props:walkProps(th, ids.length), camZ:cur * WK.gap, camT:cur * WK.gap, vel:0, cur, mZ:cur * WK.gap, hop:null, drag:null, hits:[], shake:null, t0:performance.now(), last:0, on:true, raf:0 }; }
   walk.ids = ids; walk.on = true; walk.cur = cur;
   const prev = walkSeen[viewStage]; walkSeen[viewStage] = cur;
   if (prev != null && prev < cur && !reduced) { walk.mZ = prev * WK.gap; walk.camZ = walk.camT = prev * WK.gap; walk.hop = { from:prev * WK.gap, to:cur * WK.gap, t:-0.35 }; }
   else { walk.hop = null; walk.mZ = cur * WK.gap; if (fresh || prev !== cur) walk.camZ = walk.camT = cur * WK.gap; }
   if (!walk.raf) walk.raf = requestAnimationFrame(walkLoop); }
-function walkLoop(now) { if (!walk || !walk.on || $('levels').hidden) { if (walk) walk.raf = 0; return; } walk.raf = requestAnimationFrame(walkLoop); try { walkFrame(now); } catch (e) { walk.on = false; walk.raf = 0; console.error(e); } }
+function walkLoop(now) { if (!walk || !walk.on || $('levels').hidden) { if (walk) walk.raf = 0; return; } walk.raf = requestAnimationFrame(walkLoop); try { walkFrame(now); walk.errs = 0; } catch (e) { console.error(e); walkRecover(); } }
+// Version 348 (map-walk playtest: maps froze half-drawn, a dark slab over the path, until a reload): a frame that throws can leave a clip,
+// an alpha or a blend mode set on the map's canvas. Resetting the canvas clears all of it, and the map keeps drawing; three failed frames
+// in a row show the stage's level grid instead (walkSync tries the map again the next time the stage opens).
+function walkRecover() { const cv = $('walkCv'); cv.width = cv.width; if (!walk) return; walk.errs = (walk.errs || 0) + 1; if (walk.errs < 3) return;
+  walk.on = false; walk.raf = 0; walk.errs = 0; $('walkWrap').hidden = true; $('lvlGrid').hidden = false; $('walkToMap').hidden = true; $('levels').classList.remove('walkon'); }
 
 // Props are fixed in the world (seeded), so they pass by as you walk: big ones on the land side, small ones on the strip by the water, boats out on it.
 function walkProps(th, n) { if (th.osm) return (th.oprops || walkOsmProps)(th, n); const out = [], side = th.water.side, end = (n - 1) * WK.gap + 8;
