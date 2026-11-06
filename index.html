@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <style>html { background:#17163f; height:100%; overflow:hidden; overscroll-behavior:none; } body { position:fixed; inset:0; width:100%; height:100%; overscroll-behavior:none; }</style>
-<script>window.BOB_BUILD = 'release'; window.BOB_PLAYTEST = true;</script>
+<script>window.BOB_BUILD = 'release'; window.BOB_PLAYTEST = true; window.BOB_HOST = 'pages';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600&display=swap">
@@ -1685,7 +1685,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.339.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.340.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -3651,6 +3651,7 @@ const STRINGS = {
   "Tap Load again to replace the progress on this device.":["Toca Cargar otra vez para reemplazar el progreso de este dispositivo.", "Touchez à nouveau Charger pour remplacer la progression sur cet appareil.", "Tippe noch einmal auf Laden, um den Fortschritt auf diesem Gerät zu ersetzen.", "Toque em Carregar de novo para substituir o progresso deste dispositivo.", "もう一度「読み込む」をタップすると、この端末の進行状況が置き換わります。", "이 기기의 진행 상황을 바꾸려면 불러오기를 한 번 더 누르세요.", "再次点按“载入”即可替换此设备上的进度。", "I-tap muli ang I-load para palitan ang progreso sa device na ito.", "Ketuk Muat lagi untuk mengganti progres di perangkat ini.", "Bu cihazdaki ilerlemeyi değiştirmek için Yükle’ye tekrar dokun.", "Tocca di nuovo Carica per sostituire i progressi su questo dispositivo."],
   "This browser won't let the game save here, so the code can't be loaded.":["Este navegador no deja que el juego guarde aquí, así que no se puede cargar el código.", "Ce navigateur empêche le jeu d’enregistrer ici, le code ne peut donc pas être chargé.", "Dieser Browser lässt das Spiel hier nicht speichern, daher kann der Code nicht geladen werden.", "Este navegador não deixa o jogo salvar aqui, então o código não pode ser carregado.", "このブラウザではここにデータを保存できないため、コードを読み込めません。", "이 브라우저에서는 여기에 저장할 수 없어 코드를 불러올 수 없습니다.", "此浏览器不允许游戏在这里保存，因此无法载入存档码。", "Hindi pinapayagan ng browser na ito na mag-save ang laro rito, kaya hindi ma-load ang code.", "Browser ini tidak mengizinkan game menyimpan di sini, jadi kode tidak bisa dimuat.", "Bu tarayıcı oyunun burada kayıt yapmasına izin vermiyor, bu yüzden kod yüklenemiyor.", "Questo browser non permette al gioco di salvare qui, quindi il codice non può essere caricato."],
   "Paste your save code here":["Pega aquí tu código de guardado", "Collez ici votre code de sauvegarde", "Füge hier deinen Speichercode ein", "Cole aqui seu código de salvamento", "ここにセーブコードを貼り付け", "여기에 저장 코드를 붙여 넣으세요", "在此粘贴你的存档码", "I-paste dito ang save code mo", "Tempel kode simpananmu di sini", "Kayıt kodunu buraya yapıştır", "Incolla qui il tuo codice di salvataggio"],
+  "New version ready. Tap to update.":["Nueva versión lista. Toca para actualizar.", "Nouvelle version prête. Touchez pour mettre à jour.", "Neue Version bereit. Tippe zum Aktualisieren.", "Nova versão pronta. Toque para atualizar.", "新しいバージョンがあります。タップして更新", "새 버전이 준비됐어요. 눌러서 업데이트하세요.", "新版本已就绪。点按即可更新。", "Handa na ang bagong bersyon. I-tap para mag-update.", "Versi baru siap. Ketuk untuk memperbarui.", "Yeni sürüm hazır. Güncellemek için dokun.", "Nuova versione pronta. Tocca per aggiornare."],
   // Version 150 cosmetics
   "Christmas Tree":["Árbol de Navidad", "Sapin de Noël", "Weihnachtsbaum", "Árvore de Natal", "クリスマスツリー", "크리스마스 트리", "圣诞树", "Christmas Tree", "Pohon Natal", "Noel Ağacı", "Albero di Natale"],
   "In the big heart":["En el gran corazón", "Dans le grand cœur", "Im großen Herzen", "No grande coração", "大きなハートの中", "큰 하트 안에", "大爱心里", "Sa malaking puso", "Di hati besar", "Büyük kalbin içinde", "Nel grande cuore"],
@@ -4284,7 +4285,8 @@ const luckOff = () => !!G && !G.tut && !G.run && !G.sky && !G.preview && stageOf
 // Version 275 (owner): every level opens with "Ready? Set? Go!" drawn like the shell-complete word, with a beep on each word; the flame
 // waits and pieces stay put until Go, and a tap skips to Go. A level whose rule the player has met first rolls the rule names and lands on
 // its own (a first meeting keeps its card; a retry after failing the level skips the roll).
-const CD = { beat:1, go:0.7, reveal:1.6 };
+// Version 340 (v0.335 playtest: no tester ever saw Go!, which lasted 0.7 s): Go! lasts 1.3 s; the flame still lights the moment it lands
+const CD = { beat:1, go:1.3, reveal:1.6, flare:0.9 };
 function cdMake() { const mech = G.def && G.def[2], keys = mech ? String(mech).split('+').filter(k => MECHS[k]) : [], roll = keys.length > 0 && keys.every(k => seenIntro.has(k)) && stats.lastFail !== G.level;
   return { t0:null, beat:-1, k:-1, landed:false, reveal:roll ? CD.reveal : 0, reel:Object.keys(MECHS).map(k => (seenIntro.has(k) ? t(MECHS[k][0]) : '?')), label:roll ? t('Rule: {r}', { r:keys.map(k => t(MECHS[k][0])).join(' + ') }) : '' }; }
 const cdActive = () => !!(G && G.cd) && (G.cd.t0 == null || clock - G.cd.t0 < G.cd.reveal + 2 * CD.beat);
@@ -4312,11 +4314,17 @@ function cdFit(m) { const key = `${m.size}|${m.cell}|${m.oy}|${pick.language}`; 
   return (m.cdFit = { key, z:16, y:(cy0 - rIn + bot) / 2, cy0, rIn }); }
 
 function cdY(m) { const mid = m.oy + m.size * m.cell / 2, top = (mid - m.size * m.cell * m.ring + 11 + m.oy) / 2, s = cdSpot(); return s === 'top' ? top : s === 'mid' ? (mid + top) / 2 : mid; }
+// Version 340 (owner, from the v0.335 playtest: the flame's start had no moment, and every tester asked for the spark to flare): as Go!
+// lands the flame lights with a bloom at the spark that swells and fades over CD.flare, a ring of sparks, and one gold flash round the fuse ring
+function cdFlare(m, u) { const p = BLOCKS.fusePoint(m, 0), cy = m.oy + m.size * m.cell / 2, R = m.size * m.cell * m.ring - 4, k = 1 - u, r = lerp(10, 54, 1 - k * k); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r); g.addColorStop(0, `rgba(255,240,200,${0.95 * k})`); g.addColorStop(0.35, `rgba(255,190,90,${0.7 * k})`); g.addColorStop(1, 'rgba(255,120,40,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  if (!reduced && u < 0.6) { const q = 1 - u / 0.6; ctx.strokeStyle = `rgba(255,214,110,${0.55 * q * q})`; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(W / 2, cy, R, 0, 7); ctx.stroke(); } ctx.restore(); }
 function cdSkip() { const c = G.cd; if (c) c.hold = false; if (c && c.t0 != null) c.t0 = Math.min(c.t0, clock - c.reveal - 2 * CD.beat); }
-function cdBeep(b) { if (b < 2) { tone(587, 0.15, 'square', 0.04); tone(587, 0.15, 'triangle', 0.07); } else { tone(1175, 0.45, 'square', 0.04); tone(1175, 0.45, 'triangle', 0.08); } }
+function cdBeep(b) { if (b < 2) { tone(587, 0.15, 'square', 0.04); tone(587, 0.15, 'triangle', 0.07); } else { tone(1175, 0.45, 'square', 0.04); tone(1175, 0.45, 'triangle', 0.08); noise(0.3, 0.05); } }
 function cdDraw(m) { const c = G.cd; if (!c) return false; if (c.t0 == null) { if (!$('intro').hidden) return true; c.t0 = c.short ? clock - CD.beat : clock; } if (c.hold) c.t0 = Math.max(c.t0, clock - c.reveal - 0.3); const e = clock - c.t0; let word, wt, a = 1;
   if (e < c.reveal) { const land = e > c.reveal - 0.5, k = Math.floor((1 - (1 - e / c.reveal) ** 2) * 14); if (land) { word = c.label; wt = e - (c.reveal - 0.5); if (!c.landed) { c.landed = true; tone(784, 0.2, 'triangle', 0.08); setTimeout(() => tone(1175, 0.24, 'triangle', 0.06), 70); } } else { word = c.reel[k % c.reel.length]; wt = 0.3; if (k !== c.k) { c.k = k; tone(1320, 0.025, 'square', 0.025); } } }
-  else { const u = e - c.reveal; if (u >= 2 * CD.beat + CD.go) { G.cd = null; return false; } const b = Math.min(2, Math.floor(u / CD.beat)); word = [t('Ready?'), t('Set?'), t('Go!')][b]; wt = u - b * CD.beat; if (c.beat !== b) { c.beat = b; cdBeep(b); } if (b === 2) a = clamp((CD.go - wt) / 0.2); }
+  else { const u = e - c.reveal; if (u >= 2 * CD.beat + CD.go) { G.cd = null; return false; } const b = Math.min(2, Math.floor(u / CD.beat)); word = [t('Ready?'), t('Set?'), t('Go!')][b]; wt = u - b * CD.beat; if (c.beat !== b) { c.beat = b; cdBeep(b); } if (b === 2) a = clamp((CD.go - wt) / 0.35); }
+  if (e - c.reveal >= 2 * CD.beat) { const gu = (e - c.reveal - 2 * CD.beat) / CD.flare; if (!c.lit) { c.lit = true; if (!reduced) { const p = BLOCKS.fusePoint(m, 0); for (let k = 0; k < 16; k++) { const an = k / 16 * Math.PI * 2 + rand(-0.2, 0.2), sp = rand(70, 170); parts.push({ x:p.x, y:p.y, vx:Math.cos(an) * sp, vy:Math.sin(an) * sp - 40, c:k % 3 ? '#ffd25e' : '#ff8f2e', life:rand(0.35, 0.7), age:0, r:rand(1.4, 2.6), g:160, drag:1.4, glow:true }); } } } if (gu < 1) cdFlare(m, gu); }
   const cx = m.ox + m.size * m.cell / 2;
   // Version 339 (owner: "try doing it at the original size over the launcher/map instead"): the Launcher spot draws the words at their
   // original 44 px with the pop, in the stage picture above the shell (STRIP), over the launcher. Ready?, Set? and Go! fit between the
@@ -14001,6 +14009,14 @@ function progShow() { if ($('groupPanel').hidden) return; const id = progNext();
 $('progStage').onchange = () => { progLevels(+$('progStage').value, 1); $('progGo').textContent = 'Set'; delete $('progGo').dataset.armed; };
 $('progLevel').onchange = () => { $('progGo').textContent = 'Set'; delete $('progGo').dataset.armed; };
 $('progGo').onclick = () => { const b = $('progGo'), st = +$('progStage').value, n = +$('progLevel').value; if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = `Tap again: start at ${st}-${n}`; return; } seedProgress(levelId(st, n), true); location.reload(); };
+// Version 340 (owner: "my github also still says 338, does there need to be a refresh to latest version button"): the GitHub site build
+// (window.BOB_HOST, set by make-playtest.js) checks version.json beside the page when it opens and whenever the player comes back to it
+// (at most every 2 minutes), past the browser's cache. When a newer build is up, a gold pill at the top says so, outside levels only; a tap
+// saves and reloads the page past the cache. The save stays (same site). Other builds have no BOB_HOST and never check.
+const UPD = { last:0, ver:null };
+function updCheck() { if (!window.BOB_HOST || Date.now() - UPD.last < 120000) return; UPD.last = Date.now(); fetch('version.json?t=' + Date.now(), { cache:'no-store' }).then(r => (r.ok ? r.json() : null)).then(j => { if (j && j.version && j.version !== CONFIG.analytics.appVersion) UPD.ver = j.version; }).catch(() => {}); }
+function updShow() { let b = $('updPill'); const on = !!UPD.ver && !G; if (!on) { if (b) b.hidden = true; return; } if (!b) { b = document.createElement('button'); b.id = 'updPill'; b.type = 'button'; b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top, 0px));z-index:90;border:0;border-radius:999px;padding:10px 18px;background:#ffc94a;color:#1d1a33;font:800 14px var(--body);box-shadow:0 4px 14px rgba(0,0,0,.45);white-space:nowrap'; b.onclick = () => { try { saveAll(); } catch (e) {} location.replace(location.pathname + '?v=' + encodeURIComponent(UPD.ver)); }; document.body.appendChild(b); } b.textContent = t('New version ready. Tap to update.'); b.hidden = false; }
+if (window.BOB_HOST) { document.addEventListener('visibilitychange', () => { if (!document.hidden) updCheck(); }); setTimeout(updCheck, 4000); setInterval(updShow, 1500); }
 if (!tutDone) setTimeout(() => startTutorial(tutAt), 0);
 anBoot();
 // The loading screen: the fuse burns to the end, Loading becomes Tap to Start, and a tap (or Enter or Space) sends the crew running into the game.
