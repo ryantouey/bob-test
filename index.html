@@ -1685,7 +1685,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.345.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.346.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -4311,7 +4311,12 @@ let livePillKey = '';
 // second (so the number ticks down; not during the countdown or a freeze, and the tester clock slows it like the fuse), and dropping
 // at once when the player catches up or takes a wrong piece out. A finished round leaves the box at that round's ceiling x the real
 // odds kept, which after the last round is the real odds the show launches with.
-const PACE_ODDS = { lag:1, slack:0.1, wrong:2, drop:2.5, lo:0.05 };
+// Version 346 (owner: "smooth out the jumps in probability or atleast back weight them more"; a Paris shell read 50% with 1 s left and
+// 36% at 0 s): the shown number blends that progress-minus-penalty reading with endV, what the box will show if the fuse runs out now (the
+// real odds after this shell's gaps and wrong cells, by the game's own hazard, times the next round's ceiling), weighted by (fuse burned
+// share)^PACE_ODDS.back. Rises are instant; a fall goes at PACE_ODDS.drop points a second or, if more is needed, just fast enough to arrive
+// as the fuse ends, so the box meets the real value at 0 s with no jump.
+const PACE_ODDS = { lag:1, slack:0.1, wrong:2, drop:2.5, lo:0.05, back:2 };
 const pacedOdds = () => !!G && !G.tut && !G.sky && !G.preview;
 const paceCap = left => 1 / Math.sqrt(1 + Math.max(0, left)), paceStart = () => Math.max(CONFIG.oddsFloor, paceCap((G.n || 1) - G.shells.length) * G.S);
 function paceTick(m, dt) { if (!pacedOdds()) return false; if (!m || m.done || m.offer) return true; const cap = Math.max(CONFIG.oddsFloor, paceCap((G.n || 1) - G.shells.length - 1) * G.S);
@@ -4319,7 +4324,10 @@ function paceTick(m, dt) { if (!pacedOdds()) return false; if (!m || m.done || m
   let ok = 0, bad = 0; m.filled.forEach((pc, k) => { if (m.target.get(k) === pc.c) ok++; else bad++; }); const N = m.cells.length || 1, fill = ok / N, burn = m.total > 0 ? clamp(1 - Math.max(0, m.time) / m.total) : 0;
   const base = m.paceV0 + (cap - m.paceV0) * fill, want = cap * (PACE_ODDS.lag * Math.max(0, burn - fill - PACE_ODDS.slack) + PACE_ODDS.wrong * bad / N);
   if (want < m.paceDebt) m.paceDebt = want; else if (!cdActive() && !(m.freeze > 0)) m.paceDebt = Math.min(want, m.paceDebt + PACE_ODDS.drop / 100 * dt * paceScale());
-  const v = clamp(base - m.paceDebt, Math.min(PACE_ODDS.lo, cap), cap), show = Math.round(v * 100) !== Math.round((G.oddsShown == null ? -1 : G.oddsShown) * 100); G.oddsShown = v; if (show) setPill(false, v); return true; }
+  const share = ((N - ok - bad) * CONFIG.gapWeight + bad * CONFIG.wrongWeight) / N, sev = share > 0 ? CONFIG.flawFloor + share : 0, endS = Math.max(CONFIG.oddsFloor, G.S * (1 - hazard(rankNow(), G.i, G.D, sev)));
+  const endV = Math.max(CONFIG.oddsFloor, paceCap((G.n || 1) - G.shells.length - 1) * endS), w = Math.pow(burn, PACE_ODDS.back), tgt = clamp((1 - w) * clamp(base - m.paceDebt, Math.min(PACE_ODDS.lo, cap), cap) + w * endV, CONFIG.oddsFloor, cap);
+  let v = G.oddsShown == null ? tgt : G.oddsShown; if (tgt >= v) v = tgt; else if (!cdActive() && !(m.freeze > 0)) { const ps = paceScale(), left = Math.max(0.3, Math.max(0, m.time) / Math.max(0.01, ps)); v = Math.max(tgt, v - Math.max(PACE_ODDS.drop / 100 * ps, (v - tgt) / left) * dt); }
+  const show = Math.round(v * 100) !== Math.round((G.oddsShown == null ? -1 : G.oddsShown) * 100); G.oddsShown = v; if (show) setPill(false, v); return true; }
 function livePill(m, dt) { if (paceTick(m, dt || 0)) return; if (!G || G.sky || G.preview || !m || m.done || m.offer) return; const f = BLOCKS.flaws(m), live = m.placed.length > 0 && (m.filled.size * 2 >= m.cells.length || m.time <= m.total / 2), key = `${G.level}|${G.i}|${f.gaps}|${f.wrong}|${live ? 1 : 0}|${Math.round(G.S * 1000)}`; if (key === livePillKey) return; livePillKey = key; if (!live) { setPill(); return; }
   const share = (f.gaps * CONFIG.gapWeight + f.wrong * CONFIG.wrongWeight) / m.cells.length, sev = share > 0 ? CONFIG.flawFloor + share : 0; setPill(false, Math.max(CONFIG.oddsFloor, G.S * (1 - hazard(rankNow(), G.i, G.D, sev)))); }
 // Version 334 (owner, after the v0.330 playtest, where "Set?" covered the centre cells): where Ready? Set? Go! sits, for a one-level
