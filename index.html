@@ -1761,7 +1761,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.372.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.373.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -10799,29 +10799,37 @@ Object.assign(JAK_PROPS, {
 const PK_BANDS = [[-1.6, 0], [0, 1.2], [1.2, 2.4], [2.4, 3.6], [3.6, 4.8], [4.8, 6.2], [6.2, 7.8], [7.8, 9.6], [9.6, 12], [12, 15], [15, 19], [19, 26]];
 // (registered with V369's gfxOnReset on the first crowd frame, not at load: its list is declared further down the script)
 const PK_STRIP = new Map(); let PK_SIG = null, PK_REG = false;
+// Version 373 (owner's iPhone 14: "24-27 ms when moving very fast, 17 ms otherwise"): while the player drags or flings the map fast,
+// the crowd is drawn the cheap way (people as silhouette blocks; no stripes, coolers or arms). In above 7 units a second (a hop peaks
+// at about 4.7), out under 4 for a fifth of a second; never during a hop or the arrival pan
+const PK_MOVE = { z:null, t:0, v:0, fast:false, hold:0 };
+function parkMotion(camZ, time) { const m = PK_MOVE, dt = time - m.t; if (m.z === null || !(dt > 0) || dt > 0.25) { m.z = camZ; m.t = time; m.v = 0; m.fast = false; return false; }
+  const v = Math.abs(camZ - m.z) / dt; m.v += (v - m.v) * Math.min(1, dt * 12); m.z = camZ; m.t = time;
+  if (walk.hop || walk.pan) { m.fast = false; m.hold = 0; return false; }
+  if (m.v > 7) { m.fast = true; m.hold = 0.2; } else if (m.fast && m.v < 4) { m.hold -= dt; if (m.hold <= 0) m.fast = false; } return m.fast; }
 // where the camera is, as a short key: two ground points on screen to an eighth of a pixel, the canvas, its scale and the view distance
 function parkSig(c, P, camZ, lim) { const T = c.getTransform(); if (T.b || T.c) return null; const x = walkPx(camZ), a = P(x, camZ + 3), b = P(x + 1, camZ + 12); if (!a || !b) return null;
   return [a.x, a.y, b.x, b.y].map(v => Math.round(v * 8)).join(',') + ',' + T.a + ',' + T.d + ',' + T.e + ',' + T.f + ',' + c.canvas.width + ',' + c.canvas.height + ',' + lim; }
 function parkCrowd(list, c, o, P, camZ, time) { const cr = o.crowd; if (!cr || !cr.length) return; const u = o.unit_m, lim = 26 * MAPV();
   if (!PK_REG) { PK_REG = true; if (typeof gfxOnReset === 'function') gfxOnReset(() => { PK_STRIP.clear(); PK_SIG = null; }); }
   if (PK_STRIP.owner !== cr) { PK_STRIP.clear(); PK_STRIP.owner = cr; cr.sort((a, b) => b.z - a.z); }
-  PK_SIG = parkSig(c, P, camZ, lim); const sel = o.bandSel || (o.bandSel = PK_BANDS.map(() => [])); sel.forEach(s => { s.length = 0; });
+  const fast = parkMotion(camZ, time); PK_SIG = parkSig(c, P, camZ, lim); const sel = o.bandSel || (o.bandSel = PK_BANDS.map(() => [])); sel.forEach(s => { s.length = 0; });
   for (let i = 0; i < cr.length; i++) { const q = cr[i], d = q.z - camZ; if (d < PK_BANDS[0][0] || d >= lim) continue; for (let bi = 0; bi < PK_BANDS.length; bi++) if (d < PK_BANDS[bi][1]) { sel[bi].push(q); break; } }
-  PK_BANDS.forEach(([d0, d1], bi) => { const s = sel[bi]; if (!s.length || d0 >= lim) return; const hi = Math.min(d1, lim); list.push({ dp:(d0 + hi) / 2, f:() => parkCrowdBand(c, s, P, camZ, time, u, d0, bi) }); }); }
+  PK_BANDS.forEach(([d0, d1], bi) => { const s = sel[bi]; if (!s.length || d0 >= lim) return; const hi = Math.min(d1, lim); list.push({ dp:(d0 + hi) / 2, f:() => parkCrowdBand(c, s, P, camZ, time, u, d0, bi, fast) }); }); }
 // each blanket's family, worked out once: where each one sits (a along the blanket, b front to back, -1 to 1), who they are, the extras
 function parkCrowdPrep(q) { if (q.m) return q.m; const n = 2 + Math.floor(q.r * 97) % 4, ppl = [];
   for (let j = 0; j < n; j++) { const h = rn(q.r * 1000 + j * 7.3), kid = h < 0.36, lie = !kid && h > 0.93 && j === 0, chair = !kid && !lie && h > 0.84, g = kid && rn(q.r * 900 + j) < 0.5;
     ppl.push({ a:-0.72 + 1.44 * (j + 0.5) / n, b:0.05 + 0.4 * rn(q.r * 500 + j), kid, lie, chair, point:kid && rn(q.r * 300 + j) < 0.42 ? (rn(q.r * 77 + j) < 0.5 ? -1 : 1) : 0, glow:g ? PK_GLOW[Math.floor(rn(q.r * 41 + j) * 4)] : null, spark:kid && !g && rn(q.r * 650 + j) < 0.28 }); }
   return (q.m = { ci:Math.floor(q.r * 61) % PK_BLANKET.length, ppl, e:Math.floor(q.r * 13) % 4 }); }
 // one band: kept as a picture while the camera rests (drawn into its strip once it has held still two frames), else drawn as shapes
-function parkCrowdBand(c, sel, P, camZ, time, u, d0, bi) { let e = PK_STRIP.get(bi); if (!e) PK_STRIP.set(bi, e = { key:null, last:null, cv:null });
+function parkCrowdBand(c, sel, P, camZ, time, u, d0, bi, fast) { let e = PK_STRIP.get(bi); if (!e) PK_STRIP.set(bi, e = { key:null, last:null, cv:null });
   const key = PK_SIG && PK_SIG + '|' + sel.length + '|' + sel[0].z + '|' + sel[sel.length - 1].z;
   if (key && e.key === key) { if (e.w) c.drawImage(e.cv, 0, 0, e.w, e.h, e.x, e.y, e.w / e.sx, e.h / e.sy); parkCrowdSparks(c, e.spark, time); return; }
-  const g = parkCrowdGeo(sel, P, u, d0);
-  if (key && e.last === key && parkCrowdStrip(c, e, g)) { e.key = key; e.spark = g.spark; c.drawImage(e.cv, 0, 0, e.w, e.h, e.x, e.y, e.w / e.sx, e.h / e.sy); parkCrowdSparks(c, g.spark, time); return; }
+  const g = parkCrowdGeo(sel, P, u, d0, fast);
+  if (key && !fast && e.last === key && parkCrowdStrip(c, e, g)) { e.key = key; e.spark = g.spark; c.drawImage(e.cv, 0, 0, e.w, e.h, e.x, e.y, e.w / e.sx, e.h / e.sy); parkCrowdSparks(c, g.spark, time); return; }
   e.last = key; e.key = null; parkCrowdPaint(c, g); parkCrowdSparks(c, g.spark, time); }
 // the band's shapes on screen, and the box round them
-function parkCrowdGeo(sel, P, u, d0) { const near = d0 < 6.2, mid = d0 < 9.6, quads = PK_BLANKET.map(() => []), pat = [], box = [[], [], []], ppl = [], arms = [], glow = [], spark = [], bb = [1e9, 1e9, -1e9, -1e9];
+function parkCrowdGeo(sel, P, u, d0, fast) { const near = d0 < 6.2, mid = d0 < 9.6 && !fast, quads = PK_BLANKET.map(() => []), pat = [], box = [[], [], []], ppl = [], arms = [], glow = [], spark = [], bb = [1e9, 1e9, -1e9, -1e9];
   const grow = (x0, y0, x1, y1) => { if (x0 < bb[0]) bb[0] = x0; if (y0 < bb[1]) bb[1] = y0; if (x1 > bb[2]) bb[2] = x1; if (y1 > bb[3]) bb[3] = y1; };
   sel.forEach(q => { const m = parkCrowdPrep(q), ca = Math.cos(q.a), sa = Math.sin(q.a), hw = 1.25 / u, hd = 0.92 / u;
     const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => P(q.x + a * hw * ca - b * hd * sa, q.z + a * hw * sa + b * hd * ca)); if (pts.some(p => !p || p.dp < -1.6)) return;
@@ -10829,7 +10837,7 @@ function parkCrowdGeo(sel, P, u, d0) { const near = d0 < 6.2, mid = d0 < 9.6, qu
     // a point on the blanket (a, b from -1 to 1) and its scale, from the four projected corners
     const on = (a, b) => { const s1 = (a + 1) / 2, t1 = (b + 1) / 2, x0 = pts[0].x + (pts[1].x - pts[0].x) * s1, y0 = pts[0].y + (pts[1].y - pts[0].y) * s1, x1 = pts[3].x + (pts[2].x - pts[3].x) * s1, y1 = pts[3].y + (pts[2].y - pts[3].y) * s1, k0 = pts[0].s + (pts[1].s - pts[0].s) * s1, k1 = pts[3].s + (pts[2].s - pts[3].s) * s1; return [x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1, 10 * (k0 + (k1 - k0) * t1)]; };
     const ci = m.ci; quads[ci].push(pts);
-    if (near && ci !== 2 && ci !== 5) [0.3, 0.62].forEach(t => { const a0 = on(-1, t * 2 - 1), a1 = on(1, t * 2 - 1), b0 = on(-1, t * 2 - 0.8), b1 = on(1, t * 2 - 0.8); pat.push([a0, a1, b1, b0]);
+    if (near && !fast && ci !== 2 && ci !== 5) [0.3, 0.62].forEach(t => { const a0 = on(-1, t * 2 - 1), a1 = on(1, t * 2 - 1), b0 = on(-1, t * 2 - 0.8), b1 = on(1, t * 2 - 0.8); pat.push([a0, a1, b1, b0]);
       if (ci === 0 || ci === 4) { const c0 = on(t * 2 - 1, -1), c1 = on(t * 2 - 1, 1), e0 = on(t * 2 - 0.84, -1), e1 = on(t * 2 - 0.84, 1); pat.push([c0, e0, e1, c1]); } });
     // the people, seen from behind, facing the show; kids smaller; a few lie back, some sit in lawn chairs
     m.ppl.forEach((pp, j) => { if (pp.lie) { const A = on(-0.55, 0.35), B = on(0.55, 0.35); ppl.push(['lie', A[0], A[1], B[0], B[1], A[2]]); grow(Math.min(A[0], B[0]) - 0.3 * A[2], Math.min(A[1], B[1]) - 0.4 * A[2], Math.max(A[0], B[0]) + 0.3 * A[2], Math.max(A[1], B[1]) + 0.2 * A[2]); return; }
@@ -10851,7 +10859,9 @@ function parkCrowdPaint(c, g) { const { mid, quads, pat, box, ppl, arms, glow } 
     c.moveTo(x + 0.13 * kk, y - 0.72 * kk); c.arc(x, y - 0.72 * kk, 0.13 * kk, 0, 7); });
   arms.forEach(([t, x, y, k, sd]) => { if (t !== 'point') return; const sx = x + sd * 0.12 * k, sy = y - 0.5 * k, ex = x + sd * 0.42 * k, ey = y - 1.02 * k, w = 0.045 * k; c.moveTo(sx - w, sy); c.lineTo(ex - w, ey); c.lineTo(ex + w, ey); c.lineTo(sx + w, sy); c.closePath(); });
   c.fill();
-  if (glow.length) { c.save(); c.globalCompositeOperation = 'lighter'; glow.forEach(([x, y, k, col]) => { c.strokeStyle = `rgba(${col},.9)`; c.lineWidth = Math.max(0.8, 0.05 * k); c.beginPath(); c.ellipse(x, y - 0.06 * k, 0.15 * k, 0.06 * k, 0, 0, 7); c.stroke(); }); c.restore(); } }
+  if (glow.length) { c.save(); c.globalCompositeOperation = 'lighter'; c.lineWidth = Math.max(0.8, 0.05 * glow[glow.length >> 1][2]);   // Version 373: one stroke per colour
+    PK_GLOW.forEach(col => { let any = false; glow.forEach(([x, y, k, cl]) => { if (cl !== col) return; if (!any) { c.beginPath(); any = true; } c.moveTo(x + 0.15 * k, y - 0.06 * k); c.ellipse(x, y - 0.06 * k, 0.15 * k, 0.06 * k, 0, 0, 7); }); if (any) { c.strokeStyle = `rgba(${col},.9)`; c.stroke(); } });
+    c.restore(); } }
 // the sparklers, live (they spit and wave)
 function parkCrowdSparks(c, spark, time) { if (!spark || !spark.length) return; spark.forEach(([x, y, k, sd]) => { c.save(); c.translate(x, y); c.scale(k / 10, k / 10); parkSparkler(c, 0, 0, time, sd); c.restore(); }); }
 // draw a band into its strip: the box round its shapes, cut to the canvas, on whole device pixels; the strip grows and is reused
