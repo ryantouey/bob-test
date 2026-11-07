@@ -1761,7 +1761,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.377.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.378.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -10828,8 +10828,10 @@ function parkMotion(camZ, time) { const m = PK_MOVE, dt = time - m.t; if (m.z ==
   if (walk.hop || walk.pan) { m.fast = false; m.hold = 0; return false; }
   if (m.v > 7) { m.fast = true; m.hold = 0.2; } else if (m.fast && m.v < 4) { m.hold -= dt; if (m.hold <= 0) m.fast = false; } return m.fast; }
 // where the camera is, as a short key: two ground points on screen to an eighth of a pixel, the canvas, its scale and the view distance
-function parkSig(c, P, camZ, lim) { const T = c.getTransform(); if (T.b || T.c) return null; const x = walkPx(camZ), a = P(x, camZ + 3), b = P(x + 1, camZ + 12); if (!a || !b) return null;
-  return [a.x, a.y, b.x, b.y].map(v => Math.round(v * 8)).join(',') + ',' + T.a + ',' + T.d + ',' + T.e + ',' + T.f + ',' + c.canvas.width + ',' + c.canvas.height + ',' + lim; }
+// Version 378 (owner: "the little flags follow the camera"; "delay on stage 1"): rest is judged by the camera's own position (to 0.002 units)
+// and by two points fixed in the world ahead of it, not by points that move with the camera (those stayed put on screen while walking)
+function parkSig(c, P, camZ, lim) { const T = c.getTransform(); if (T.b || T.c) return null; const zf = Math.floor(camZ / 4) * 4 + 6, x = walkPx(zf), a = P(x, zf), b = P(x + 1, zf + 4); if (!a || !b) return null;
+  return Math.round(camZ * 500) + ',' + zf + ',' + [a.x, a.y, b.x, b.y].map(v => Math.round(v * 8)).join(',') + ',' + T.a + ',' + T.d + ',' + T.e + ',' + T.f + ',' + c.canvas.width + ',' + c.canvas.height + ',' + lim; }
 function parkCrowd(list, c, o, P, camZ, time) { const cr = o.crowd; if (!cr || !cr.length) return; const u = o.unit_m, lim = 26 * MAPV();
   if (!PK_REG) { PK_REG = true; if (typeof gfxOnReset === 'function') gfxOnReset(() => { PK_STRIP.clear(); PK_SIG = null; }); }
   if (PK_STRIP.owner !== cr) { PK_STRIP.clear(); PK_STRIP.owner = cr; cr.sort((a, b) => b.z - a.z); }
@@ -10896,7 +10898,9 @@ function parkCrowdStrip(c, e, g) { const T = c.getTransform(), cw = c.canvas.wid
 // points while the camera rests (the pennants still wave)
 function parkBunting(list, c, P, camZ, time) { const far = 22 * MAPV(), H = 5.2, props = walk.props;
   const pairs = props.pkPairs || (props.pkPairs = (() => { const lamps = props.filter(p => p.kind === 'lamp').sort((a, b) => a.z - b.z), out = [];
-    lamps.forEach((a, i) => { const sd = Math.sign(a.x - walkPx(a.z)), b = lamps.slice(i + 1).find(q => Math.sign(q.x - walkPx(q.z)) === sd); if (b) out.push({ a, b, pts:null, sig:null }); }); return out; })());
+    // Version 378 (owner: "the mini flags (that make an x)"): only lamps on the same side whose string stays clear of the winding walkway
+    const clear = (a, b, sd) => [0.25, 0.5, 0.75].every(t => { const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t; return (x - walkPx(z)) * sd > 0.45; });
+    lamps.forEach((a, i) => { const sd = Math.sign(a.x - walkPx(a.z)), b = lamps.slice(i + 1).find(q => Math.sign(q.x - walkPx(q.z)) === sd); if (b && Math.hypot(b.x - a.x, b.z - a.z) <= 5.5 && clear(a, b, sd)) out.push({ a, b, pts:null, sig:null }); }); return out; })());
   pairs.forEach(sp => { const { a, b } = sp; if (b.z < camZ - 0.6 || a.z > camZ + far) return; const A = P(a.x, a.z), B = P(b.x, b.z); if (!A || !B || A.dp < -0.6) return;
     list.push({ dp:(A.dp + B.dp) / 2, f:() => { const ga = c.globalAlpha; c.globalAlpha = ga * clamp((A.dp + 0.6) / 1.2); let pts = sp.pts;
       if (!PK_SIG || sp.sig !== PK_SIG) { pts = []; const n = Math.max(4, Math.min(48, Math.round(Math.hypot(b.x - a.x, b.z - a.z) * 6 / 0.62)));
