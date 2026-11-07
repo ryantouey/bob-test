@@ -1597,6 +1597,7 @@ input, textarea, select, [contenteditable="true"] { -webkit-user-select:text; us
         <div class="tune"><label for="tIntro">Stage intro on the map <select id="tIntro"><option value="auto">First visit full, then short</option><option value="full">Always full, with camera pan</option><option value="short">Always short</option></select></label></div>
         <button class="bub" id="tSpeed">Speed test (Starry Night)</button>
         <button class="bub" id="tSpeedPass">Speed test (Pass screen)</button>
+        <button class="bub" id="tGfx">Redraw pictures (graphics reset test)</button>
         <button class="bub" id="tNextDay">Pretend it is the next day</button>
         <button class="bub" id="tMissDay">Pretend I missed a day</button>
         <button class="bub" id="tWallet">Clear coins, hints, skips and freezes</button>
@@ -1745,7 +1746,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.368.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.369.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -7960,6 +7961,7 @@ function renderWheel() {
 $('wheelIconHome').innerHTML = WHEEL_ICON; $('wheelSubIco').innerHTML = WHEEL_ICON;
 $('tSpins').onchange = () => { renderWheel(); renderHome(); };
 $('tSpeed').onclick = () => speedTest();
+$('tGfx').onclick = () => { gfxFlush('test'); showToast('Pictures redrawn'); };
 $('tSpeedPass').onclick = () => speedPass();
 $('speedOk').onclick = () => { $('speedSheet').hidden = true; };
 $('wheelGo').onclick = () => startSpin('banked');
@@ -15113,6 +15115,19 @@ buildShop(); buildSmokeLab(); renderCurve(); buildPickers(); applyLanguage(); se
 
 // ---- Main loop ----
 // A frame error (Version 195, audit): the first one resizes once; 30 within 3 seconds save a crash report and go back to the home screen.
+// Version 369 (owner): when the browser resets the page's graphics, every canvas the game drew once and kept comes back blank (launcher
+// bodies, the stage picture's ground, pieces, crowds, map sprites); the live canvases are redrawn every frame and recover by themselves.
+// gfxFlush throws the kept drawings away so each is drawn again when next needed, and repaints the open walking map's backdrop.
+const GFX_RESET = [];
+function gfxOnReset(fn) { GFX_RESET.push(fn); }
+let gfxCount = 0, gfxLost = false;
+function gfxFlush(why) { gfxCount += 1; [backdrops, folkCache, flags, sprites, partSprites, softPuffs, flowerSprites, fireflyGlows, gardenSprites, bbStadiums, frameSheets, WALK_COSM].forEach(m => m.clear());
+  strainCopy = benchCache = cloudSprite = novaSprite = starryGlowArt = petalSprites = winTitleCv = null; smokeLab.back = null; smokeLab.backKey = ''; Object.keys(JAK_GLOW).forEach(k => { delete JAK_GLOW[k]; }); Object.keys(ST.back).forEach(k => { delete ST.back[k]; });
+  GFX_RESET.forEach(f => { try { f(); } catch (e) { console.error(e); } });
+  if (walk && walk.bg) { const g = STAGES[walk.stage - 1], k0 = walk.bg.getContext('2d'); if (g && k0) { k0.setTransform(1, 0, 0, 1, 0, 0); k0.clearRect(0, 0, walk.bg.width, walk.bg.height); sceneQuiet = folkOff = true; try { paintScene(k0, g.theme, 3); } catch (e) { console.error(e); } finally { sceneQuiet = folkOff = false; } } }
+  try { track('gfx_reset', { why, count:gfxCount }); } catch (e) { } }
+[cv, $('walkCv')].forEach(el => { if (!el) return; el.addEventListener('contextlost', () => { gfxLost = true; }); el.addEventListener('contextrestored', () => { gfxLost = false; gfxFlush('restored'); }); });
+setInterval(() => { if (!ctx.isContextLost) return; if (ctx.isContextLost()) gfxLost = true; else if (gfxLost) { gfxLost = false; gfxFlush('check'); } }, 1000);
 let frameErrs = [], frameBail = -1e9;
 function frame(now) { requestAnimationFrame(frame); if (speedRun) return; try { stepFrame(now); } catch (e) { frameError(e); } fpsTick(now); }
 // Version 257: Testing tools' frame-rate readout, to measure Starry Night (or anything) on a real phone: frames per second over the last
