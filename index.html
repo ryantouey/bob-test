@@ -1761,7 +1761,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.373.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.374.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -10534,6 +10534,14 @@ function walkParisPeople(th, n, out, near, offWalk, clearOf) { const o = th.osm,
 
 // Paris's buildings: limestone walls with a cornice, rows of tall windows (most lit for the evening) and a grey zinc mansard roof with
 // dormers. The footprint is cut just behind the camera (zc), so long buildings beside the walk stay drawn as you pass them.
+// Version 374: where a wall of a building cut at the camera lies on the building's real outline f (flat x, z pairs): its edge e and the
+// stretch t0..t1 of that edge it covers, with the edge's full length L. Windows and dormers are laid out on the real edge, so they stay
+// put while the cut slides along the wall.
+function osmWallEdge(f, a, b) { const n = f.length / 2; let best = null, bd = 1e9;
+  for (let e = 0; e < n; e++) { const x0 = f[2 * e], z0 = f[2 * e + 1], e1 = (e + 1) % n, ex = f[2 * e1] - x0, ez = f[2 * e1 + 1] - z0, L2 = ex * ex + ez * ez; if (!L2) continue; const L = Math.sqrt(L2);
+    const ta = ((a[0] - x0) * ex + (a[1] - z0) * ez) / L2, tb = ((b[0] - x0) * ex + (b[1] - z0) * ez) / L2, d = (Math.abs((a[0] - x0) * ez - (a[1] - z0) * ex) + Math.abs((b[0] - x0) * ez - (b[1] - z0) * ex)) / L + Math.max(0, -ta, ta - 1, -tb, tb - 1) * L;
+    if (d < bd) { bd = d; best = { e, t0:ta, t1:tb, L }; } }
+  return best; }
 function walkParisBuilding(c, b, P, time, u, zc) { const f = b.p; let pts = [], cut = false;
   for (let i = 0; i < f.length; i += 2) { pts.push([f[i], f[i + 1]]); if (f[i + 1] < zc) cut = true; }
   if (cut) { pts = osmClip(f, zc, true); if (pts.length < 3) return; }
@@ -10552,10 +10560,15 @@ function walkParisBuilding(c, b, P, time, u, zc) { const f = b.p; let pts = [], 
   // pixel or two) keeps its walls and a flat roof, without the windows, cornice, mansard and dormers; Normal and Short keep every building whole
   const lod = MAPV() > 1 ? 22 : 1e9; if (base.every(p => p.dp > lod)) { c.fillStyle = r.top; c.beginPath(); top.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); c.closePath(); c.fill(); return; }
   // windows: one per 4.2 m bay on each storey, three in five lit, on walls big enough on screen to read
-  const lit = new Path2D(), dark = new Path2D(), at = (w, t, v) => { const bx = lerp(base[w.i].x, base[w.j].x, t), by = lerp(base[w.i].y, base[w.j].y, t), tx = lerp(top[w.i].x, top[w.j].x, t), ty = lerp(top[w.i].y, top[w.j].y, t); return { x:lerp(bx, tx, v), y:lerp(by, ty, v) }; };
-  let any = false; vis.forEach(w => { const sl = Math.max(Math.abs(base[w.j].x - base[w.i].x), Math.abs(base[w.j].y - base[w.i].y)), sm = Math.max(base[w.i].s, base[w.j].s); if (sl < 10 || sm < 0.1 || Math.min(base[w.i].dp, base[w.j].dp) > lod) return; any = true;
-    const bays = Math.max(1, Math.round(w.L / 4.2)); for (let row = 0; row < r.rows; row++) for (let m = 0; m < bays; m++) { const t0 = (m + 0.3) / bays, t1 = (m + 0.7) / bays, v0 = (row + 0.3) / r.rows, v1 = (row + 0.8) / r.rows, pth = wr(r.h + w.i * 13 + row * 7 + m * 3) < 0.6 ? lit : dark;
-      const a = at(w, t0, v0), b2 = at(w, t1, v0), c2 = at(w, t1, v1), d = at(w, t0, v1); pth.moveTo(a.x, a.y); pth.lineTo(b2.x, b2.y); pth.lineTo(c2.x, c2.y); pth.lineTo(d.x, d.y); pth.closePath(); } });
+  // Version 374 (owner: "it's the windows that were badly flickering yes when scrolling by", Paris 9 to 15): bays laid out on the wall's
+  // real edge and projected exactly, the lit pattern keyed on that edge, so a building cut at the camera keeps its windows in place
+  const lit = new Path2D(), dark = new Path2D(), nf = f.length / 2, edgeOf = w => (cut ? osmWallEdge(f, pts[w.i], pts[w.j]) : { e:w.i, t0:0, t1:1, L:w.L / u }),
+    onEdge = (g, t) => { const e1 = (g.e + 1) % nf; return P(lerp(f[2 * g.e], f[2 * e1], t), lerp(f[2 * g.e + 1], f[2 * e1 + 1], t)); };
+  let any = false; vis.forEach(w => { const sl = Math.max(Math.abs(base[w.j].x - base[w.i].x), Math.abs(base[w.j].y - base[w.i].y)), sm = Math.max(base[w.i].s, base[w.j].s); if (sl < 10 || sm < 0.1 || Math.min(base[w.i].dp, base[w.j].dp) > lod) return;
+    const g = edgeOf(w); if (!g) return; const lo = Math.min(g.t0, g.t1) - 1e-6, hi = Math.max(g.t0, g.t1) + 1e-6, bays = Math.max(1, Math.round(g.L * u / 4.2));
+    for (let m = 0; m < bays; m++) { const ta = (m + 0.3) / bays, tb = (m + 0.7) / bays; if (ta < lo || tb > hi) continue; const A = onEdge(g, ta), B = onEdge(g, tb); if (!A || !B) continue; any = true;
+      for (let row = 0; row < r.rows; row++) { const v0 = (row + 0.3) / r.rows, v1 = (row + 0.8) / r.rows, pth = wr(r.h + g.e * 13 + row * 7 + m * 3) < 0.6 ? lit : dark;
+        pth.moveTo(A.x, A.y - wallH * A.s * v0); pth.lineTo(B.x, B.y - wallH * B.s * v0); pth.lineTo(B.x, B.y - wallH * B.s * v1); pth.lineTo(A.x, A.y - wallH * A.s * v1); pth.closePath(); } } });
   if (any) { c.fillStyle = 'rgba(255,214,150,.9)'; c.fill(lit); c.fillStyle = 'rgba(44,42,66,.72)'; c.fill(dark); }
   // the mansard: from the cornice it slopes in 1.8 m and up to the roof's flat top
   let wx = 0, wz = 0; pts.forEach(([x, z]) => { wx += x / n; wz += z / n; }); const inset = 1.8 / u, inn = pts.map(([x, z]) => { const dx = wx - x, dz = wz - z, d = Math.hypot(dx, dz) || 1, m = Math.min(inset, d * 0.3); return P(x + dx / d * m, z + dz / d * m); });
@@ -10564,8 +10577,12 @@ function walkParisBuilding(c, b, P, time, u, zc) { const f = b.p; let pts = [], 
   [true, false].forEach(lt => { c.beginPath(); vis.forEach(w => { if (w.lit === lt) quad(top[w.i], top[w.j], it[w.j], it[w.i]); }); c.fillStyle = lt ? r.zl : r.zs; c.fill(); });
   // the cornice, and a dormer window every 4.5 m where the roof is near enough to see them
   c.strokeStyle = 'rgba(246,236,214,.85)'; c.lineWidth = Math.max(1, 1.4 * base[0].s); c.beginPath(); vis.forEach(w => { c.moveTo(top[w.i].x, top[w.i].y); c.lineTo(top[w.j].x, top[w.j].y); }); c.stroke();
-  c.beginPath(); let dorm = false; vis.forEach(w => { if (Math.max(base[w.i].s, base[w.j].s) < 0.25) return; const nd = Math.max(1, Math.round(w.L / 4.5)); for (let m = 0; m < nd; m++) { const t = (m + 0.5) / nd, lo = { x:lerp(top[w.i].x, top[w.j].x, t), y:lerp(top[w.i].y, top[w.j].y, t) }, hi = { x:lerp(it[w.i].x, it[w.j].x, t), y:lerp(it[w.i].y, it[w.j].y, t) }, cx = lerp(lo.x, hi.x, 0.45), cy = lerp(lo.y, hi.y, 0.45), s = lerp(base[w.i].s, base[w.j].s, t), hw = 0.45 * k * s, hh = 0.8 * k * s;
-    c.rect(cx - hw, cy - hh, hw * 2, hh * 1.4); dorm = true; } }); if (dorm) { c.fillStyle = 'rgba(255,214,150,.85)'; c.fill(); } }
+  // Version 374: dormers laid out on the real edge too, set in toward the real outline's middle, so they don't slide on a cut building
+  let fcx = 0, fcz = 0; for (let q = 0; q < nf; q++) { fcx += f[2 * q] / nf; fcz += f[2 * q + 1] / nf; }
+  c.beginPath(); let dorm = false; vis.forEach(w => { if (Math.max(base[w.i].s, base[w.j].s) < 0.25) return; const g = edgeOf(w); if (!g) return; const lo = Math.min(g.t0, g.t1) - 1e-6, hi = Math.max(g.t0, g.t1) + 1e-6, nd = Math.max(1, Math.round(g.L * u / 4.5)), e1 = (g.e + 1) % nf;
+    for (let m = 0; m < nd; m++) { const t = (m + 0.5) / nd; if (t < lo || t > hi) continue; const x = lerp(f[2 * g.e], f[2 * e1], t), z = lerp(f[2 * g.e + 1], f[2 * e1 + 1], t), dx = fcx - x, dz = fcz - z, d = Math.hypot(dx, dz) || 1, mm = Math.min(1.8 / u, d * 0.3), pb = P(x, z), pi = P(x + dx / d * mm, z + dz / d * mm); if (!pb || !pi) continue;
+      const lx = pb.x, ly = pb.y - wallH * pb.s, hx = pi.x, hy = pi.y - (wallH + r.mans * k) * pi.s, cx = lerp(lx, hx, 0.45), cy = lerp(ly, hy, 0.45), hw = 0.45 * k * pb.s, hh = 0.8 * k * pb.s;
+      c.rect(cx - hw, cy - hh, hw * 2, hh * 1.4); dorm = true; } }); if (dorm) { c.fillStyle = 'rgba(255,214,150,.85)'; c.fill(); } }
 
 // a bridge's two sides: its near and far edges across the river (the deck's points on each side of its middle, in order across), and how
 // many arches it has (the Petit-Pont one, the longer ones three)
