@@ -1770,7 +1770,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6 };
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.384.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.385.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -1944,7 +1944,8 @@ const oddsMode = () => (stats.oddsMode === 'current' || stats.oddsMode === 'fore
 const FIX = { share:[[4, 0.3], [10, 0.25], [20, 0.2], [999, 0.15]], beat:1.3, banner:1.6 };
 const fixedRule = () => stats.showRule === 'fixed' && !!G && !G.tut && !G.run && !G.sky && !G.preview && G.level !== TUT_ID;
 const fixAllow = cells => { const st = stageOf(G.level), sh = (FIX.share.find(([s]) => st <= s) || FIX.share[FIX.share.length - 1])[1]; return Math.max(1, Math.floor(cells * sh)); };
-const fixLimit = () => (G.n >= 2 ? Math.floor(G.n / 2) : 0), fixStars = fz => (fz <= 0 ? 3 : fz * 3 <= G.n ? 2 : 1);
+// Version 385: every show takes at least one fizzle (Stage 2's one-rocket levels made one cell off a KABOOM)
+const fixLimit = () => Math.max(1, Math.floor(G.n / 2)), fixStars = fz => (fz <= 0 ? 3 : fz * 3 <= G.n ? 2 : 1);
 function fixStarsNow() { if (G.blowAt != null) return 0; const fz = G.shells.filter(q => q.grade === 'fizzle').length; return luckOff() && fz ? 1 : fixStars(fz); }
 function fixGrade(sev) { const o = G.lastOff || { gaps:0, wrong:0, cells:1 }, off = o.gaps + o.wrong, allow = fixAllow(o.cells), fz = G.shells.slice(0, -1).filter(q => q.grade === 'fizzle').length;
   let grade = off === 0 ? (sev > 0 ? 'fizzle' : 'clean') : off <= allow || luckOff() ? 'fizzle' : 'blow', why = grade === 'blow' ? 'cells' : ''; if (grade === 'fizzle' && !luckOff() && fz + 1 > fixLimit()) { grade = 'blow'; why = 'fizzles'; } return { grade, off, allow, why }; }
@@ -7427,7 +7428,7 @@ let winTitleCv = null;
 const easeBack = u => 1 + 2.70158 * Math.pow(u - 1, 3) + 1.70158 * Math.pow(u - 1, 2);
 function drawWinTitle(cy) {
   if (G.resultAt == null) G.resultAt = clock;
-  const age = reduced ? 9 : clock - G.resultAt, word = t(G.close ? 'CLOSE CALL!' : !G.isPerfect && G.S < STAR_RULE.two && !G.fix ? (luckOff() ? 'CLEARED!' : 'LUCKY SHOW!') : 'WHAT A SHOW'), perfect = !!G.isPerfect, chars = Array.from(word), font = s => `800 ${s}px 'Bricolage Grotesque','Figtree','Segoe UI',system-ui,sans-serif`;
+  const age = reduced ? 9 : clock - G.resultAt, word = t(G.close || (G.fix && G.fixFz >= G.n) ? 'CLOSE CALL!' : !G.isPerfect && G.S < STAR_RULE.two && !G.fix ? (luckOff() ? 'CLEARED!' : 'LUCKY SHOW!') : 'WHAT A SHOW'), perfect = !!G.isPerfect, chars = Array.from(word), font = s => `800 ${s}px 'Bricolage Grotesque','Figtree','Segoe UI',system-ui,sans-serif`;
   ctx.save(); ctx.font = font(WIN_TITLE.size); const widths = chars.map(ch => ctx.measureText(ch).width), total = widths.reduce((a, b) => a + b, 0) + WIN_TITLE.gap * (chars.length - 1), fit = Math.min(1, (W - 40) / total), size = WIN_TITLE.size * fit; ctx.restore();
   // behind the word: a soft glow, a slow sunburst and twinkles
   const inU = clamp((age - 0.08) / 0.5), rays = 14, R = W * 0.62;
