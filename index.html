@@ -1776,7 +1776,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.394.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.395.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -6814,10 +6814,39 @@ const sweetSway = t => (reduced ? 0 : Math.sin(t * 2.1) * 0.07 * clamp(sweetH(t)
 function sweetPose(c, t) { c.translate(0, -sweetH(t)); c.rotate(sweetSway(t)); if (t > sweetLand) { const q = reduced ? 0 : Math.exp(-(t - sweetLand) * 6) * Math.sin((t - sweetLand) * 18) * 0.12; c.translate(0, 27); c.scale(1 + q, 1 - q); c.translate(0, -27); } }
 // Mouth depth by balloons popped (Version 193, owner): smile, slight smile at 1-2, flat at 3, slight frown at 4-5, big frown at 6.
 const SWEET_MOOD = [2.8, 1.5, 1.5, 0, -1.5, -1.5, -3.8];
-function sweetFace(c, t) { const k = SWEET.pops.filter(p => p <= t).length; if (!k) return; const pk = SWEET.pops[k - 1], d = lerp(SWEET_MOOD[k - 1], SWEET_MOOD[k], sEase((t - pk) / 0.22)), y0 = 5.4 + Math.max(0, -d) * 0.65, w = 3.8 + Math.max(0, -d - 1.5) * 0.8;
+function sweetFaceV193(c, t) { const k = SWEET.pops.filter(p => p <= t).length; if (!k) return; const pk = SWEET.pops[k - 1], d = lerp(SWEET_MOOD[k - 1], SWEET_MOOD[k], sEase((t - pk) / 0.22)), y0 = 5.4 + Math.max(0, -d) * 0.65, w = 3.8 + Math.max(0, -d - 1.5) * 0.8;
   c.fillStyle = '#ecd0a4'; c.beginPath(); c.ellipse(0, 4, 11, 9, 0, 0, 7); c.fill(); c.fillStyle = '#2a1a10'; c.beginPath(); c.ellipse(0, 0, 3.6, 2.8, 0, 0, 7); c.fill();
   c.strokeStyle = '#2a1a10'; c.lineWidth = 1.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(-w, y0); c.quadraticCurveTo(0, y0 + 2 * d, w, y0); c.stroke();
   const sad = k === 6 ? sEase((t - pk) / 0.3) : 0; if (sad > 0) { c.globalAlpha = sad; [-1, 1].forEach(q => { c.beginPath(); c.moveTo(q * 12, -10.5); c.lineTo(q * 4.5, -12 - 1.6 * sad); c.stroke(); }); c.globalAlpha = 1; } }
+// Version 395 (owner, via the TikTok clip session: "give the Teddy Bear a little cartoon tear while its heart balloons pop"; comic, not sad):
+// a new face at every pop (worried with a sweat drop, a frown, a wobbly lip, one fat tear on the last pop) and a pouty "hmph" as he lands.
+const SWEET_FACE = [0, 0.6, 0, -1.6, -2.4, -2.6, -3.4];   // the mouth's curve after each pop (positive smiles)
+function sweetTear(c, x, y, sc, a) { c.save(); c.translate(x, y); c.scale(sc, sc); tedDrop(c, 0, 0, a); c.restore(); }
+function sweetPlip() { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.launcher; try { syn(760, 0.12, 0.024, { slide:1000, st:0.05, a:0.003 }); } finally { cosK = 1; } }
+function sweetFace(c, t) {
+  const k = SWEET.pops.filter(p => p <= t).length; if (!k) return; const pk = SWEET.pops[k - 1], e = sEase((t - pk) / 0.2), last = SWEET.pops[5], after = t - sweetLand, d = lerp(SWEET_FACE[k - 1], SWEET_FACE[k], e);
+  const sniff = !reduced && after > 0.08 && after < 0.36 ? Math.abs(Math.sin((after - 0.08) * 22)) : 0, pout = after > 0.32 ? sEase((after - 0.32) / 0.14) : 0;
+  c.fillStyle = '#ecd0a4'; c.beginPath(); c.ellipse(0, 4, 11, 9, 0, 0, 7); c.fill(); c.fillStyle = '#2a1a10'; c.beginPath(); c.ellipse(0, -0.5 * sniff, 3.6 + 0.6 * sniff, 2.8 - 0.5 * sniff, 0, 0, 7); c.fill();
+  c.strokeStyle = '#2a1a10'; c.lineCap = 'round';
+  if (pout > 0) {
+    // the "hmph": a small pursed pout, puffed pink cheeks, cross brows and a puff of air out of the side
+    c.lineWidth = 1.5; c.beginPath(); c.moveTo(-2.4, 7.6); c.quadraticCurveTo(0, 5.6 - 1.4 * pout, 2.4, 7.6); c.stroke();
+    c.fillStyle = `rgba(255,110,170,${0.4 * pout})`; [-13, 13].forEach(x => { c.beginPath(); c.ellipse(x, 2, 5.2, 3.4, 0, 0, 7); c.fill(); });
+    c.lineWidth = 1.5; c.globalAlpha = pout; [-1, 1].forEach(q => { c.beginPath(); c.moveTo(q * 12, -11.9); c.lineTo(q * 4.5, -10.9); c.stroke(); }); c.globalAlpha = 1;
+    const pu = clamp((after - 0.36) / 0.45); if (pu > 0 && pu < 1) { const r = 4 + pu * 5; c.globalAlpha = (1 - pu) * 0.85; c.drawImage(softPuff('rgba(235,240,255,1)'), 5 + pu * 16 - r, 7 - pu * 6 - r, r * 2, r * 2); c.globalAlpha = 1; }
+  } else {
+    // the mouth along the old curve (y = y0 + 4 d u (1 - u)), trembling from the fifth pop
+    const y0 = 5.4 + Math.max(0, -d) * 0.65, w = 3.8 + Math.max(0, -d - 1.5) * 0.8, wob = k >= 5 && !reduced ? 1 + 0.35 * Math.sin(t * 31) : 0;
+    c.lineWidth = 1.5; c.beginPath(); for (let i = 0; i <= 10; i++) { const u = i / 10, x = -w + 2 * w * u, y = y0 + 4 * d * u * (1 - u) + wob * Math.sin(u * Math.PI * 4 + t * 26) * Math.sin(u * Math.PI); if (i) c.lineTo(x, y); else c.moveTo(x, y); } c.stroke();
+    // worried brows: inner ends up, from the first pop
+    const b = k === 1 ? e : 1; c.lineWidth = 1.4; c.globalAlpha = b; [-1, 1].forEach(q => { c.beginPath(); c.moveTo(q * 12, -10.5); c.lineTo(q * 4.5, -12 - (k >= 6 ? 2.4 : 1.4) * b); c.stroke(); }); c.globalAlpha = 1;
+  }
+  // pops 1-2: a sweat drop slides down his temple
+  if (k <= 2) { const u = clamp((t - SWEET.pops[0]) / (SWEET.pops[2] - SWEET.pops[0])); tedDrop(c, 14 + u * 2.5, -17 + u * 13, u < 0.15 ? u / 0.15 : u > 0.8 ? (1 - u) / 0.2 : 1); }
+  // pop 6: one fat shiny tear swells at his eye, rolls down his cheek and drips off as he lands
+  const tt = t - last; if (k >= 6 && tt < 0.9) { const sw = sEase(tt / 0.1), roll = sEase((tt - 0.1) / 0.2), fall = Math.max(0, tt - 0.3);
+    const x = lerp(10.5, 13, roll), y = lerp(-2.5, 6.5, roll) + 260 * fall * fall, a = fall > 0 ? clamp(1 - fall / 0.45) : 1; sweetTear(c, x, y, (0.6 + 1.3 * sw) * (fall > 0 ? 1 - fall * 0.6 : 1), a); }
+}
 function sweetOver(c, t) { c.save(); sweetPose(c, t); sweetFace(c, t); c.restore(); if (t > SWEET.pops[5] + 0.05) return; c.save(); c.translate(0, -sweetH(t)); c.rotate(sweetSway(t));
   SWEET_B.forEach(([bx, by, r, col], i) => { if (t >= sweetPopAt(i)) return; const grow = sEase((t - 0.15 - i * 0.07) / 0.45); if (grow <= 0) return; const x = bx + (reduced ? 0 : Math.sin(t * 1.6 + i) * 2), y = by + (reduced ? 0 : Math.sin(t * 2 + i * 1.3) * 3), R = r * grow;
     c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -48); c.quadraticCurveTo(x * 0.4, (y - 48) / 2 + 10, x, y + R * 0.95); c.stroke();
@@ -6828,6 +6857,7 @@ function sweetStart(L, x) { const g0 = H - 104; S.end = S.t + SWEET.end; S.held 
   sLayer(L, x, g0, SWEET.end + 0.2, { done:{}, trail:0, step(p, dt) { const t = p.age, h = sweetH(t);
     if (sOnce(p, 'inflate')) tone(520, 0.4, 'sine', 0.03, 420); if (t > SWEET.lift[0] && sOnce(p, 'lift')) tone(330, 1.4, 'sine', 0.025, 330);
     SWEET_B.forEach(([bx, by, r, col], i) => { if (t >= sweetPopAt(i) && sOnce(p, 'pop' + i)) { const wx = x + bx, wy = g0 - sweetH(sweetPopAt(i)) + by; for (let k = 0; k < 9; k++) sHeart(L, wx, wy, col, rand(60, 170), rand(0.5, 0.9), rand(3, 5)); tone(1500 - i * 60, 0.05, 'square', 0.03); noise(0.05, 0.05); } });
+    if (t > SWEET.pops[5] + 0.3 && sOnce(p, 'plip')) sweetPlip(); /* Version 395: the tear drips off */
     if (t > SWEET.pops[5] && sOnce(p, 'aww')) [330, 311, 277].forEach((f, i) => setTimeout(() => S && tone(f, 0.3, 'triangle', 0.03, -14), 140 + i * 280));
     if (t > sweetLand && sOnce(p, 'land')) { tone(150, 0.2, 'sine', 0.08); S.held = false; }
     if (t > 1 && t < sweetLand && !reduced) { p.trail += dt * 6; while (p.trail >= 1) { p.trail--; sHeart(L, x + rand(-24, 24), g0 - h + 20, ['#ff6fae', '#ff8fc0', '#ff3f8e'][Math.floor(rand(0, 3))], rand(10, 40), rand(0.9, 1.4), rand(2.5, 4)); } } } }); }
