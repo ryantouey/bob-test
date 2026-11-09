@@ -2086,7 +2086,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.516.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.517.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -5270,7 +5270,7 @@ const helpOff = () => !!(G && G.run && G.run.sky);
 function mercyStart(level, run) { if (run || level === TUT_ID || stats.lastFail !== level) return; const g = STAGES[stageOf(level) - 1], fails = stats.failRun || 0; if (!g || g.mech === 'decoy+turn' || fails < 2) return;
   const n = buildShellCells(G.size, G.cut).length; let ease = fails >= 4 ? 2 : 1; while (ease > 0 && (G.pieces - ease < 3 || n / (G.pieces - ease) > 6)) ease--; if (ease) { G.pieces -= ease; G.eased = ease; }
   if (fails >= 3 && !stats.helpHint.includes(level)) { stats.helpHint.push(level); wallet.hints += 1; saveAll(); setTimeout(() => showToast(t("Need a hand? Here's a free hint.")), 700); } }
-function startGame(level = pick.level, run = null) {
+function startGame(level = pick.level, run = null) { if (typeof globeFx !== 'undefined' && globeFx && globeFx.end) globeFx.end(true);   /* Version 517: no globe over a game */
   $('moreTime').hidden = true; $('newCard').hidden = true;
   if (!run && level !== TUT_ID && !setPreview) { lockTier(stageOf(level)); lockLevelTier(level); }
   const spec = run || level === TUT_ID ? null : levelSpec(level), L = run ? null : level === TUT_ID ? [2, undefined, 40, 3, 4, 4, 1] : (g => [g.cols, g.mech, g.secs - (g.mech ? CONFIG.mechBonus : 0), g.rockets, g.pieces, g.size, g.cut])(STAGES[stageOf(level) - 1]), def = run ? survivalDef(level) : [L[2] + (L[1] ? CONFIG.mechBonus : 0), L[0], L[1]], rockets = run ? def[3] : level === TUT_ID ? 1 : +$('tRockets').value || L[3]; if (!run && level === levelId(1, 1)) def[0] = FIRST_LEVEL_SECS; if (!run && level !== TUT_ID && stageOf(level) === 1 && STAGE1_SECS[levelNo(level)]) def[0] = STAGE1_SECS[levelNo(level)]; if (!run && level !== TUT_ID && !setPreview) { const fm = fuseTierMult(level); if (fm !== 1) def[0] = Math.round(def[0] * fm * 10) / 10; }   /* Version 458 (owner): the tier's fuse */ const trapN = !run && trapPlay && level === TRAP_HOST ? trapPlay.n : 0; if (trapN) def[0] = TRAPS[trapN - 1].fuse || TRAP_FUSE; if (!run && level !== TUT_ID && !trapN) pick.level = level;
@@ -21536,7 +21536,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && !G
 $('sResume').onclick = () => { $('sheet').hidden = true; };
 $('sQuit').onclick = () => leaveLevel();
 $('introOk').onclick = () => { $('intro').hidden = true; };
-$('tutGo').onclick = () => { $('tutEnd').hidden = true; viewStage = 1; tryStart(1); globeIntro(1); };   /* Version 516: the globe intro, top right */
+$('tutGo').onclick = () => { $('tutEnd').hidden = true; viewStage = 1; tryStart(1); };   /* Version 517 (owner): the globe plays on the walking map only */
 $('tutMenu').onclick = () => { $('tutEnd').hidden = true; quit('home'); };
 // Version 281 (owner): the button also clears every walkthrough flag (level tips, coach lines, the Workshop tour, rule intros), keeping
 // the save-migration markers, fame ranks and the welcome gift so nothing is paid twice.
