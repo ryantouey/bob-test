@@ -1917,7 +1917,8 @@ body.fullmap #levels .stagehead, body.fullmap #lvlProg, body.fullmap #levels .lp
 body.fullmap #walkWrap { position:fixed; inset:0; z-index:7; width:100vw; max-width:none; border-radius:0; box-shadow:none; }
 body.fullmap #walkCv { width:100vw; height:100vh; height:100dvh; min-height:0; border-radius:0; }
 body.fullmap #backLevels { position:fixed; left:10px; top:calc(8px + env(safe-area-inset-top,0px)); z-index:9; width:42px; height:42px; padding:0; border-radius:50%; font-size:0; }
-body.fullmap #backLevels::before { content:'‹'; font:900 1.9rem/1 var(--display); position:relative; top:-2px; }
+body.fullmap #backLevels { display:grid; place-items:center; text-shadow:none; }
+body.fullmap #backLevels::before { content:''; display:block; width:11px; height:11px; margin-left:5px; border-left:3.5px solid #fff; border-bottom:3.5px solid #fff; border-radius:1.5px; transform:rotate(45deg); filter:drop-shadow(0 1px 0 rgba(20,16,70,.6)); }   /* Version 590: a drawn chevron */
 body.fullmap #topstrip { z-index:8; padding-left:62px; background:none; filter:drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
 body.fullmap #topstrip > * { transform:scale(.86); transform-origin:center; }
 body.fullmap #levels .mapPill { position:fixed; left:10px; top:calc(60px + env(safe-area-inset-top,0px)); z-index:9; display:flex; max-width:calc(100% - 130px); padding:5px 11px; border-radius:12px; background:rgba(14,12,46,.72); box-shadow:inset 0 0 0 1px rgba(255,255,255,.28), 0 2px 6px rgba(0,0,0,.35); }
@@ -2320,7 +2321,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.589.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.590.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -21529,7 +21530,7 @@ function walkFrame(now, snap) { const w = walk, cv = snap ? snap.cv : $('walkCv'
     if (!blk && !th.car) for (let y = tY; y <= tY + 15; y += 3) { const z = zAt(y), a = P(walkPx(z) - WK.pathW / 2, z), b = P(walkPx(z) + WK.pathW / 2, z); if (a && b && a.x < tR && b.x > 0) { blk = true; break; } }
     if (!blk) blk = w.hits.some(h => h.x - h.r < tR && h.y - h.r < tY + 17 && h.y + 2.2 * h.r > tY - 2);
     w.tagA = dt ? clamp((w.tagA == null ? 1 : w.tagA) + (blk ? -dt * 5 : dt * 5)) : blk ? 0 : 1; let pa = 1; const br = w.brief; if (br) { br.t += dt; if (br.t >= 1) w.brief = null; else pa = clamp((br.t - 0.86) / 0.14); }
-    walkPlaceTag(c, HmB, !!th.osm && !th.noCredit, w.tagA, pa); if (w.brief) walkBrief(c, HmB, !!th.osm && !th.noCredit, w.tagA, w.brief.t); }
+    const tagA = document.body.classList.contains('fullmap') ? 1 : w.tagA;   /* Version 590 (owner): bottom-left always on the full-screen map */ walkPlaceTag(c, HmB, !!th.osm && !th.noCredit, tagA, pa); if (w.brief) walkBrief(c, HmB, !!th.osm && !th.noCredit, tagA, w.brief.t); }
   if (snap) return; const away = !w.hop && !w.pan && Math.abs(w.camZ - w.cur * WK.gap) > 1.4, me = $('walkMe'); if (me.hidden === away) me.hidden = !away; }
 
 // Version 299 (owner, from the Playtest chat): the stage's place on every walking map, a small dark pill in the bottom-left corner
