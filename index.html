@@ -2330,7 +2330,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.596.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.600.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -14607,17 +14607,20 @@ function walkParkBillboards(list, c, o, P, camZ, time) { const u = o.unit_m, pv 
   walk.props.forEach(p => { if (p.kind !== 'lamp') return; const at = P(p.x, p.z); if (!at || at.dp < -0.6 || at.dp > 22 * MAPV()) return;
     list.push({ dp:at.dp + 0.35, f:() => { const r = 7 / u * WK.X * at.s; c.save(); c.translate(at.x, at.y); c.scale(1, 0.36); jakGlow(c, 0, 0, r, '255,206,140', 0.34); c.restore(); } }); });
   // Version 368: the crowd on blankets, bunting from lamp to lamp, and a neighbour's early firework far over the town
-  parkCrowd(list, c, o, P, camZ, time); parkBunting(list, c, P, camZ, time); list.push({ dp:26 * MAPV(), f:() => parkShow(c, o, P, camZ, time) }); list.push({ dp:0.6, f:() => parkFireflies(c, P, camZ, time) }); list.push({ dp:-5, f:() => parkShowFlash(c, o) });   /* Version 440: the town's show over the river */
+  parkCrowd(list, c, o, P, camZ, time); parkBunting(list, c, P, camZ, time); list.push({ dp:26 * MAPV(), f:() => { parkBarges(c, o, P); parkShow(c, o, P, camZ, time); } }); list.push({ dp:0.6, f:() => parkFireflies(c, P, camZ, time) }); list.push({ dp:-5, f:() => parkShowFlash(c, o) });   /* Version 440: the town's show over the river */
   const k = o.dike; if (!k) return; const f = k.p;
   for (let i = 0; i + 3 < f.length; i += 2) { const mz = (f[i + 1] + f[i + 3]) / 2; if (mz < camZ - 2) continue; const at = P((f[i] + f[i + 2]) / 2, mz); if (at && at.dp <= 22 * MAPV()) list.push({ dp:at.dp + 0.5, f:() => { const g = walkDikeGeo(k, i, P, u); if (g) walkDikeDraw(c, [g]); } }); } }
 // one stretch of the dike on screen: two grass slopes up to a 6 m crest with the levee trail on it, which slope is further from the camera,
 // and the trail's lamps on it (4 m posts every 24 m along the crest, counted along the whole dike, so they don't jump between stretches);
 // null when it is behind the camera or wholly off the sides of the map (390 wide)
 function walkDikeGeo(k, i, P, u) { const f = k.p, a = [f[i], f[i + 1]], b = [f[i + 2], f[i + 3]], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, n = [-(b[1] - a[1]) / L, (b[0] - a[0]) / L], H = k.h / u * WK.X * 0.8;
-  const at = (p, w, up) => { const q = P(p[0] + n[0] * w, p[1] + n[1] * w); return q && { x:q.x, y:q.y - (up ? H * q.s : 0) }; };
-  const bl = [at(a, -k.base / 2, 0), at(b, -k.base / 2, 0)], tl = [at(a, -k.top / 2, 1), at(b, -k.top / 2, 1)], tr = [at(a, k.top / 2, 1), at(b, k.top / 2, 1)], br = [at(a, k.base / 2, 0), at(b, k.base / 2, 0)];
+  /* Version 597 (owner: "looks like a hole here"): each end of a stretch lies on its bend's own line (the two stretches' mean direction), so neighbours share their corners; square ends left a wedge of lawn showing at every bend */
+  const sn = j => { if (j < 0 || j + 3 >= f.length) return null; const dx = f[j + 2] - f[j], dz = f[j + 3] - f[j + 1], l = Math.hypot(dx, dz) || 1; return [-dz / l, dx / l]; },
+    mit = j => { const p = sn(j - 2), q = sn(j); if (!p || !q) return p || q || n; const mx = p[0] + q[0], mz = p[1] + q[1], l = Math.hypot(mx, mz) || 1, d = Math.max(0.5, (mx * q[0] + mz * q[1]) / l); return [mx / l / d, mz / l / d]; }, na = mit(i), nb = mit(i + 2);
+  const at = (p, m, w, up) => { const q = P(p[0] + m[0] * w, p[1] + m[1] * w); return q && { x:q.x, y:q.y - (up ? H * q.s : 0) }; };
+  const bl = [at(a, na, -k.base / 2, 0), at(b, nb, -k.base / 2, 0)], tl = [at(a, na, -k.top / 2, 1), at(b, nb, -k.top / 2, 1)], tr = [at(a, na, k.top / 2, 1), at(b, nb, k.top / 2, 1)], br = [at(a, na, k.base / 2, 0), at(b, nb, k.base / 2, 0)];
   const all = [...bl, ...tl, ...tr, ...br]; if (all.some(p => !p) || all.every(p => p.x < -12) || all.every(p => p.x > 402)) return null;
-  const dl = P(a[0] + n[0] * -k.base / 2, a[1] + n[1] * -k.base / 2), dr = P(a[0] + n[0] * k.base / 2, a[1] + n[1] * k.base / 2), s = (P(a[0], a[1]) || { s:0.5 }).s;
+  const dl = P(a[0] + na[0] * -k.base / 2, a[1] + na[1] * -k.base / 2), dr = P(a[0] + na[0] * k.base / 2, a[1] + na[1] * k.base / 2), s = (P(a[0], a[1]) || { s:0.5 }).s;
   if (!k.cum) { k.cum = [0]; for (let j = 2; j + 1 < f.length; j += 2) k.cum.push(k.cum[k.cum.length - 1] + Math.hypot(f[j] - f[j - 2], f[j + 1] - f[j - 1]) * u); }
   const m0 = k.cum[i / 2], m1 = k.cum[i / 2 + 1], lh = 4 / u * WK.X * 0.8, lamps = [];
   for (let m = Math.ceil(m0 / 24) * 24; m < m1; m += 24) { const t = (m - m0) / (m1 - m0), q = P(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t); if (q) { const y = q.y - H * q.s; lamps.push({ x:q.x, y, top:y - lh * q.s, s:q.s }); } }
@@ -14840,13 +14843,21 @@ function parkFireflies(c, P, camZ, time) { if (reduced) return; const on = [], d
   [[on, 0.2, 1], [dim, 0.09, 0.5]].forEach(([l, ga, ca]) => { if (!l.length) return; c.fillStyle = `rgba(190,255,110,${ga})`; c.beginPath(); l.forEach(([x, y, sc]) => { const r = 2 + 3.2 * sc; c.moveTo(x + r, y); c.arc(x, y, r, 0, 7); }); c.fill();
     c.fillStyle = `rgba(240,255,190,${ca})`; c.beginPath(); l.forEach(([x, y, sc]) => { const r = 0.7 + 0.9 * sc; c.moveTo(x + r, y); c.arc(x, y, r, 0, 7); }); c.fill(); });
   c.restore(); }
+// Version 597 (owner: "the fireworks might be launching from the river i can't tell"): the fireworks barges, one under every firing spot,
+// moored on the river for the show: a dark flat hull about 30 m long with a pale deck edge, mortar racks on deck, a red light at each end
+// (three fills and the lights)
+function parkBarges(c, o, P) { const sp = parkShowSpots(o), bs = []; sp.forEach(([x, z]) => { const p = P(x, z); if (!p || p.x < -40 || p.x > 430) return; const U = WK.X * p.s; bs.push([p.x, p.y, Math.max(11, 5 * U), Math.max(2.2, 0.55 * U)]); });
+  if (!bs.length) return;
+  c.fillStyle = '#060a16'; c.beginPath(); bs.forEach(([x, y, w, h]) => { c.moveTo(x - w / 2, y - h); c.lineTo(x + w / 2, y - h); c.lineTo(x + w / 2 - h * 0.9, y + h * 0.35); c.lineTo(x - w / 2 + h * 0.9, y + h * 0.35); c.closePath(); for (let j = -2; j <= 2; j++) c.rect(x + j * w * 0.15 - w * 0.045, y - h * 1.75, w * 0.09, h * 0.8); }); c.fill();
+  c.fillStyle = 'rgba(150,170,210,.55)'; c.beginPath(); bs.forEach(([x, y, w, h]) => c.rect(x - w / 2, y - h, w, Math.max(0.8, h * 0.18))); c.fill();
+  c.fillStyle = 'rgba(4,8,20,.4)'; c.beginPath(); bs.forEach(([x, y, w, h]) => c.rect(x - w * 0.42, y + h * 0.35, w * 0.84, Math.max(1, h * 0.5))); c.fill();
+  c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,90,70,.8)'; c.beginPath(); bs.forEach(([x, y, w, h]) => { const r = Math.max(0.8, h * 0.22); c.rect(x - w / 2 + r, y - h - r * 2.4, r * 1.6, r * 1.6); c.rect(x + w / 2 - r * 2.6, y - h - r * 2.4, r * 1.6, r * 1.6); }); c.fill(); c.restore(); }
 function parkShowSpots(o) { if (o._show) return o._show; const rv = o.river || [], out = [], end = (walk.ids.length - 1) * WK.gap, x0 = walkPx(end);
   const pip = (x, z) => { let ins = false; for (let i = 0, j = rv.length - 2; i < rv.length; j = i, i += 2) { const xi = rv[i], zi = rv[i + 1], xj = rv[j], zj = rv[j + 1]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) ins = !ins; } return ins; };
   PK_SHOW.spots.forEach(([dx, f]) => { const x = x0 + dx; let a = null, b = null; for (let z = end; z < end + 160; z += 0.5) { const i = pip(x, z); if (i && a === null) a = z; if (!i && a !== null) { b = z; break; } } if (a !== null && b !== null) out.push([x, a + (b - a) * f]); });
   return (o._show = out); }
 function parkShow(c, o, P, camZ, time) { if (reduced) { o._flash = null; return; } const sp = parkShowSpots(o); if (!sp.length) return; const end = (walk.ids.length - 1) * WK.gap, p = clamp(camZ / end), n = Math.max(1, Math.min(sp.length, 1 + Math.floor(p * 6.99))), fast = PK_MOVE.fast;
   let flash = 0, fcol = null; c.save(); c.globalCompositeOperation = 'lighter';
-  const bg = P(sp[0][0], sp[0][1]); if (bg && p > 0.3) { const U = WK.X * bg.s, w = Math.max(5, 2.2 * U); c.fillStyle = 'rgba(255,90,70,.75)'; c.beginPath(); for (let j = -1; j <= 1; j++) c.rect(bg.x + j * w * 0.4 - 0.6, bg.y - 1.6, 1.4, 1.4); c.fill(); }
   /* Version 593: every barge fires for the map's first seconds (a shell launched in them plays out), a welcome each time the map opens */
   for (let i = 0; i < sp.length; i++) { const [x, z] = sp[i], T = 2.7 + (i % 4) * 0.45, cyc = (time + i * 1.31) / T, b = Math.floor(cyc), age = (cyc - b) * T, hello = time - age < 6.5; if ((i >= n || (p < 0.35 && i > 0)) && !hello) continue;
     const base = P(x, z); if (!base) continue; const ph = hello ? Math.max(p, 0.75) : p, U = WK.X * base.s, sc = 0.55 + 0.45 * ph, R = Math.min(9 * U + 14, 32 + 20 * ph) * sc, cy = Math.max(Math.min(base.y - 34, base.y - 26 * U), 22 + R), top = [base.x + (rn(b * 9 + i) - 0.5) * 22, cy];
@@ -22035,6 +22046,487 @@ function gc9More(list, c, o, P, camZ, time) { const u = o.unit_m, zc = camZ - WA
     if (b.cb && b.g9k !== tk) { b.g9k = tk; const wc = GC9_WALLS[bi % GC9_WALLS.length], rc = GC9_ROOFS[(bi * 3 + 1) % GC9_ROOFS.length]; Object.assign(b.cb, { lit:rgb(wc, 1), shade:rgb(wc, 0.72), stone:rgb([150, 132, 114], 0.9), rl:rgb(rc, 1.3), rm:rgb(rc, 1.06), rs:rgb(rc, 0.84) }); }
     list.push({ dp:Math.min(far - 1, dm) + 0.3, f:() => walkBldDraw(c, walkBldFade(b, dm, P, u, zc), k => walkCanyonBuilding(k, b, P, time, u, zc)) }); }); }
 Object.assign(WALK_THEMES.grandcanyon, { osm:GC9, follow:1, lead:1.0, osea:gc9Canyon, oprops:gc9Props, obb:gc9More, ownBlds:1 });
+// ---- Version 598 (owner, 11/11/26: "apply the day night cycles to both Cappadocia, Santorini, and Machu Picchu ... immerse them in a
+// seemingly new world"): the hour of the day follows the walk. Shared by the day/night walking maps (each one's patch brings this block
+// if it isn't in the game yet): colours keyed on the hour, a colour in the hour's light, the sky's bands, stars, a thin moon ----
+const dnRgb = (col, a) => (a == null ? `rgb(${Math.round(col[0])},${Math.round(col[1])},${Math.round(col[2])})` : `rgba(${Math.round(col[0])},${Math.round(col[1])},${Math.round(col[2])},${a})`);
+const dnLerp = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+// a colour from keys [[hour, [r, g, b]], ...], and a number from keys [[hour, v], ...]
+const dnKey = (keys, t) => { if (t <= keys[0][0]) return keys[0][1]; for (let i = 1; i < keys.length; i++) if (t <= keys[i][0]) return dnLerp(keys[i - 1][1], keys[i][1], (t - keys[i - 1][0]) / (keys[i][0] - keys[i - 1][0])); return keys[keys.length - 1][1]; };
+const dnNum = (keys, t) => { if (t <= keys[0][0]) return keys[0][1]; for (let i = 1; i < keys.length; i++) if (t <= keys[i][0]) return keys[i - 1][1] + (keys[i][1] - keys[i - 1][1]) * (t - keys[i - 1][0]) / (keys[i][0] - keys[i - 1][0]); return keys[keys.length - 1][1]; };
+// a light is { mul:keys, add:keys }; dnSet works out this hour's light once a frame into a map's state D; a colour in it is col * mul + add
+function dnSet(D, L, t) { D.t = t; D.m = dnKey(L.mul, t); D.a = dnKey(L.add, t); D.k = Math.round(t * 32); return D; }
+const dnV = (D, col) => [Math.min(255, col[0] * D.m[0] + D.a[0]), Math.min(255, col[1] * D.m[1] + D.a[1]), Math.min(255, col[2] * D.m[2] + D.a[2])];
+const dnC = (D, col, al) => dnRgb(dnV(D, col), al);
+// the sky from the top of the screen to the horizon: stops is [[position, keys], ...]
+function dnSky(c, HOR, t, stops) { const g = c.createLinearGradient(0, 0, 0, HOR); stops.forEach(([p, keys]) => g.addColorStop(p, dnRgb(dnKey(keys, t)))); c.fillStyle = g; c.fillRect(-400, 0, 1590, HOR + 2); }
+// stars at strength a (one fill), twinkling; a thin moon at strength a (its horns point away from dx)
+function dnStars(c, HOR, a, time, n = 80, sd = 0) { if (a <= 0.01) return; c.fillStyle = `rgba(255,250,235,${(0.85 * a).toFixed(3)})`; c.beginPath();
+  for (let i = 0; i < n; i++) { const x = -40 + wr(i * 3.1 + sd) * 470, y = wr(i * 7.7 + sd) * HOR * 0.78, r = 0.5 + wr(i * 1.3 + sd) * 0.9, tw = reduced ? 1 : 0.7 + 0.3 * Math.sin(time * (1 + wr(i) * 2) + i); c.rect(x, y, r * tw, r * tw); } c.fill(); }
+function dnMoon(c, x, y, r, a, dx = 0.45) { if (a <= 0.01) return; c.save(); c.beginPath(); c.rect(x - r * 1.6, y - r * 1.6, r * 3.2, r * 3.2); c.arc(x + r * dx, y - r * 0.28, r * 0.94, 0, 7, true); c.clip(); c.fillStyle = `rgba(255,244,214,${(0.92 * a).toFixed(3)})`; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore(); }
+// a person standing (h 1 = 30 px tall in a prop's own space) and a person sitting, added to the current path (people are black silhouettes)
+const dnSil = (c, x, y, h = 1) => { c.moveTo(x + 4.5 * h, y - 26 * h); c.arc(x, y - 26 * h, 4.5 * h, 0, 7); c.roundRect(x - 5.5 * h, y - 21 * h, 11 * h, 21 * h, 3 * h); };
+const dnSit = (c, x, y, h = 1) => { c.moveTo(x + 4.5 * h, y - 17 * h); c.arc(x, y - 17 * h, 4.5 * h, 0, 7); c.roundRect(x - 6 * h, y - 12 * h, 12 * h, 12 * h, 3 * h); };
+// ---- Stage 23 Cappadocia, round 3 (Version 598; owner, 11/11/26: "apply the day night cycles ... think deeply about how you can make each
+// stage feel extra special to a player arriving there ... a person who has been there should recognize the path and where they are, but
+// you can be creative and add that extra magic touch"): the morning the valley takes flight. The walk is the same streets of Uçhisar up
+// to the castle; the hour follows the walk. Level 1 is before dawn, under stars: the balloons lie in the fields being filled, their
+// burners lighting them from inside like lanterns. The east (the walker's right) warms, the sun clears the ridge at Level 13, and by
+// the castle the sky is full of balloons in morning light. Both testers: "the balloons really fly at dawn", so dusk was wrong here.
+// - Every colour is in the hour's light (capC); lamps and windows glow before dawn and go out as the sun comes up.
+// - Balloons: 49, each lying on the ground until its own moment, then climbing; five beside the path are filled and lift off as you
+//   pass; a few drift close before the castle at the finish. The sun's first light comes down the castle's rock from its summit.
+// - The ground: pale and rose swales of tuff, banded tuff ridges either side, Love Valley's tall pillars, terraces spread with kilims
+//   where people sit watching the sky, riders on horseback, pigeons wheeling out of the castle's dovecotes.
+// No writing, signs or flags; people are black silhouettes; the buildings are OpenStreetMap's. Staged: the pillars, terraces, riders
+// and filling fields stand where the map had room for them.
+const CAPP_LIGHT = { mul:[[0, [0.3, 0.33, 0.46]], [0.3, [0.48, 0.46, 0.58]], [0.5, [0.96, 0.76, 0.7]], [0.72, [1.03, 0.95, 0.86]], [1, [1, 1, 0.98]]], add:[[0, [8, 14, 42]], [0.3, [22, 16, 36]], [0.5, [20, 8, 12]], [0.72, [6, 4, 0]], [1, [4, 4, 4]]] };
+const CAP_HOR = [[0, [96, 74, 120]], [0.3, [250, 176, 130]], [0.5, [255, 214, 150]], [0.75, [255, 232, 196]], [1, [246, 236, 214]]];
+const CAP_SKY = [[0, [[0, [10, 14, 44]], [0.3, [26, 34, 92]], [0.5, [64, 100, 170]], [0.75, [78, 140, 216]], [1, [70, 138, 222]]]], [0.5, [[0, [22, 28, 72]], [0.3, [84, 76, 140]], [0.5, [170, 150, 190]], [0.75, [150, 192, 232]], [1, [136, 190, 238]]]],
+  [0.82, [[0, [52, 48, 104]], [0.3, [214, 130, 130]], [0.5, [255, 190, 140]], [0.75, [250, 220, 180]], [1, [214, 226, 232]]]], [1, CAP_HOR]];
+const CAPD = { t:0, m:[1, 1, 1], a:[0, 0, 0], k:-1 }, CAPP_W = CAPP_STY.walls.map(w => w.slice()), CAPP_R = CAPP_STY.roofs.map(w => w.slice());
+const CAPP_BALL2 = [[232, 64, 46], [242, 176, 42], [42, 122, 216], [58, 176, 106], [232, 106, 168], [138, 82, 216], [242, 232, 216], [255, 122, 42]];
+const capC = (col, al) => dnC(CAPD, col, al), capNight = () => clamp(1 - CAPD.t / 0.52), capSun = () => clamp((CAPD.t - 0.42) / 0.16);
+// the hour from where the walk stands; the theme's own colours and the houses' are remade when the hour moves a 32nd
+function capTime(th, camZ) { const end = walk && walk.ids ? (walk.ids.length - 1) * WK.gap : 62.4; dnSet(CAPD, CAPP_LIGHT, clamp(camZ / end)); if (th.capK === CAPD.k) return; th.capK = CAPD.k; const C = capC, n = capNight();
+  th.ground = [C([172, 142, 122]), C([198, 168, 142])]; th.path = [C([204, 182, 156]), C([228, 208, 182])]; th.edge = C([146, 118, 96]); th.steps = C([70, 50, 40], 0.2); th.dots = C([255, 236, 200], 0.5); th.stripe = C([255, 225, 190], 0.04); th.haze = dnRgb(dnKey(CAP_HOR, CAPD.t), 0.8);
+  th.oc = Object.assign({}, th.oc, { park:C([150, 140, 96]), kerb:C([146, 118, 96]), road:C([170, 140, 116]), main:C([170, 140, 116]) });
+  const S = th.bsty; S.walls = CAPP_W.map(w => dnV(CAPD, w)); S.roofs = CAPP_R.map(w => dnV(CAPD, w)); S.trim = dnV(CAPD, [232, 216, 192]); if (n > 0.03) { S.win = '255,200,130'; S.winA = +(0.12 + 0.78 * n).toFixed(2); } else { S.win = '86,62,52'; S.winA = 0.6; }
+  th.osm.blds.forEach(b => { b.wb = null; }); }
+// the sky: stars and a thin moon before dawn, the morning star, the sun rising on the right (the walk heads north, so east is to the
+// right), its rays, long clouds lit from below, two far ridges of tuff and the mist lying before them
+function capSky(c, HOR, time) { const t = CAPD.t, hz = dnKey(CAP_HOR, t); dnSky(c, HOR, t, CAP_SKY);
+  dnStars(c, HOR, clamp(1 - t / 0.42), time, 90, 5); dnMoon(c, 62, HOR * 0.36, 9, clamp(1 - t / 0.5)); if (t < 0.5) { c.fillStyle = `rgba(255,255,255,${clamp(1 - t / 0.5).toFixed(3)})`; c.fillRect(236, HOR * 0.52, 2.2, 2.2); }
+  const sx = 296, sy = HOR + 30 - clamp((t - 0.28) / 0.72) * 128, cy = Math.min(sy, HOR + 4), ga = clamp((t - 0.12) / 0.3);
+  if (ga > 0) { const r = 190, q = c.createRadialGradient(sx, cy, 0, sx, cy, r), w = 1 - 0.45 * clamp((t - 0.7) / 0.3); q.addColorStop(0, `rgba(255,224,170,${(0.85 * ga * w).toFixed(3)})`); q.addColorStop(0.3, `rgba(255,150,110,${(0.42 * ga * w).toFixed(3)})`); q.addColorStop(1, 'rgba(255,120,130,0)'); c.fillStyle = q; c.fillRect(sx - r, cy - r, r * 2, HOR + 2 - cy + r); }
+  if (sy < HOR + 13) { c.save(); c.beginPath(); c.rect(-400, 0, 1590, HOR); c.clip(); c.fillStyle = t < 0.62 ? '#fff0c8' : '#fffbe6'; c.beginPath(); c.arc(sx, sy, 13, 0, 7); c.fill(); c.restore(); }   /* only the part of it above the horizon */
+  if (t > 0.44 && t < 0.8) { const a = Math.sin((t - 0.44) / 0.36 * Math.PI) * 0.11; c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,214,150,${a.toFixed(3)})`; c.beginPath(); for (let i = 0; i < 7; i++) { const an = -3 + i * 0.36 + (reduced ? 0 : Math.sin(time * 0.1 + i) * 0.03); c.moveTo(sx, sy); c.lineTo(sx + Math.cos(an) * 440, sy + Math.sin(an) * 440); c.lineTo(sx + Math.cos(an + 0.11) * 440, sy + Math.sin(an + 0.11) * 440); c.closePath(); } c.fill(); c.restore(); }
+  const body = dnRgb(dnKey([[0, [40, 44, 84]], [0.3, [120, 84, 130]], [0.5, [214, 150, 160]], [1, [244, 240, 240]]], t)), lit = dnRgb(dnKey([[0, [66, 62, 110]], [0.3, [255, 150, 120]], [0.5, [255, 206, 150]], [1, [255, 252, 244]]], t));
+  [[30, 0.46, 150, 9], [190, 0.6, 130, 7], [-50, 0.28, 120, 8], [130, 0.2, 100, 6], [320, 0.34, 110, 7]].forEach(([x0, fy, w, h], i) => { const x = x0 + (reduced ? 0 : ((time * (1.2 + i * 0.3)) % 60) - 30) * 0.2, y = HOR * fy; c.fillStyle = body; c.beginPath(); c.ellipse(x, y, w / 2, h / 2, 0, 0, 7); c.fill(); c.fillStyle = lit; c.beginPath(); c.ellipse(x + w * 0.05, y + h * 0.22, w * 0.45, h * 0.26, 0, 0, 7); c.fill(); });
+  [[[168, 128, 140], 0.55, x => 11 + 7 * Math.sin(x * 0.021 + 1) + 5 * Math.sin(x * 0.047)], [[198, 152, 126], 0.3, x => 5.5 + 5 * Math.sin(x * 0.03 + 2.2) + 3 * Math.sin(x * 0.071)]].forEach(([col, h, top], j) => { c.fillStyle = dnRgb(dnLerp(dnV(CAPD, col), hz, h)); c.beginPath(); c.moveTo(-10, HOR + 2); for (let x = -10; x <= 400; x += 8) c.lineTo(x, HOR - Math.max(2, Math.min(top(x), j ? 9 : 16))); c.lineTo(400, HOR + 2); c.closePath(); c.fill(); });
+  const ma = 0.55 * Math.sin(Math.PI * clamp((t - 0.1) / 0.8)); if (ma > 0.01) { const q = c.createLinearGradient(0, HOR - 20, 0, HOR + 2); q.addColorStop(0, dnRgb(hz, 0)); q.addColorStop(1, dnRgb(hz, ma.toFixed(3))); c.fillStyle = q; c.fillRect(-400, HOR - 20, 1590, 22); } }
+// the ground: the sky first (over the stage picture's dusk), then the tuff's pale and rose swales lying along the valley, fixed to the
+// ground (two fills)
+function capGround(c, o, P, zNear, zFar, camZ, time) { capTime(walk.th, camZ); capSky(c, P(0, camZ + 1e6).y, time);
+  const far = camZ + 26 * MAPV(), zc = camZ - WALK_NEAR + 0.1, A = [], B = [];
+  for (let z = Math.floor((camZ - 4) / 3) * 3; z < far; z += 3) for (let s = 0; s < 6; s++) { const k = Math.round(z / 3) * 7 + s, sd = s % 2 ? 1 : -1, x = walkPx(Math.min(z, 62.4)) + sd * (2.6 + wr(k * 2.3) * 22), zz = z + wr(k * 3.1) * 3, hl = 2 + wr(k * 5.7) * 3.5, w = 0.7 + wr(k * 4.9) * 1.7; if (zz + hl < zc + 0.5) continue;
+    const a = P(x, Math.max(zc, zz - hl)), b = P(x, zz + hl), l = P(x - w, Math.max(zc, zz)), r = P(x + w, Math.max(zc, zz)); if (a && b && l && r) (s % 3 === 0 ? B : A).push([a, l, b, r]); }
+  [[A, capC([224, 198, 168], 0.5)], [B, capC([206, 150, 138], 0.42)]].forEach(([arr, col]) => { if (!arr.length) return; c.fillStyle = col; c.beginPath(); arr.forEach(([a, l, b, r]) => { c.moveTo(a.x, a.y); c.quadraticCurveTo(l.x, l.y, b.x, b.y); c.quadraticCurveTo(r.x, r.y, a.x, a.y); }); c.fill(); }); }
+// a balloon's envelope, its ropes and its burner (the basket is the caller's): the burner lights it from inside before dawn; the
+// sunrise catches its east side
+function capBal(c, x, y, R, c1, c2, burn) { const n = capNight(), su = capSun();
+  c.fillStyle = c1; c.beginPath(); c.moveTo(x - R * 0.42, y + R * 0.8); c.bezierCurveTo(x - R * 1.15, y + R * 0.1, x - R * 1.05, y - R * 1.15, x, y - R * 1.15); c.bezierCurveTo(x + R * 1.05, y - R * 1.15, x + R * 1.15, y + R * 0.1, x + R * 0.42, y + R * 0.8); c.closePath(); c.fill();
+  c.fillStyle = c2; c.beginPath(); c.ellipse(x, y - R * 0.15, R * 0.34, R * 0.98, 0, 0, 7); c.fill();
+  if (su > 0) { c.fillStyle = `rgba(255,238,200,${(0.28 * su).toFixed(3)})`; c.beginPath(); c.ellipse(x + R * 0.5, y - R * 0.3, R * 0.26, R * 0.62, -0.2, 0, 7); c.fill(); }
+  c.strokeStyle = capC([70, 50, 40]); c.lineWidth = Math.max(0.6, R * 0.04); c.beginPath(); c.moveTo(x - R * 0.4, y + R * 0.82); c.lineTo(x - R * 0.16, y + R * 1.18); c.moveTo(x + R * 0.4, y + R * 0.82); c.lineTo(x + R * 0.16, y + R * 1.18); c.stroke();
+  if (burn > 0.25) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, x, y + R * 0.1, R * 1.2, '255,170,80', burn * (0.12 + 0.5 * n)); jakGlow(c, x, y + R * 0.95, R * 0.7, '255,170,70', 0.7 * burn); c.fillStyle = '#ffd890'; c.beginPath(); c.ellipse(x, y + R * 0.98, R * 0.07, R * 0.18 * burn, 0, 0, 7); c.fill(); c.restore(); } }
+// the balloons over the valley: each lies on the ground, its burner flaring, until its own moment, then climbs (the hour moves with the
+// walk, so they rise as you go); far ones are a dot, lit when the burner fires before dawn
+function capBalls(o) { if (o.balls3) return o.balls3; const end = walk && walk.ids ? (walk.ids.length - 1) * WK.gap : 62.4, out = [];
+  for (let k = 0; k < 44; k++) { const z = -2 + wr(k * 3.7) * (end + 76), sd = wr(k * 1.9) < 0.5 ? -1 : 1; out.push({ x:walkPx(Math.min(z, end)) + sd * (3.2 + wr(k * 2.3) * 24), z, r:wr(k * 5.1), c1:Math.floor(wr(k * 7.3) * 8), c2:Math.floor(wr(k * 9.7) * 8), t0:0.14 + wr(k * 4.3) * 0.46, top:34 + wr(k * 6.1) * 78 }); }
+  [[-2.8, 5.3, 30, 0.6, 0.6], [3, 4.6, 40, 0.66, 0.55], [-6, 4.5, 34, 0.5, 1], [8.5, 4, 28, 0.56, 1], [-10, 5, 48, 0.53, 1]].forEach(([dx, dz, top, t0, sz], k) => out.push({ x:walkPx(end) + dx, z:end + dz, r:wr(k * 8.7 + 3), c1:(k * 3 + 1) % 8, c2:(k * 5 + 4) % 8, t0, top, sz }));
+  return (o.balls3 = out); }
+function capBalAt(c, b, P, time, glows) { const t = CAPD.t, up = clamp((t - b.t0) / 0.34), e = up * up * (3 - 2 * up), alt = 15.5 + b.top * e + (reduced ? 0 : 3 * e * Math.sin(time * 0.2 + b.r * 40)), p = P(b.x + (reduced ? 0 : e * 0.5 * Math.sin(time * 0.04 + b.r * 20)), b.z); if (!p) return;
+  const U = WK.X * p.s, y = p.y - alt / 6 * U, R = Math.max(1.5, 1.9 * U * (b.sz || 1)); if (y < -R * 2 || p.x < -R * 2 || p.x > 390 + R * 2) return;
+  const burn = reduced ? 0.7 : Math.max(0, Math.sin(time * (e < 1 ? 2.1 : 1.3) + b.r * 30));
+  if (R < 4) { c.fillStyle = capC(CAPP_BALL2[b.c1]); c.beginPath(); c.arc(p.x, y, R, 0, 7); c.fill(); if (burn > 0.5 && glows) glows.push([p.x, y, R]); return; }
+  capBal(c, p.x, y, R, capC(CAPP_BALL2[b.c1]), capC(CAPP_BALL2[b.c2]), burn); c.fillStyle = capC([122, 86, 56]); c.fillRect(p.x - R * 0.17, y + R * 1.16, R * 0.34, R * 0.22); }
+// Uçhisar Castle: the crag with its tall pinnacle and lower shoulder, the side away from the sunrise in shade, the flutes the rain has
+// cut, the beds of tuff, the sun's first light coming down it from the summit; its cave rooms (doors, windows, whitewashed dovecotes;
+// a share lit before dawn); terraces with kilims at its foot, people out to watch, a few on the summit
+const CAP_CAVES = (() => { const out = []; for (let k = 0; k < 64; k++) { const h = 3 + wr(k * 3.1) * 55, a = dnNum([[0, -36], [20, -31], [34, -26], [44, -15], [56, -5], [64, 0]], h), b = dnNum([[0, 40], [20, 33], [34, 28], [40, 19], [56, 10], [64, 5]], h), ty = wr(k * 9.1);
+  out.push([a + 3 + wr(k * 5.3) * Math.max(0, b - a - 6), h, 1.3 + wr(k * 7.7) * 1.3, 1.8 + wr(k * 2.9) * 1.6, ty < 0.26 ? 2 : ty < 0.5 ? 1 : 0, wr(k * 4.7) < 0.32]); } return out; })();
+function capCastle(c, o, P, time) { const [x, z] = o.castle, p = P(x, z); if (!p || p.dp < 0.5) return; const U = WK.X * p.s, X = d => p.x + d / 6 * U, Y = m => p.y - m / 6 * U, t = CAPD.t, n = capNight();
+  if (n > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, p.x, Y(16), 9 * U, '255,180,120', 0.34 * n); c.restore(); }
+  const shape = () => { c.beginPath(); c.moveTo(X(-40), Y(0)); c.bezierCurveTo(X(-42), Y(16), X(-32), Y(24), X(-28), Y(34)); c.bezierCurveTo(X(-26), Y(42), X(-22), Y(45), X(-17), Y(45)); c.lineTo(X(-12), Y(43)); c.bezierCurveTo(X(-8), Y(52), X(-4), Y(62), X(2), Y(66)); c.lineTo(X(6), Y(65)); c.bezierCurveTo(X(12), Y(58), X(14), Y(48), X(17), Y(40)); c.lineTo(X(21), Y(36)); c.lineTo(X(25), Y(42)); c.lineTo(X(29), Y(41)); c.bezierCurveTo(X(33), Y(30), X(40), Y(16), X(44), Y(0)); c.closePath(); };
+  const g = c.createLinearGradient(0, Y(66), 0, Y(0)); g.addColorStop(0, capC([206, 176, 150])); g.addColorStop(0.55, capC([222, 190, 156])); g.addColorStop(1, capC([236, 204, 164])); shape(); c.fillStyle = g; c.fill();
+  c.save(); shape(); c.clip();
+  c.fillStyle = capC([70, 46, 50], 0.26); c.beginPath(); c.moveTo(X(-44), Y(0)); c.lineTo(X(-30), Y(40)); c.lineTo(X(-10), Y(48)); c.lineTo(X(0), Y(68)); c.lineTo(X(-4), Y(40)); c.lineTo(X(-14), Y(20)); c.lineTo(X(-16), Y(0)); c.closePath(); c.fill();
+  c.strokeStyle = capC([110, 80, 70], 0.3); c.lineWidth = Math.max(0.7, 0.07 * U); c.beginPath(); for (let k = 0; k < 14; k++) { const d = -34 + k * 5.6 + wr(k * 3.3) * 3, h0 = 6 + wr(k * 5.1) * 10, h1 = h0 + 14 + wr(k * 7.7) * 20; c.moveTo(X(d), Y(h1)); c.quadraticCurveTo(X(d + 1.5), Y((h0 + h1) / 2), X(d - 1), Y(h0)); } c.stroke();
+  c.strokeStyle = capC([250, 232, 204], 0.3); c.beginPath(); [12, 27, 39].forEach(h => { c.moveTo(X(-44), Y(h)); c.bezierCurveTo(X(-20), Y(h + 2), X(10), Y(h - 2), X(46), Y(h + 1)); }); c.stroke();
+  if (t > 0.36) { const yT = lerp(66, -6, clamp((t - 0.36) / 0.3)), a = 0.5 * clamp((t - 0.36) / 0.1) * (1 - 0.6 * clamp((t - 0.72) / 0.28)), q = c.createLinearGradient(0, Y(yT + 8), 0, Y(yT)); q.addColorStop(0, `rgba(255,170,110,${a.toFixed(3)})`); q.addColorStop(1, 'rgba(255,170,110,0)'); c.fillStyle = q; c.fillRect(X(-2), Y(70), X(48) - X(-2), Y(yT) - Y(70)); }
+  const dark = [], lit = [], dove = []; CAP_CAVES.forEach(([d, h, w, hh, ty, on]) => { const a = X(d), b = Y(h), ww = w / 6 * U, hp = hh / 6 * U; if (ty === 2) dove.push([a, b, ww * 1.5, hp]); else (on && n > 0.03 ? lit : dark).push([a, b, ww, hp, ty]); });
+  const holes = arr => { c.beginPath(); arr.forEach(([a, b, w, h, ty]) => { if (ty) c.rect(a - w / 2, b - h * 0.7, w, h * 0.7); else { c.moveTo(a - w / 2, b); c.lineTo(a - w / 2, b - h * 0.7); c.arc(a, b - h * 0.7, w / 2, Math.PI, 0); c.lineTo(a + w / 2, b); c.closePath(); } }); c.fill(); };
+  c.fillStyle = capC([240, 230, 212]); c.beginPath(); dove.forEach(([a, b, w, h]) => c.rect(a - w / 2, b - h, w, h)); c.fill();
+  c.fillStyle = capC([70, 52, 48]); holes(dark); c.beginPath(); dove.forEach(([a, b, w, h]) => { for (let i = 0; i < 3; i++) c.rect(a - w * 0.36 + i * w * 0.27, b - h * 0.62, w * 0.16, h * 0.28); }); c.fill();
+  if (lit.length) { c.fillStyle = `rgba(255,207,128,${(0.2 + 0.8 * n).toFixed(2)})`; holes(lit); }
+  c.restore();
+  const m = U / 6; c.fillStyle = capC([200, 170, 140]); c.beginPath(); [[-38, 5, 30], [22, 8, 22], [-12, 2.5, 30]].forEach(([a, h, w]) => c.rect(X(a), Y(h), w * m, 1.4 * m)); c.fill();
+  c.fillStyle = capC([176, 50, 44]); c.beginPath(); [[-30, 5], [-6, 2.5], [30, 8]].forEach(([a, h]) => c.rect(X(a), Y(h), 3 * m, 2.2 * m)); c.fill(); c.fillStyle = capC([40, 88, 146]); c.beginPath(); [[-22, 5], [6, 2.5], [37, 8]].forEach(([a, h]) => c.rect(X(a), Y(h), 3 * m, 2.2 * m)); c.fill();
+  if (U > 10) { const hS = U / 106; c.fillStyle = SIL_COL; c.beginPath(); [[-34, 5], [-26, 5], [-17, 5], [-9, 2.5], [1, 2.5], [13, 2.5], [25, 8], [33, 8], [41, 8]].forEach(([a, h]) => dnSil(c, X(a), Y(h), hS)); if (t > 0.34) [[1.5, 66], [4.5, 65.3], [-15, 45]].forEach(([a, h]) => dnSil(c, X(a), Y(h), hS)); c.fill(); } }
+// pigeons wheeling out of the dovecotes once the light comes (one stroke)
+function capPigeons(c, o, P, time) { const t = CAPD.t; if (t < 0.4) return; const [x, z] = o.castle, p = P(x, z); if (!p || p.dp < 0.5) return; const U = WK.X * p.s, a = clamp((t - 0.4) / 0.1), cx = p.x + 2 * U, cy = p.y - 8.5 * U, tm = reduced ? 3 : time;
+  c.strokeStyle = capC([250, 246, 238], +(0.9 * a).toFixed(2)); c.lineWidth = Math.max(0.8, 0.035 * U); c.lineCap = 'round'; c.beginPath();
+  for (let i = 0; i < 16; i++) { const ph = tm * 0.45 + i * 0.37 + wr(i) * 0.8, rx = (5 + wr(i * 3.1) * 4) * U, bx = cx + Math.cos(ph) * rx, by = cy + Math.sin(ph * 1.7 + i) * 1.6 * U - Math.sin(ph) * 1.2 * U, s = Math.max(1.6, 0.16 * U) * (0.8 + 0.4 * wr(i * 5.3)), f = Math.sin(tm * 9 + i * 2) * 0.5; c.moveTo(bx - s, by - s * (0.3 + f)); c.lineTo(bx, by); c.lineTo(bx + s, by - s * (0.3 + f)); }
+  c.stroke(); }
+function capMore(list, c, o, P, camZ, time) { const far = 30 * MAPV(), cz = o.castle[1], one = f => () => { const ga = c.globalAlpha; c.globalAlpha = 1; f(); c.globalAlpha = ga; };
+  walkBlds(list, c, o, P, camZ, time);
+  list.push({ dp:Math.min(far - 1.2, cz - camZ), f:one(() => capCastle(c, o, P, time)) }); list.push({ dp:Math.min(far - 1.3, cz - camZ - 0.3), f:one(() => capPigeons(c, o, P, time)) });
+  // the balloons beyond the castle are drawn together behind everything; each nearer one takes its place among the houses and chimneys
+  const back = []; capBalls(o).forEach(b => { const d = b.z - camZ; if (d < 1.5 || d > far + 34) return; if (b.z > cz - 0.5 || d > far - 1.25) back.push(b); else list.push({ dp:d, f:one(() => capBalAt(c, b, P, time, null)) }); });
+  list.push({ dp:far - 0.2, f:one(() => { const glows = [], n = capNight(); back.sort((a, b) => b.z - a.z).forEach(b => capBalAt(c, b, P, time, glows)); if (glows.length && n > 0.05) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,180,90,${(0.7 * n).toFixed(3)})`; c.beginPath(); glows.forEach(([x, y, R]) => { c.moveTo(x + R * 1.6, y); c.arc(x, y, R * 1.6, 0, 7); }); c.fill(); c.restore(); } }) }); }
+// (round 3's props have their own names, so the earlier rounds' drawings are never taken over)
+Object.assign(JAK_PROPS, {
+  // a fairy chimney: a cone of tuff with its dark basalt cap; shaded on the side away from the sunrise, warm on the side toward it
+  cchim3(c, p) { const h = 120 + p.r * 120, w = 30 + p.r * 22, n = capNight(), su = capSun();
+    c.fillStyle = capC([[216, 184, 150], [207, 168, 134], [224, 196, 160]][Math.floor(p.r * 3)]); c.beginPath(); c.moveTo(-w, 0); c.quadraticCurveTo(-w * 0.55, -h * 0.5, -w * 0.25, -h); c.lineTo(w * 0.25, -h); c.quadraticCurveTo(w * 0.55, -h * 0.5, w, 0); c.closePath(); c.fill();
+    c.fillStyle = capC([96, 64, 60], 0.3); c.beginPath(); c.moveTo(-w * 0.2, -h); c.quadraticCurveTo(-w * 0.5, -h * 0.5, -w, 0); c.lineTo(-w * 0.3, 0); c.closePath(); c.fill();
+    if (su > 0) { c.fillStyle = `rgba(255,196,130,${(0.4 * su * (1 - 0.5 * clamp((CAPD.t - 0.7) / 0.3))).toFixed(3)})`; c.beginPath(); c.moveTo(w * 0.25, -h); c.quadraticCurveTo(w * 0.55, -h * 0.5, w, 0); c.lineTo(w * 0.45, 0); c.quadraticCurveTo(w * 0.3, -h * 0.5, w * 0.1, -h); c.closePath(); c.fill(); }
+    c.fillStyle = capC([84, 64, 58]); c.beginPath(); c.moveTo(-w * 0.55, -h - 2); c.quadraticCurveTo(0, -h - 30, w * 0.55, -h - 2); c.quadraticCurveTo(0, -h + 6, -w * 0.55, -h - 2); c.fill();
+    if (p.r > 0.4) { c.fillStyle = p.r > 0.7 && n > 0.03 ? `rgba(255,207,128,${(0.25 + 0.75 * n).toFixed(2)})` : capC([70, 52, 46]); c.fillRect(-5, -h * 0.45, 10, 14); } },
+  // an iron lamp, lit before dawn
+  clamp3(c) { const n = capNight(); c.fillStyle = capC([60, 50, 46]); c.fillRect(-2, -70, 4, 70); if (n > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -72, 22, '255,200,130', 0.7 * n); c.restore(); } c.fillStyle = n > 0.02 ? dnRgb(dnLerp([150, 140, 130], [255, 226, 168], n)) : capC([150, 140, 130]); c.fillRect(-4, -78, 8, 10); },
+  // a pottery and carpet stall
+  cstall3(c, p) { const n = capNight(); c.fillStyle = capC([110, 76, 58]); c.fillRect(-30, -26, 60, 26); c.fillStyle = capC([[176, 52, 44], [44, 94, 144], [206, 144, 44]][Math.floor(p.r * 3)]); c.fillRect(-36, -50, 10, 50); c.fillStyle = capC([130, 46, 46]); c.fillRect(-24, -46, 8, 46);
+    c.fillStyle = capC([190, 90, 46]); c.beginPath(); [-6, 6, 18].forEach(x => { c.moveTo(x + 6, -32); c.ellipse(x, -32, 6, 7, 0, 0, 7); }); c.fill(); if (n > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -36, 36, '255,200,130', 0.45 * n); c.restore(); } },
+  // a bank of banded tuff: cream over rose over white, its top worn into humps (three fills and its shade)
+  cridge(c, p) { const h = 50 + p.r * 80, w = 130 + wr(p.r * 31) * 90, N = 8, top = i => -h * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.9 + p.r * 20))) * Math.sqrt(Math.max(0, Math.sin(Math.PI * (i + 0.35) / (N + 0.7))));
+    const band = (f, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(-w, 0); c.lineTo(-w, top(0) * f); for (let i = 1; i <= N; i++) { const x = -w + 2 * w * i / N; c.quadraticCurveTo(x - w / N, top(i - 0.5) * f, x, top(i) * f); } c.lineTo(w, 0); c.closePath(); c.fill(); };
+    band(1, capC([228, 204, 172])); band(0.66, capC([212, 158, 140])); band(0.36, capC([238, 224, 200]));
+    c.fillStyle = capC([90, 60, 60], 0.22); c.beginPath(); c.moveTo(-w, 0); c.lineTo(-w, top(0)); c.quadraticCurveTo(-w * 0.8, top(1), -w * 0.5, top(2)); c.lineTo(-w * 0.3, 0); c.closePath(); c.fill(); },
+  // Love Valley's pillars: three tall shafts of pale tuff, each under its rounded cap
+  cpill(c, p) { const su = capSun(); [[-34, 0.8], [6, 1], [44, 0.68]].forEach(([x, f], i) => { const h = (200 + p.r * 90) * f, w = 13 * f + 4;
+    c.fillStyle = capC(i % 2 ? [226, 204, 176] : [216, 190, 160]); c.beginPath(); c.moveTo(x - w * 1.5, 0); c.quadraticCurveTo(x - w * 0.9, -h * 0.4, x - w * 0.8, -h); c.lineTo(x + w * 0.8, -h); c.quadraticCurveTo(x + w * 0.9, -h * 0.4, x + w * 1.5, 0); c.closePath(); c.fill();
+    c.fillStyle = capC([96, 64, 60], 0.28); c.beginPath(); c.moveTo(x - w * 1.5, 0); c.quadraticCurveTo(x - w * 0.9, -h * 0.4, x - w * 0.8, -h); c.lineTo(x - w * 0.2, -h); c.quadraticCurveTo(x - w * 0.4, -h * 0.4, x - w * 0.6, 0); c.closePath(); c.fill();
+    c.fillStyle = capC([120, 96, 84]); c.beginPath(); c.ellipse(x, -h - w * 0.5, w * 1.5, w * 0.95, 0, 0, 7); c.fill();
+    if (su > 0) { c.fillStyle = `rgba(255,200,140,${(0.35 * su).toFixed(3)})`; c.beginPath(); c.ellipse(x + w * 0.5, -h - w * 0.7, w * 0.8, w * 0.45, 0, 0, 7); c.fill(); } }); },
+  // a terrace spread with kilims and cushions, a low table, a lantern, people sitting to watch the sky
+  cterr(c, p) { const n = capNight(); c.fillStyle = capC([186, 156, 128]); c.fillRect(-74, -24, 148, 24); c.fillStyle = capC([214, 188, 158]); c.fillRect(-78, -29, 156, 6);
+    [[-60, [176, 50, 44]], [-18, [40, 88, 146]], [26, [206, 146, 46]]].forEach(([x, col], i) => { c.fillStyle = capC(col); c.fillRect(x, -27, 34, 22); c.fillStyle = capC([240, 226, 200]); c.fillRect(x + 3, -20, 28, 2.5); c.fillRect(x + 3, -12, 28, 2.5); c.fillStyle = capC(i === 1 ? [206, 146, 46] : [40, 88, 146]); c.fillRect(x + 13, -17, 8, 4.5); });
+    c.fillStyle = capC([170, 60, 60]); c.beginPath(); c.ellipse(-52, -32, 9, 4, 0, 0, 7); c.fill(); c.fillStyle = capC([60, 100, 150]); c.beginPath(); c.ellipse(4, -32, 9, 4, 0, 0, 7); c.fill(); c.fillStyle = capC([120, 84, 60]); c.fillRect(34, -37, 18, 3); c.fillRect(41, -34, 4, 6);
+    c.fillStyle = SIL_COL; c.beginPath(); dnSit(c, -40, -29); dnSit(c, -18, -29, 0.95); dnSit(c, 20, -29); if (p.r > 0.4) dnSit(c, 60, -29, 0.9); c.fill();
+    c.fillStyle = capC([60, 50, 46]); c.fillRect(-70, -47, 3, 18); c.fillStyle = n > 0.02 ? '#ffe2a8' : capC([170, 160, 150]); c.fillRect(-72.5, -54, 8, 8); if (n > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, -68.5, -50, 20, '255,200,130', 0.6 * n); c.restore(); } },
+  // a balloon being filled beside the path: it lies flat on the ground, swells and stands as you come up to it (its burner roaring, its
+  // crew holding it down), and lifts off a stop before you reach it, gone into the sky by the time you pass (a prop fades as the camera
+  // passes it, and a balloon must never hang there see-through)
+  cinfl(c, p, time) { const t = CAPD.t, u = clamp((t - (p.zr - 0.27)) / 0.16), e = u * u * (3 - 2 * u), lift = Math.max(0, t - (p.zr - 0.075)) * 9000; if (lift > 1500) return;
+    const burn = reduced ? 0.8 : 0.45 + 0.55 * Math.max(0, Math.sin(time * 2.1 + p.r * 9)), R = 58, k = Math.floor(p.r * 8) % 8;
+    if (lift < 40) { c.fillStyle = SIL_COL; c.beginPath(); dnSil(c, -34, 0); dnSil(c, 30, 0, 0.95); if (e < 0.6) dnSil(c, 58, 0, 0.9); c.fill(); }
+    c.save(); c.translate(0, -lift); c.fillStyle = capC([122, 86, 56]); c.fillRect(-11, -16, 22, 16); c.translate(0, -16); c.rotate(-(1 - e) * 1.32); c.scale(1, 0.55 + 0.45 * e); capBal(c, 0, -R * 1.2, R, capC(CAPP_BALL2[k]), capC(CAPP_BALL2[(k + 3) % 8]), burn * (0.4 + 0.6 * e)); c.restore(); },
+  // riders out at first light: three horses in file, heading for the sunrise
+  chorse(c, p, time) { [[-70, [140, 96, 60]], [-6, [236, 226, 208]], [58, [70, 50, 40]]].forEach(([x, col], i) => { const st = reduced ? 0 : Math.sin(time * 2.2 + i * 1.3) * 3; c.fillStyle = capC(col);
+    c.beginPath(); c.ellipse(x, -34, 22, 10, 0, 0, 7); c.fill(); c.fillRect(x - 17, -30, 4, 30 - Math.max(0, st)); c.fillRect(x - 9, -30, 4, 30 - Math.max(0, -st)); c.fillRect(x + 9, -30, 4, 30 - Math.max(0, -st)); c.fillRect(x + 15, -30, 4, 30 - Math.max(0, st)); c.fillRect(x - 24, -40, 3, 16);
+    c.beginPath(); c.moveTo(x + 14, -38); c.lineTo(x + 26, -58); c.lineTo(x + 38, -54); c.lineTo(x + 40, -48); c.lineTo(x + 30, -48); c.lineTo(x + 22, -30); c.closePath(); c.fill();
+    c.fillStyle = SIL_COL; c.beginPath(); c.moveTo(x + 5.5, -64); c.arc(x + 1, -64, 4.5, 0, 7); c.roundRect(x - 5, -59, 11, 20, 3); c.rect(x - 2, -42, 5, 14); c.fill(); }); },
+});
+// the houses: an arched doorway cut in the tuff and a kilim hung over the terrace wall, on each one's longest wall in view
+const CAPP_STY3 = Object.assign({}, CAPP_STY, { deco(c, b, vis, wp, wallH, r) { let w = null; vis.forEach(v => { if (v.L > 5 && (!w || v.L > w.L)) w = v; }); if (!w || b.h < 3) return;
+  const q = (t0, t1, h0, h1) => { const a = wp(w, t0, h0), bb = wp(w, t1, h0), cc = wp(w, t1, h1), d = wp(w, t0, h1); c.moveTo(a.x, a.y); c.lineTo(bb.x, bb.y); c.lineTo(cc.x, cc.y); c.lineTo(d.x, d.y); c.closePath(); };
+  c.fillStyle = capC([78, 56, 50]); c.beginPath(); q(0.16, 0.26, 0, 1.9); { const m = wp(w, 0.21, 2.5), a = wp(w, 0.16, 1.9), bb = wp(w, 0.26, 1.9); c.moveTo(a.x, a.y); c.lineTo(m.x, m.y); c.lineTo(bb.x, bb.y); c.closePath(); } c.fill();
+  c.fillStyle = capC([[176, 50, 44], [40, 88, 146], [206, 146, 46]][r.h % 3]); c.beginPath(); q(0.56, 0.7, b.h - 2.4, b.h); c.fill(); c.fillStyle = capC([240, 226, 200]); c.beginPath(); q(0.575, 0.685, b.h - 1.5, b.h - 1.25); q(0.575, 0.685, b.h - 0.85, b.h - 0.6); c.fill(); } });
+function capProps(th, n) { const o = th.osm, out = [], end = (n - 1) * WK.gap, cx = o.castle[0];
+  const near = (x, z, r) => o.blds.some(b => { for (let i = 0; i < b.p.length; i += 2) if (Math.abs(b.p[i] - x) < r && Math.abs(b.p[i + 1] - z) < r) return true; return false; }), side = (z, d, r = 1.6) => { const x = walkPx(Math.min(z, end)); return !near(x + d, z, r) ? x + d : !near(x - d, z, r) ? x - d : null; };
+  capTime(th, 0); ['cterr', 'chorse'].forEach(k => FAR_SKIP.add(k));   // small things, left out far off on the Far view
+  // the camera keeps this stop and the next in the middle (the path swings 17 m sideways between Levels 10-12 and 22-23: fitted to the path
+  // behind as well, the next stop stood on the screen's edge; both testers: "markers ... half cut off")
+  WALK_CAM.cappadocia = { frame:0 };
+  // fairy chimneys: on OpenStreetMap's bare rock, then across the slopes either side, clear of the houses near the street
+  o.rocks.forEach((f, i) => { let x = 0, z = 0; const m = f.length / 2; for (let j = 0; j < f.length; j += 2) { x += f[j] / m; z += f[j + 1] / m; } if (Math.abs(x - walkPx(z)) > 1.6) out.push({ z, x, kind:'cchim3', r:wr(i * 3.3) }); });
+  for (let z = -4, k = 0; z < end + 30; z += 1.7 + wr(k) * 1.6, k++) { const sd = wr(k * 1.9) < 0.5 ? -1 : 1, x = walkPx(Math.min(z, end)) + sd * (2.6 + wr(k * 2.7) * 10); out.push({ z, x, kind:'cchim3', r:wr(k * 4.1) }); }
+  // banks of banded tuff across the slopes, clear of the houses and of the castle's foot
+  for (let z = -3, k = 0; z < end + 36; z += 2.2, k++) [-1, 1].forEach(sd => { const x = walkPx(Math.min(z, end)) + sd * (5.5 + wr(k * 3.9 + sd) * 13); if (!near(x, z, 2.2) && !(z > end + 1 && Math.abs(x - cx) < 9)) out.push({ z:z + wr(k * 1.7 + sd) * 1.5, x, kind:'cridge', r:wr(k * 6.7 + sd * 2) }); });
+  for (let z = 0.5, k = 0; z < end + 4; z += 3.4, k++) out.push({ z, x:walkPx(z) + (k % 2 ? 0.8 : -0.8), kind:'clamp3', r:0 });
+  for (let z = 5, k = 0; z < end; z += 8 + wr(k) * 3, k++) out.push({ z, x:walkPx(z) + (k % 2 ? 1.05 : -1.05), kind:'cstall3', r:wr(k * 6.1) });
+  for (let z = 0.8, k = 0; z < end + 3; z += 1.7 + wr(k) * 1.3, k++) out.push({ z, x:walkPx(z) + (k % 2 ? 0.66 : -0.68), kind:'bfolk', r:wr(k * 7.3) });
+  for (let k = 0; k < 6; k++) { const z = end + 2 + k * 0.9, sd = k % 2 ? 1 : -1; out.push({ z, x:walkPx(Math.min(z, end)) + sd * (1.3 + (k % 3) * 0.4), kind:k % 3 === 0 ? 'clamp3' : 'bfolk', r:wr(k * 9.3) }); }
+  // terraces spread with kilims, people sitting to watch the sky: mid-walk, and under the castle at the finish
+  [21, 26.5, 32, 37.5, 47].forEach((z, k) => { const x = side(z, k % 2 ? 1.75 : -1.75, 1.5); if (x != null) out.push({ z, x, kind:'cterr', r:wr(k * 3.3) }); });
+  out.push({ z:end + 2.3, x:walkPx(end) - 2.2, kind:'cterr', r:0.7 }, { z:end + 3.2, x:walkPx(end) + 2.3, kind:'cterr', r:0.2 });
+  // balloons being filled in the fields beside the path
+  [5.6, 10.4, 15.8, 21.4, 27.5].forEach((z, k) => { const x = side(z, k % 2 ? -3 : 3, 2.2); if (x != null) out.push({ z, x, kind:'cinfl', r:wr(k * 7.1 + 2), zr:z / end }); });
+  // Love Valley's tall pillars, and riders out at first light
+  [23.5, 29, 34.5, 40].forEach((z, k) => { const x = side(z, k % 2 ? 3.4 : -3.6, 1.8); if (x != null) out.push({ z, x, kind:'cpill', r:wr(k * 5.9) }); });
+  { const x = side(43.5, 3.6, 1.8); if (x != null) out.push({ z:43.5, x, kind:'chorse', r:0 }); }
+  // the game's own Balloon Ride on a field beside the village, its burner glowing
+  out.push({ z:30, x:walkPx(30) - 3.6, kind:'cosm', key:'balloonride', n:3, sc:0.7, glow:'255,170,90', r:0 });
+  return out; }
+Object.assign(WALK_THEMES.cappadocia, { oprops:capProps, obb:capMore, oground:capGround, bsty:CAPP_STY3 });
+// ---- Stage 13 Santorini, round 3 (Version 599; owner, 11/11/26: "apply the day night cycles ... think deeply about how you can make each
+// stage feel extra special to a player arriving there ... a person who has been there should recognize the path and where they are, but
+// you can be creative and add that extra magic touch"): the Oia sunset, walked. The lane is the same (Oia's marble lane west along the
+// caldera's rim to the castle); the hour follows the walk. Level 1 is bright late afternoon: white walls, cobalt domes, a deep blue
+// caldera. The sun sinks stop by stop, the walls turn gold then rose, and it touches the sea at Levels 21-22, where the crowd at the
+// castle raises its arms and claps (as people really do); by Level 25 it is blue hour, the lamps and windows coming on one by one.
+// Both testers asked for exactly this ("The sunset is the event, so it should happen during the walk, not hang fixed all the way").
+// - Every colour is in the hour's light (sanC): the houses, the cliff's bands, the sea, the island.
+// - Their fixes: the inland side is a village now (white houses in rows, fields and the north coast's sea beyond), not a grey plain;
+//   far houses are solid (mixed toward the haze, never see-through); the caldera is deep blue; sailing boats and catamarans gather
+//   under Oia for the sunset, a cruise ship at anchor; a blue-domed church with its bell gable right on the rim at Level 11; donkeys
+//   on the lane; taverna terraces with blue chairs; the camera keeps this stop and the next in the middle (Level 25 stood at the edge).
+// No writing, signs or flags; people are black silhouettes. Staged: the sun sets over open water ahead on the left (Thirasia is drawn
+// only to its left), the church, the tavernas and the donkeys stand where the lane has room.
+const SAN_LIGHT = { mul:[[0, [1.02, 0.98, 0.9]], [0.5, [1.04, 0.9, 0.76]], [0.74, [1.02, 0.72, 0.6]], [0.82, [0.9, 0.6, 0.6]], [0.9, [0.6, 0.5, 0.66]], [1, [0.36, 0.38, 0.58]]], add:[[0, [4, 2, 0]], [0.5, [8, 4, 4]], [0.74, [14, 6, 10]], [0.82, [20, 10, 24]], [0.9, [22, 16, 36]], [1, [14, 18, 46]]] };
+const SAN_HOR = [[0, [255, 232, 180]], [0.5, [255, 200, 136]], [0.8, [240, 128, 96]], [0.9, [232, 124, 120]], [1, [190, 120, 140]]];
+const SAN_SKY = [[0, [[0, [56, 124, 214]], [0.5, [58, 84, 170]], [0.8, [44, 48, 130]], [0.9, [28, 32, 100]], [1, [14, 20, 70]]]], [0.45, [[0, [120, 176, 230]], [0.5, [150, 130, 190]], [0.8, [150, 84, 150]], [0.9, [110, 70, 150]], [1, [44, 52, 120]]]],
+  [0.8, [[0, [240, 216, 170]], [0.5, [250, 176, 124]], [0.8, [224, 108, 100]], [0.9, [214, 104, 120]], [1, [140, 96, 150]]]], [1, SAN_HOR]];
+const SAN_SEA = [[0, [30, 92, 178]], [0.5, [44, 88, 168]], [0.72, [88, 84, 150]], [0.8, [120, 84, 130]], [0.9, [64, 54, 116]], [1, [26, 32, 84]]];
+// the caldera's wall, in daylight: the lit lip, ochre ash, red scoria, black lava, in bands down to the sea (as before, depths in units)
+const SAN_GRAD = [[0, [228, 204, 166]], [1.4, [200, 164, 122]], [1.6, [176, 88, 66]], [4.2, [152, 74, 58]], [4.5, [86, 72, 78]], [7, [74, 62, 70]], [7.3, [194, 146, 100]], [9.6, [170, 124, 86]], [9.9, [124, 64, 56]], [12.5, [106, 56, 52]], [12.8, [72, 60, 70]], [16, [62, 50, 64]], [16.3, [134, 92, 78]], [19.9, [96, 70, 70]]];
+const SAND = { t:0, m:[1, 1, 1], a:[0, 0, 0], k:-1 }, SAN_W = [[250, 248, 244], [252, 246, 236], [244, 240, 246], [250, 240, 230], [236, 242, 248]], SAN_R = [[240, 238, 236], [246, 242, 234]];
+const sanC = (col, al) => dnC(SAND, col, al), sanNight = () => clamp((SAND.t - 0.78) / 0.2);
+function sanTime(th, camZ) { const end = walk && walk.ids ? (walk.ids.length - 1) * WK.gap : 62.4, u = clamp(camZ / end); dnSet(SAND, SAN_LIGHT, u < 0.875 ? u * 0.8 / 0.875 : 0.8 + (u - 0.875) * 0.2 / 0.125); if (th.sanK === SAND.k) return; th.sanK = SAND.k; const C = sanC, t = SAND.t, n = sanNight(), sea = dnKey(SAN_SEA, t);
+  th.ground = [C([150, 140, 106]), C([208, 188, 160])];   /* far off, the fields' olive and ochre; pale volcanic ground near by */ th.path = [C([228, 222, 210]), C([246, 240, 228])]; th.edge = C([172, 164, 152]); th.steps = C([90, 80, 80], 0.15); th.dots = C([255, 240, 210], 0.5); th.stripe = C([255, 255, 255], 0.03); th.haze = dnRgb(dnLerp(sea, dnKey(SAN_HOR, t), 0.3), 0.5);
+  th.oc = Object.assign({}, th.oc, { park:C([126, 136, 96]), kerb:C([204, 198, 190]), road:C([180, 170, 154]), main:C([180, 170, 154]) });
+  const v = th.vly; v.grad = SAN_GRAD.map(([d, col]) => [d, dnV(SAND, col)]).concat([[20, sea], [22, [sea[0] * 0.72, sea[1] * 0.72, sea[2] * 0.8]]]); v.hz = dnLerp(sea, dnKey(SAN_HOR, t), 0.22); v.back = sea; v.gc = []; v.lip = C([255, 240, 214], 0.5);
+  const S = th.bsty; S.walls = SAN_W.map(w => dnV(SAND, w)); S.roofs = SAN_R.map(w => dnV(SAND, w)); S.trim = dnV(SAND, [255, 255, 255]); if (n > 0.04) { S.win = '255,200,120'; S.winA = +(0.2 + 0.72 * n).toFixed(2); } else { S.win = dnV(SAND, [56, 100, 180]).map(Math.round).join(','); S.winA = 0.85; }
+  th.osm.blds.forEach(b => { b.wb = null; }); }
+// the sky: the sun sinking ahead on the left to touch the sea, its glow, long clouds lit from below, doves crossing it; after it has
+// set, the afterglow, the evening star, a thin moon and the first stars
+function sanSky(c, HOR, time) { const t = SAND.t; dnSky(c, HOR, t, SAN_SKY);
+  dnStars(c, HOR, clamp((t - 0.86) / 0.14) * 0.8, time, 70, 11); dnMoon(c, 316, HOR * 0.3, 8.5, clamp((t - 0.8) / 0.15), -0.45); if (t > 0.82) { c.fillStyle = `rgba(255,255,255,${clamp((t - 0.82) / 0.1).toFixed(3)})`; c.fillRect(228, HOR * 0.5, 2.2, 2.2); }
+  const sx = 120, sy = HOR - 150 * (1 - t / 0.8), cy = Math.min(sy, HOR + 6), ga = t < 0.8 ? 1 : clamp(1 - (t - 0.8) / 0.25), r = 150 + 70 * clamp(t / 0.8), q = c.createRadialGradient(sx, cy, 0, sx, cy, r);
+  q.addColorStop(0, dnRgb(dnKey([[0, [255, 250, 220]], [0.6, [255, 220, 150]], [0.8, [255, 170, 100]], [1, [250, 130, 110]]], t), (0.9 * ga).toFixed(3))); q.addColorStop(0.3, dnRgb(dnKey([[0, [255, 236, 190]], [0.6, [255, 170, 100]], [1, [240, 100, 110]]], t), (0.42 * ga).toFixed(3))); q.addColorStop(1, 'rgba(255,140,110,0)'); c.fillStyle = q; c.fillRect(sx - r, cy - r, r * 2, HOR + 2 - cy + r);
+  if (sy < HOR + 20) { c.save(); c.beginPath(); c.rect(-400, 0, 1590, HOR); c.clip(); c.fillStyle = dnRgb(dnKey([[0, [255, 252, 232]], [0.6, [255, 232, 160]], [0.8, [255, 196, 104]]], t)); c.beginPath(); c.arc(sx, sy, 17, 0, 7); c.fill(); c.fillStyle = 'rgba(255,246,214,.85)'; c.beginPath(); c.arc(sx, sy, 10.5, 0, 7); c.fill(); c.restore(); }
+  const body = dnRgb(dnKey([[0, [250, 246, 240]], [0.5, [255, 214, 180]], [0.8, [214, 110, 120]], [1, [60, 56, 110]]], t)), lit = dnRgb(dnKey([[0, [255, 252, 244]], [0.5, [255, 236, 190]], [0.8, [255, 170, 100]], [1, [150, 96, 130]]], t));
+  [[250, 0.5, 150, 9], [60, 0.62, 110, 6], [330, 0.26, 120, 8], [150, 0.2, 100, 6], [-30, 0.36, 110, 7]].forEach(([x0, fy, w, h], i) => { const x = x0 + (reduced ? 0 : ((time * (1.2 + i * 0.3)) % 60) - 30) * 0.2, y = HOR * fy; c.fillStyle = body; c.beginPath(); c.ellipse(x, y, w / 2, h / 2, 0, 0, 7); c.fill(); c.fillStyle = lit; c.beginPath(); c.ellipse(x - w * 0.04, y + h * 0.22, w * 0.45, h * 0.26, 0, 0, 7); c.fill(); });
+  if (t > 0.5 && t < 0.92 && !reduced) { const a = Math.sin((t - 0.5) / 0.42 * Math.PI); c.strokeStyle = `rgba(60,40,64,${(0.8 * a).toFixed(3)})`; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); for (let i = 0; i < 9; i++) { const x = ((time * 13 + i * 17 + wr(i) * 30) % 520) - 60, y = HOR * 0.52 + Math.sin(time * 0.6 + i * 1.3) * 9 + (i % 4) * 7, f = Math.sin(time * 8 + i * 2) * 1.6; c.moveTo(x - 3.4, y - 1.2 - f); c.lineTo(x, y); c.lineTo(x + 3.4, y - 1.2 - f); } c.stroke(); } }
+// the ground: the sky first (over the stage picture's dusk), then the north coast's sea beyond the fields on the land side, then the caldera
+function sanGround(c, o, P, zNear, zFar, camZ, time) { const th = walk.th; sanTime(th, camZ); const v0 = P(0, camZ + 1e6), HOR = v0.y, yb = P(0, camZ + 64).y; sanSky(c, HOR, time);
+  c.fillStyle = dnRgb(dnKey(SAN_SEA, SAND.t)); c.fillRect(v0.x, HOR, 1190, yb - HOR); c.fillStyle = th.ground[0]; c.beginPath(); for (let i = 0; i < 9; i++) { const x = v0.x + 14 + i * 52 + wr(i * 3.3) * 20; c.moveTo(x + 30, yb + 1); c.ellipse(x, yb + 1, 30 + wr(i * 5.1) * 16, 1.5 + wr(i * 7.7) * 3, 0, Math.PI, 0); } c.fill();
+  walkValley(c, o, P, zNear, zFar, camZ, time); }
+// in the caldera, far below: the sun's path on the water, the boats gathered under Oia for the sunset (sailing boats, catamarans under
+// sail, a cruise ship at anchor; fixed in their places), their lights and the village's trembling on the water once it is dusk
+const SAN_BOATS = [[-12, 14, 0], [-21, 27, 1], [-15, 38, 0], [-29, 46, 1], [-11, 52, 1], [-39, 60, 2], [-19, 66, 1], [-26, 74, 0], [-14, 82, 1], [-35, 92, 0], [-49, 80, 1], [-24, 100, 1], [-44, 108, 0]];
+function sanAfter(c, g, P, camZ, time) { const o = WALK_OSM_SANTORINI, t = SAND.t, n = sanNight(), hor = P(0, camZ + 1e6).y;
+  const ga = t < 0.8 ? 0.3 + 0.7 * t / 0.8 : clamp(1 - (t - 0.8) / 0.12); if (ga > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = dnRgb(dnKey([[0, [255, 240, 200]], [0.6, [255, 200, 120]], [0.8, [255, 150, 90]]], t), (0.5 * ga).toFixed(3)); c.beginPath();
+    for (let i = 0; i < 22; i++) { const u = i / 22, y = hor + 2 + u * u * 70, w = (5 + u * 50) * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.7 + (reduced ? 0 : time * 1.6)))), dx = (wr(i * 3.1) - 0.5) * (8 + u * 30); c.rect(120 + dx - w / 2, y, w, 1 + u * 2.2); } c.fill(); c.restore(); }
+  const bs = []; SAN_BOATS.forEach(([dx, z, kind]) => { if (z < camZ + 3) return; const x = walkPxOf(o, Math.min(z, 100)) + SANTO_RIM + dx, D = vlyDepth(g, x, z); if (D < 18) return; const p = P(x, z); if (!p || p.x < -40 || p.x > 430) return; const U = WK.X * p.s; bs.push([p.x, p.y + D * U, (kind === 2 ? 5 : kind ? 1.8 : 1.1) * U, U, kind]); });
+  c.fillStyle = sanC([250, 248, 244]); c.beginPath(); bs.forEach(([x, y, L, U, kind]) => { c.rect(x - L / 2, y - 0.22 * U, L, 0.22 * U + 0.6); if (kind === 2) { c.rect(x - L * 0.36, y - 0.5 * U, L * 0.66, 0.3 * U); c.rect(x + L * 0.02, y - 0.78 * U, L * 0.1, 0.3 * U); } else if (!kind) c.rect(x - 0.03 * U, y - 1.3 * U, Math.max(0.6, 0.06 * U), 1.1 * U); }); c.fill();
+  c.fillStyle = dnRgb(dnKey([[0, [255, 252, 244]], [0.6, [255, 224, 170]], [0.8, [255, 170, 110]], [1, [90, 84, 130]]], t)); c.beginPath(); bs.forEach(([x, y, L, U, kind]) => { if (kind !== 1) return; c.moveTo(x, y - 0.26 * U); c.lineTo(x, y - 1.75 * U); c.lineTo(x + 0.78 * U, y - 0.3 * U); c.closePath(); c.moveTo(x - 0.08 * U, y - 0.3 * U); c.lineTo(x - 0.08 * U, y - 1.4 * U); c.lineTo(x - 0.6 * U, y - 0.3 * U); c.closePath(); }); c.fill();
+  if (n < 0.03) return; c.fillStyle = `rgba(255,226,170,${(0.95 * n).toFixed(3)})`; c.beginPath(); bs.forEach(([x, y, L, U, kind]) => { const m = kind === 2 ? 9 : kind ? 3 : 2; for (let i = 0; i < m; i++) c.rect(x - L / 2 + (i + 0.5) * L / m - 0.6, y - 0.3 * U - 0.6, 1.2, 1.2); }); c.fill();
+  if (reduced) return; c.save(); c.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 26; k++) { const z = camZ + 4 + wr(k * 3.3) * 50, x = walkPxOf(o, z) + SANTO_RIM - 7 - wr(k * 5.1) * 6, D = vlyDepth(g, x, z); if (D < 18) continue; const p = P(x, z); if (!p) continue; const U = WK.X * p.s, a = (0.16 + 0.1 * Math.sin(time * 2 + k)) * n;
+    c.fillStyle = `rgba(255,200,130,${a.toFixed(2)})`; c.fillRect(p.x - 0.1 * U, p.y + D * U, 0.2 * U + 1, (0.8 + wr(k) * 1.6) * U); } c.restore(); }
+// the white houses down the cliff (five rows) and the village inland (five rows where OpenStreetMap maps no house): each band of the
+// walk is drawn in six fills, solid, mixed toward the haze far off; blue doors by day, a share of windows lit as dusk comes; domes, pools
+function sanHouses() { if (sanHouses.h) return sanHouses.h; const o = WALK_OSM_SANTORINI, out = []; let k = 0;
+  for (let z = -8; z < 112; z += 1.15) [0.4, 1.8, 3.3, 4.9, 6.7].forEach((d, row) => { k++; if (wr(k * 1.7) < 0.2 + row * 0.06) return; const w = 0.9 + wr(k * 2.3) * 0.8, dz = 0.8 + wr(k * 3.1) * 0.5, x1 = walkPxOf(o, z) + SANTO_RIM - d - wr(k * 4.1) * 0.4;
+    out.push({ x0:x1 - w, x1, z0:z + wr(k * 5.3) * 0.3, z1:z + dz, h:0.45 + wr(k * 6.7) * 0.4, row, dome:wr(k * 7.9) < 0.1, pool:wr(k * 8.3) < 0.12, win:wr(k * 9.1) < 0.75, D:null, k }); });
+  const hit = (x0, x1, z0, z1) => o.blds.some(b => { let a = 1e9, b2 = -1e9, c2 = 1e9, d = -1e9; for (let i = 0; i < b.p.length; i += 2) { a = Math.min(a, b.p[i]); b2 = Math.max(b2, b.p[i]); c2 = Math.min(c2, b.p[i + 1]); d = Math.max(d, b.p[i + 1]); } return a < x1 + 0.3 && b2 > x0 - 0.3 && c2 < z1 + 0.3 && d > z0 - 0.3; });
+  for (let z = -6, j = 0; z < 106; z += 1.3) [3.3, 4.9, 6.7, 8.8, 11.2].forEach((d, row) => { j++; if (wr(j * 1.3 + 7) < 0.2 + row * 0.07) return; const w = 0.9 + wr(j * 2.9) * 0.9, dz = 0.8 + wr(j * 3.7) * 0.5, x0 = walkPxOf(o, z) + d + wr(j * 4.3) * 0.5, z0 = z + wr(j * 5.9) * 0.3; if (hit(x0, x0 + w, z0, z0 + dz)) return;
+    out.push({ x0, x1:x0 + w, z0, z1:z0 + dz, h:0.55 + wr(j * 6.1) * 0.55, row, dome:wr(j * 7.3) < 0.07, pool:false, win:wr(j * 9.7) < 0.8, D:0, land:1, k:j + 5000 }); });
+  return (sanHouses.h = out); }
+function sanBands(list, c, o, P, camZ, time) { const g = walk.th.vly.g; if (!g) return; const far = 30 * MAPV(), zc = camZ - WALK_NEAR, hs = sanHouses(), BAND = 4, n = sanNight(), hzc = walk.th.vly.hz;
+  for (let b0 = Math.floor(zc / BAND) * BAND; b0 < camZ + far; b0 += BAND) { const band = hs.filter(q => q.z0 >= b0 && q.z0 < b0 + BAND && q.z0 > zc); if (!band.length) continue; const dpB = b0 + BAND - camZ, hz = clamp((dpB - 14 * MAPV()) / (16 * MAPV())) * 0.5, K = col => dnRgb(dnLerp(dnV(SAND, col), hzc, hz));
+    list.push({ dp:Math.min(far - 1.1, dpB), f:() => { const ga = c.globalAlpha, fr = [], sd = [], tp = [], wd = [], wl = [], dm = [], pl = []; c.globalAlpha = 1;
+      band.slice().sort((a, b) => b.row - a.row || b.z0 - a.z0).forEach(q => { if (q.D == null) q.D = Math.max(0.2, vlyDepth(g, (q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2)); const D = q.D, pt = (x, z, h) => { const p = P(x, z); return p ? { x:p.x, y:p.y + (D - h) * WK.X * p.s, s:p.s } : null; }, xs = q.land ? q.x0 : q.x1, xo = q.land ? q.x1 : q.x0;
+        const a = pt(xo, q.z0, 0), b = pt(xs, q.z0, 0), at = pt(xo, q.z0, q.h), bt = pt(xs, q.z0, q.h), ct = pt(xs, q.z1, q.h), dt = pt(xo, q.z1, q.h), cb = pt(xs, q.z1, 0); if (![a, b, at, bt, ct, dt, cb].every(Boolean) || Math.max(a.x, b.x) < -20 || Math.min(a.x, b.x) > 410) return;
+        fr.push([a, b, bt, at]); sd.push([b, cb, ct, bt]); tp.push([at, bt, ct, dt]); const U = WK.X * a.s;
+        if (q.win && U > 6) (n > 0 && wr(q.k * 3.3) < n * 0.8 ? wl : wd).push([(a.x + b.x) / 2 - 0.12 * U, (a.y + at.y) / 2 - 0.1 * U, 0.24 * U, 0.3 * U]);
+        if (q.dome) dm.push([(at.x + ct.x) / 2, (at.y + ct.y) / 2, Math.abs(b.x - a.x) * 0.36]);
+        if (q.pool) pl.push([lerp(at.x, bt.x, 0.2), lerp(at.y, dt.y, 0.25), Math.abs(bt.x - at.x) * 0.6, Math.max(1, Math.abs(dt.y - at.y) * 0.5)]); });
+      const quads = (arr, col) => { if (!arr.length) return; c.fillStyle = col; c.beginPath(); arr.forEach(qd => { c.moveTo(qd[0].x, qd[0].y); for (let i = 1; i < 4; i++) c.lineTo(qd[i].x, qd[i].y); c.closePath(); }); c.fill(); }, rects = (arr, col) => { if (!arr.length) return; c.fillStyle = col; c.beginPath(); arr.forEach(([x, y, w, h]) => c.rect(x, y, w, h)); c.fill(); };
+      quads(fr, K([244, 240, 236])); quads(sd, K([196, 190, 202])); quads(tp, K([255, 253, 250])); rects(wd, K([58, 102, 182])); rects(wl, `rgba(255,198,120,${(0.4 + 0.55 * n).toFixed(2)})`); rects(pl, dnRgb(dnLerp(dnV(SAND, [74, 216, 236]), [96, 232, 255], n)));
+      if (dm.length) { c.fillStyle = K([40, 96, 204]); c.beginPath(); dm.forEach(([x, y, r]) => { c.moveTo(x + r, y); c.arc(x, y, r, Math.PI, 0); }); c.fill(); } c.globalAlpha = ga; } }); } }
+// one of OpenStreetMap's chapels, where it stands (on the cliff or on the land side): white, a blue dome and cross, a bell gable
+function sanChapel(c, ch, P, g, main) { const [x, z] = ch, D = Math.max(0, vlyDepth(g, x, z)), p = P(x, z); if (!p || p.dp < 0.3) return; const U = WK.X * p.s, X = p.x, Y = p.y + D * U, w = (main ? 1.1 : 0.7) * U, h = (main ? 1.1 : 0.75) * U, n = sanNight(), W = sanC([248, 246, 242]);
+  c.fillStyle = W; c.fillRect(X - w, Y - h, w * 2, h); c.fillStyle = sanC([196, 190, 204]); c.fillRect(X + w * 0.7, Y - h, w * 0.3, h);
+  c.fillStyle = sanC([40, 96, 204]); c.beginPath(); c.arc(X, Y - h, w * 0.62, Math.PI, 0); c.fill(); c.fillStyle = sanC([150, 190, 250], 0.4); c.beginPath(); c.arc(X - w * 0.2, Y - h - w * 0.25, w * 0.18, 0, 7); c.fill();
+  c.fillStyle = W; c.fillRect(X - 0.04 * U, Y - h - w * 0.62 - 0.3 * U, 0.08 * U, 0.3 * U); c.fillRect(X - 0.12 * U, Y - h - w * 0.62 - 0.22 * U, 0.24 * U, 0.06 * U);
+  const gx = X - w * 0.75; c.fillRect(gx - 0.18 * U, Y - h - 0.5 * U, 0.36 * U, 0.5 * U); c.fillStyle = sanC([70, 90, 150]); c.fillRect(gx - 0.08 * U, Y - h - 0.4 * U, 0.16 * U, 0.2 * U);
+  if (n > 0.03) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, X, Y - h * 0.5, w * 2.2, '255,214,160', 0.28 * n); c.restore(); } }
+// Thirasia across the caldera, to the left of where the sun sets: its cliffs, its villages (white by day, lights at dusk)
+function sanThirasia(c, o, P, time) { const f = o.thira, lo = [], hi = [], n = sanNight(); for (let i = 0; i < f.length; i += 2) { const p = P(f[i], f[i + 1]); if (!p) return; const U = WK.X * p.s, k = clamp((100 - p.x) / 50); lo.push([p.x, p.y + 20 * U]); hi.push([p.x, p.y + 20 * U - 30 * U * k]); }
+  c.fillStyle = dnRgb(dnLerp(dnV(SAND, [124, 100, 112]), dnKey(SAN_SEA, SAND.t), 0.45)); c.beginPath(); const m = lo.length; for (let i = 0; i < m; i++) { const j = (i + 1) % m; c.moveTo(lo[i][0], lo[i][1]); c.lineTo(lo[j][0], lo[j][1]); c.lineTo(hi[j][0], hi[j][1]); c.lineTo(hi[i][0], hi[i][1]); c.closePath(); } hi.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fill();
+  c.fillStyle = n > 0.03 ? `rgba(255,210,150,${(0.85 * n).toFixed(2)})` : sanC([250, 248, 244], 0.8); c.beginPath(); o.tvil.forEach(([x, z], i) => { const p = P(x, z); if (!p || p.x > 60) return; const U = WK.X * p.s; for (let k = 0; k < 6; k++) c.rect(p.x + (wr(i * 9 + k) - 0.5) * 30 * U, p.y - 10 * U + wr(i * 7 + k) * 1.5 * U, 1.3, 1.3); }); c.fill(); }
+function sanMore(list, c, o, P, camZ, time) { const far = 30 * MAPV(), g = walk.th.vly.g, one = f => () => { const ga = c.globalAlpha; c.globalAlpha = 1; f(); c.globalAlpha = ga; };
+  walkBlds(list, c, o, P, camZ, time); list.push({ dp:far - 1.4, f:one(() => sanThirasia(c, o, P, time)) }); sanBands(list, c, o, P, camZ, time);
+  if (g) o.chapels.forEach(ch => { if (ch[1] < camZ - 0.5 || ch[1] - camZ > far) return; list.push({ dp:ch[1] - camZ, f:one(() => sanChapel(c, ch, P, g, ch[2])) }); }); }
+Object.assign(JAK_PROPS, {
+  // a wall lantern on a short white post; the lanterns come on one by one once the sun has set
+  slamp3(c, p) { const on = clamp((SAND.t - (0.8 + 0.14 * wr(p.z * 1.7))) / 0.03); c.fillStyle = sanC([240, 236, 232]); c.fillRect(-5, -40, 10, 40); c.fillStyle = sanC([60, 60, 72]); c.fillRect(-4, -54, 8, 12);
+    if (on > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -48, 26, '255,206,140', 0.75 * on); c.restore(); } c.fillStyle = on > 0 ? dnRgb(dnLerp([180, 180, 190], [255, 232, 184], on)) : sanC([200, 204, 214]); c.fillRect(-2.5, -52, 5, 7); },
+  // bougainvillea spilling over a white wall
+  sbloom3(c, p) { c.fillStyle = sanC([246, 242, 238]); c.fillRect(-26, -30, 52, 30); c.fillStyle = sanC([72, 124, 72]); c.beginPath(); c.ellipse(4, -34, 26, 12, 0, 0, 7); c.fill(); c.fillStyle = sanC([226, 60, 158]); c.beginPath(); for (let i = 0; i < 14; i++) { const x = -20 + wr(p.r * 40 + i) * 46, y = -44 + wr(p.r * 70 + i) * 20; c.moveTo(x + 4, y); c.arc(x, y, 4, 0, 7); } c.fill(); },
+  // a cat on a wall
+  scat3(c, p) { c.fillStyle = sanC([246, 242, 238]); c.fillRect(-18, -22, 36, 22); c.fillStyle = '#1a1820'; c.beginPath(); c.ellipse(0, -28, 8, 5, 0, 0, 7); c.fill(); c.beginPath(); c.arc(7, -34, 4, 0, 7); c.fill(); c.beginPath(); c.moveTo(5, -37); c.lineTo(6, -41); c.lineTo(8, -37); c.moveTo(8, -37); c.lineTo(10, -41); c.lineTo(11, -36); c.fill(); c.strokeStyle = '#1a1820'; c.lineWidth = 2; c.beginPath(); c.moveTo(-8, -27); c.quadraticCurveTo(-16, -24, -14, -16); c.stroke(); },
+  // one of Oia's windmills: a white tower, a thatched cone, eight spokes with sails, turning slowly
+  swind3(c, p, time) { const far = propS(c) < 0.3, a = (reduced ? 0 : time * 0.25) + p.r * 3, n = sanNight(); if (n > 0.03) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -50, 80, '255,210,170', 0.3 * n); c.restore(); }
+    c.fillStyle = sanC([248, 246, 242]); c.beginPath(); c.moveTo(-24, 0); c.lineTo(-21, -66); c.lineTo(21, -66); c.lineTo(24, 0); c.closePath(); c.fill(); c.fillStyle = sanC([150, 140, 170], 0.35); c.fillRect(6, -66, 15, 66);
+    c.fillStyle = sanC([140, 104, 68]); c.beginPath(); c.moveTo(-25, -64); c.quadraticCurveTo(0, -96, 25, -64); c.closePath(); c.fill(); if (!far) { c.fillStyle = n > 0.03 ? `rgba(255,216,144,${(0.3 + 0.7 * n).toFixed(2)})` : sanC([58, 102, 182]); c.fillRect(-4, -36, 8, 12); c.fillStyle = sanC([58, 102, 182]); c.fillRect(-5, -14, 10, 14); }
+    c.save(); c.translate(-2, -76); c.strokeStyle = sanC([96, 76, 56]); c.lineWidth = 2; c.beginPath(); for (let i = 0; i < 8; i++) { const b = a + i * 0.785; c.moveTo(0, 0); c.lineTo(Math.cos(b) * 50, Math.sin(b) * 50); } c.stroke();
+    if (!far) { c.fillStyle = sanC([252, 248, 240], 0.9); c.beginPath(); for (let i = 0; i < 8; i += 2) { const b = a + i * 0.785; c.moveTo(Math.cos(b) * 12, Math.sin(b) * 12); c.lineTo(Math.cos(b) * 48, Math.sin(b) * 48); c.lineTo(Math.cos(b + 0.32) * 44, Math.sin(b + 0.32) * 44); c.closePath(); } c.fill(); } c.restore(); },
+  // the castle's ruined walls on the rim, packed with people come to watch the sun go down: as it touches the sea they raise their arms
+  skastro3(c, p, time) { const far = propS(c) < 0.3, t = SAND.t, on = t > 0.74 && t < 0.92; c.fillStyle = sanC([200, 176, 150]); c.beginPath(); c.moveTo(-90, 0); c.lineTo(-90, -40); c.lineTo(-70, -40); c.lineTo(-70, -52); c.lineTo(-40, -52); c.lineTo(-36, -34); c.lineTo(10, -34); c.lineTo(14, -46); c.lineTo(60, -46); c.lineTo(66, -28); c.lineTo(90, -28); c.lineTo(90, 0); c.closePath(); c.fill();
+    c.fillStyle = sanC([150, 124, 110], 0.5); c.fillRect(-90, -14, 180, 14); c.fillStyle = sanC([255, 236, 200], 0.5); c.fillRect(-90, -40, 20, 3); c.fillRect(-70, -52, 30, 3); c.fillRect(14, -46, 46, 3); c.fillRect(-36, -34, 46, 3); c.fillRect(66, -28, 24, 3); if (far) return;
+    c.fillStyle = SIL_COL; c.beginPath(); [[-84, -40], [-76, -40], [-64, -52], [-55, -52], [-46, -52], [-28, -34], [-19, -34], [-10, -34], [0, -34], [20, -46], [29, -46], [38, -46], [47, -46], [56, -46], [72, -28], [82, -28]].forEach(([x, y], i) => { const h = 0.52 + (i % 3) * 0.06; dnSil(c, x, y, h); if (on && i % 3 !== 1) { const up = reduced ? 1 : 0.6 + 0.4 * Math.sin(time * 7 + i * 1.9); c.rect(x - 7 * h, y - (21 + 13 * up) * h, 2.6 * h, 14 * h); c.rect(x + 4.4 * h, y - (21 + 13 * up) * h, 2.6 * h, 14 * h); } }); c.fill(); },
+  // the church on the rim: white, a blue dome with its cross, a bell gable with three bells, the sea behind it
+  sdome(c, p) { const C = sanC, n = sanNight(), W = C([248, 246, 242]);
+    c.fillStyle = W; c.fillRect(-52, -54, 104, 54); c.fillRect(-30, -66, 60, 14); c.fillStyle = C([196, 190, 204]); c.fillRect(30, -54, 22, 54);
+    c.fillStyle = C([38, 96, 206]); c.beginPath(); c.arc(0, -66, 34, Math.PI, 0); c.fill(); c.fillStyle = C([130, 176, 244], 0.5); c.beginPath(); c.ellipse(-13, -84, 8, 11, -0.5, 0, 7); c.fill();
+    c.fillStyle = W; c.fillRect(-1.5, -114, 3, 16); c.fillRect(-6, -110, 12, 3); c.fillRect(-86, -92, 30, 92); c.beginPath(); c.moveTo(-86, -92); c.lineTo(-71, -108); c.lineTo(-56, -92); c.fill(); c.fillRect(-72.5, -120, 3, 14); c.fillRect(-77, -116, 12, 3);
+    c.fillStyle = C([70, 100, 170]); c.beginPath(); [[-79, -38], [-64, -38], [-71, -70]].forEach(([x, y]) => { c.moveTo(x - 5, y); c.lineTo(x - 5, y - 10); c.arc(x, y - 10, 5, Math.PI, 0); c.lineTo(x + 5, y); c.closePath(); }); c.moveTo(-8, 0); c.lineTo(-8, -20); c.arc(0, -20, 8, Math.PI, 0); c.lineTo(8, 0); c.closePath(); c.fill();
+    c.fillStyle = C([206, 164, 70]); c.beginPath(); [[-79, -44], [-64, -44], [-71, -76]].forEach(([x, y]) => { c.moveTo(x + 3, y); c.arc(x, y, 3, 0, 7); }); c.fill();
+    if (n > 0.03) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -34, 70, '255,214,160', 0.3 * n); c.restore(); } },
+  // donkeys on the lane, in their striped blankets, their driver walking behind
+  sdonk(c, p, time) { const C = sanC; [[-52, [152, 142, 132]], [0, [124, 102, 86]], [52, [172, 162, 152]]].forEach(([x, col], i) => { const st = reduced ? 0 : Math.sin(time * 2.4 + i * 1.5) * 2.5; c.fillStyle = C(col);
+    c.beginPath(); c.ellipse(x, -24, 17, 9, 0, 0, 7); c.fill(); c.fillRect(x - 13, -20, 3.5, 20 - Math.max(0, st)); c.fillRect(x - 7, -20, 3.5, 20 - Math.max(0, -st)); c.fillRect(x + 6, -20, 3.5, 20 - Math.max(0, -st)); c.fillRect(x + 11, -20, 3.5, 20 - Math.max(0, st)); c.fillRect(x + 19, -51, 2.5, 9); c.fillRect(x + 23, -50, 2.5, 8);
+    c.beginPath(); c.moveTo(x + 11, -28); c.lineTo(x + 20, -43); c.lineTo(x + 30, -40); c.lineTo(x + 31, -34); c.lineTo(x + 23, -33); c.lineTo(x + 17, -20); c.closePath(); c.fill();
+    c.fillStyle = C(i % 2 ? [40, 96, 190] : [204, 62, 62]); c.fillRect(x - 9, -33, 16, 12); c.fillStyle = C([250, 240, 220]); c.fillRect(x - 9, -28, 16, 2); });
+    c.fillStyle = SIL_COL; c.beginPath(); dnSil(c, -86, 0); c.fill(); },
+  // a taverna's terrace: a white pergola hung with bougainvillea, tables in white cloths, blue chairs, people sitting; candles at dusk
+  stav(c, p) { const C = sanC, n = sanNight(); c.fillStyle = C([244, 240, 236]); c.fillRect(-72, -6, 144, 6); c.fillRect(-68, -72, 4, 66); c.fillRect(64, -72, 4, 66); c.fillRect(-74, -76, 148, 5);
+    c.fillStyle = C([72, 124, 72]); c.beginPath(); c.ellipse(22, -79, 28, 6, 0, 0, 7); c.fill(); c.fillStyle = C([226, 60, 158]); c.beginPath(); c.ellipse(-30, -80, 30, 8, 0, 0, 7); c.fill();
+    c.fillStyle = C([40, 100, 200]); c.beginPath(); [-36, 28].forEach(x => { c.rect(x - 26, -36, 4, 30); c.rect(x - 26, -20, 11, 3); c.rect(x + 22, -36, 4, 30); c.rect(x + 15, -20, 11, 3); }); c.fill();
+    c.fillStyle = C([252, 250, 246]); c.beginPath(); [-36, 28].forEach(x => { c.rect(x - 12, -30, 24, 4); c.rect(x - 9, -26, 18, 12); }); c.fill();
+    c.fillStyle = SIL_COL; c.beginPath(); dnSit(c, -57, -17, 0.95); dnSit(c, -15, -17); dnSit(c, 49, -17, 0.92); if (p.r > 0.5) dnSit(c, 7, -17, 0.9); c.fill();
+    if (n > 0.03) { c.save(); c.globalCompositeOperation = 'lighter'; [-36, 28].forEach(x => jakGlow(c, x, -34, 16, '255,206,140', 0.7 * n)); c.restore(); c.fillStyle = '#ffe8b8'; c.fillRect(-37, -35, 2, 5); c.fillRect(27, -35, 2, 5); } },
+  // the sunset crowd along the rim: as the sun touches the sea they raise their arms and clap; a phone's flash now and then
+  sclap(c, p, time) { const t = SAND.t, on = t > 0.74 && t < 0.92; c.fillStyle = SIL_COL; c.beginPath(); for (let i = 0; i < 6; i++) { const x = -50 + i * 20 + wr(p.r * 30 + i) * 6, h = 0.88 + wr(p.r * 50 + i) * 0.22; dnSil(c, x, 0, h);
+      if (on && (i + Math.floor(p.r * 4)) % 3 !== 2) { const up = reduced ? 1 : 0.6 + 0.4 * Math.sin(time * 7 + i * 1.9 + p.r * 5); c.rect(x - 7 * h, -(21 + 13 * up) * h, 2.6 * h, 14 * h); c.rect(x + 4.4 * h, -(21 + 13 * up) * h, 2.6 * h, 14 * h); } } c.fill();
+    if (t > 0.68 && !reduced) { const k = Math.floor(time * 3 + p.r * 9); if (wr(k * 3.7 + p.r) < 0.3) { c.fillStyle = 'rgba(255,255,255,.9)'; c.fillRect(-51.5 + Math.floor(wr(k * 5.1) * 6) * 20, -36, 3, 3); } } },
+});
+// the houses on OpenStreetMap's outlines: a blue door on each one's longest wall in view
+const SAN_STY3 = Object.assign({}, SANTO_STY, { deco(c, b, vis, wp) { let w = null; vis.forEach(v => { if (v.L > 4 && (!w || v.L > w.L)) w = v; }); if (!w || b.h < 3) return;
+  const a = wp(w, 0.42, 0), bb = wp(w, 0.56, 0), cc = wp(w, 0.56, 2.1), d = wp(w, 0.42, 2.1); c.fillStyle = sanC([52, 100, 190]); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(bb.x, bb.y); c.lineTo(cc.x, cc.y); c.lineTo(d.x, d.y); c.closePath(); c.fill(); } });
+function sanProps(th, n) { const o = th.osm, end = (n - 1) * WK.gap, out = walkSantoriniProps(th, n); out.forEach(q => { if (q.kind === 'slamp' || q.kind === 'sbloom' || q.kind === 'scat') q.kind += '3'; }); santoFillEnd(o, end);   /* round 3's props have their own names */ sanTime(th, 0); ['sclap', 'sdonk', 'stav'].forEach(k => FAR_SKIP.add(k));
+  // the camera keeps this stop and the next in the middle (fitted to the path behind and far ahead, Level 25 stood on the screen's edge)
+  WALK_CAM.santorini = { frame:0 }; th.lead = 1.2;
+  const hit = (x, z, r) => o.blds.some(b => { for (let i = 0; i < b.p.length; i += 2) if (Math.abs(b.p[i] - x) < r && Math.abs(b.p[i + 1] - z) < r) return true; return false; });
+  [[end + 1.3, 2.3, 0.1], [end + 5.2, 2.7, 0.6], [end + 8, 1.7, 1.3]].forEach(([z, dx, r]) => out.push({ z, x:walkPx(z) + dx, kind:'swind3', r }));
+  out.push({ z:end + 3.2, x:walkPx(end + 3.2) + SANTO_RIM - 0.6, kind:'skastro3', r:0 });
+  out.push({ z:26.2, x:walkPx(26.2) + SANTO_RIM - 0.2, kind:'sdome', r:0 }, { z:38.4, x:walkPx(38.4) + 0.36, kind:'sdonk', r:0 });
+  [12.4, 33.4, 45.6, 55].forEach((z, k) => { const x = walkPx(z) + 1.7; if (!hit(x, z, 1.25)) out.push({ z, x, kind:'stav', r:wr(k * 4.7) }); });
+  for (let z = end - 6.5, k = 0; z < end + 5.5; z += 1.5, k++) out.push({ z, x:walkPx(z) + SANTO_RIM + 0.12, kind:'sclap', r:wr(k * 6.3) });
+  return out; }
+Object.assign(WALK_THEMES.santorini, { oprops:sanProps, obb:sanMore, oground:sanGround, bsty:SAN_STY3 });
+WALK_THEMES.santorini.vly.after = sanAfter;
+// ---- Stage 19 Machu Picchu, round 3 (Version 600; owner, 11/11/26: "apply the day night cycles ... think deeply about how you can make each
+// stage feel extra special to a player arriving there ... a person who has been there should recognize the path and where they are, but
+// you can be creative and add that extra magic touch"): sunrise over the lost city. The walk is the same (the funerary rock, the City
+// Gate, the upper town, the plaza, the Sacred Rock, Huayna Picchu ahead the whole way); the hour follows the walk. Level 1 is night
+// under the Milky Way, lanterns along the path, the llamas lying down, a sea of cloud in the gorge. The first light touches Huayna
+// Picchu's tip at Level 10 and comes down the peak; the sun breaks over the eastern ridge at Level 16; by the Sacred Rock the ruins are
+// gold, the cloud is burning off, the llamas are up and grazing, a condor is out and a rainbow stands in the gorge.
+// Both testers: sunrise is the moment people travel for, and "the site isn't visited at night".
+// - Every colour is in the hour's light (mpC). Their fixes: the terraces are stone walls with height now (they were white lines on a
+//   lawn); the Temple of the Sun's curved wall mid-walk (the sunrise shines through its window); the Intihuatana on its stepped mound;
+//   the City Gate's walls; cloud in the valley and the Urubamba far below; the Sacred Rock is a standing stone on its plinth (it read
+//   as a grey slab behind the prize).
+// No writing or signs; people are black silhouettes. Staged: the Temple of the Sun and the Intihuatana stand nearer the path than they
+// really do (the camera sees 16 m each side), the sun rises over the ridge on the right, ahead of where east really lies.
+const MP_LIGHT = { mul:[[0, [0.26, 0.32, 0.46]], [0.3, [0.42, 0.48, 0.62]], [0.55, [0.72, 0.68, 0.76]], [0.68, [1.04, 0.9, 0.72]], [1, [1.04, 1, 0.88]]], add:[[0, [6, 12, 30]], [0.3, [10, 18, 36]], [0.55, [22, 14, 24]], [0.68, [18, 8, 2]], [1, [6, 6, 2]]] };
+const MP_HOR = [[0, [44, 56, 100]], [0.3, [130, 130, 160]], [0.55, [255, 196, 150]], [0.68, [255, 226, 180]], [1, [244, 238, 222]]];
+const MP_SKY = [[0, [[0, [6, 10, 36]], [0.3, [14, 24, 70]], [0.55, [50, 80, 150]], [0.68, [80, 128, 196]], [1, [86, 152, 222]]]], [0.5, [[0, [14, 22, 60]], [0.3, [36, 52, 110]], [0.55, [150, 130, 170]], [0.68, [176, 180, 210]], [1, [160, 202, 236]]]],
+  [0.84, [[0, [30, 40, 84]], [0.3, [90, 96, 140]], [0.55, [250, 170, 140]], [0.68, [255, 214, 160]], [1, [236, 232, 214]]]], [1, MP_HOR]];
+const MP_CLOUD = [[0, [112, 126, 164]], [0.3, [150, 160, 196]], [0.55, [255, 204, 186]], [0.7, [255, 236, 206]], [1, [255, 252, 244]]];
+// the gorge's sides, in daylight: terraces (grass and stone by turns), then forest falling to the river
+const MP_GRAD = [[0, [104, 146, 84]], [0.9, [198, 190, 168]], [1.1, [96, 138, 78]], [2.4, [190, 182, 160]], [2.6, [90, 130, 74]], [4.2, [182, 174, 154]], [4.4, [84, 122, 70]], [6.3, [174, 166, 146]], [6.5, [76, 112, 66]], [9, [64, 100, 62]], [20, [48, 80, 56]], [45, [38, 64, 52]], [62, [32, 52, 52]], [65, [60, 96, 120]]];
+const MPD = { t:0, m:[1, 1, 1], a:[0, 0, 0], k:-1 };
+const mpC = (col, al) => dnC(MPD, col, al), mpNight = () => clamp(1 - MPD.t / 0.56), mpSun = () => clamp((MPD.t - 0.56) / 0.14);
+function mpTime(th, camZ) { const end = walk && walk.ids ? (walk.ids.length - 1) * WK.gap : 62.4; dnSet(MPD, MP_LIGHT, clamp(camZ / end)); if (th.mpK === MPD.k) return; th.mpK = MPD.k; const C = mpC, t = MPD.t, hz = dnKey(MP_HOR, t);
+  th.ground = [C([92, 130, 76]), C([112, 150, 90])]; th.path = [C([170, 164, 150]), C([190, 184, 168])]; th.edge = C([118, 112, 100]); th.steps = C([60, 58, 50], 0.3); th.dots = C([255, 236, 200], 0.4); th.stripe = C([220, 236, 200], 0.04); th.haze = dnRgb(dnLerp(dnV(MPD, [110, 140, 150]), hz, 0.5), 0.75);
+  th.oc = Object.assign({}, th.oc, { park:C([100, 142, 82]), kerb:C([118, 112, 100]), road:C([150, 144, 130]), main:C([150, 144, 130]) });
+  const v = th.vly; v.grad = MP_GRAD.map(([d, col]) => [d, dnV(MPD, col)]); v.hz = dnLerp(dnV(MPD, [96, 126, 150]), hz, 0.4); v.back = dnV(MPD, [60, 90, 110]); v.gc = []; v.lip = C([226, 222, 204], 0.35); }
+// the sky: the Milky Way and a full field of stars, the morning star; the far ranges in their haze; the glow in the east, the sun
+// breaking over the ridge on the right, its rays; long clouds; at the end, a rainbow in the west, across from the sun
+function mpSky(c, HOR, time) { const t = MPD.t, hz = dnKey(MP_HOR, t); dnSky(c, HOR, t, MP_SKY);
+  const na = clamp(1 - t / 0.42); if (na > 0.01) { c.save(); c.translate(150, HOR * 0.42); c.rotate(-0.62); c.scale(1, 0.2); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, 0, 260, '170,180,255', 0.3 * na); jakGlow(c, 40, 30, 150, '255,220,230', 0.18 * na); c.restore();
+    c.fillStyle = `rgba(255,250,240,${(0.7 * na).toFixed(3)})`; c.beginPath(); for (let i = 0; i < 110; i++) { const u = wr(i * 2.7) * 2 - 1, w = (wr(i * 5.3) - 0.5) * 46, x = 150 + u * 240 * Math.cos(-0.62) - w * Math.sin(-0.62), y = HOR * 0.42 + u * 240 * Math.sin(-0.62) + w * Math.cos(-0.62); if (y > HOR - 8 || y < 0) continue; const r = 0.4 + wr(i * 1.9) * 0.7; c.rect(x, y, r, r); } c.fill(); }
+  dnStars(c, HOR, na, time, 110, 23); if (t < 0.62) { c.fillStyle = `rgba(255,255,255,${clamp(1 - t / 0.62).toFixed(3)})`; c.fillRect(300, HOR * 0.56, 2.4, 2.4); }
+  const sx = 322, sy = HOR + 10 - clamp((t - 0.45) / 0.55) * 120, cy = Math.min(sy, HOR - 6), ga = clamp((t - 0.24) / 0.3);
+  if (ga > 0) { const r = 200, q = c.createRadialGradient(sx, cy, 0, sx, cy, r), w = 1 - 0.4 * clamp((t - 0.75) / 0.25); q.addColorStop(0, `rgba(255,226,176,${(0.85 * ga * w).toFixed(3)})`); q.addColorStop(0.3, `rgba(255,160,120,${(0.4 * ga * w).toFixed(3)})`); q.addColorStop(1, 'rgba(255,130,140,0)'); c.fillStyle = q; c.fillRect(sx - r, cy - r, r * 2, HOR + 2 - cy + r); }
+  if (sy < HOR + 13) { c.save(); c.beginPath(); c.rect(-400, 0, 1590, HOR); c.clip(); c.fillStyle = t < 0.72 ? '#fff0c8' : '#fffbe8'; c.beginPath(); c.arc(sx, sy, 13, 0, 7); c.fill(); c.restore(); }   /* only the part of it above the horizon */
+  const body = dnRgb(dnKey([[0, [30, 38, 76]], [0.3, [70, 76, 120]], [0.55, [214, 150, 160]], [1, [246, 244, 244]]], t)), lit = dnRgb(dnKey([[0, [48, 56, 100]], [0.3, [150, 120, 150]], [0.55, [255, 206, 160]], [1, [255, 253, 246]]], t));
+  [[60, 0.44, 150, 9], [230, 0.58, 120, 7], [-40, 0.24, 120, 8], [160, 0.18, 100, 6], [340, 0.3, 110, 7]].forEach(([x0, fy, w, h], i) => { const x = x0 + (reduced ? 0 : ((time * (1.2 + i * 0.3)) % 60) - 30) * 0.2, y = HOR * fy; c.fillStyle = body; c.beginPath(); c.ellipse(x, y, w / 2, h / 2, 0, 0, 7); c.fill(); c.fillStyle = lit; c.beginPath(); c.ellipse(x + w * 0.05, y + h * 0.22, w * 0.45, h * 0.26, 0, 0, 7); c.fill(); });
+  // the far ranges: three, each nearer one darker, cloud lying between them
+  [[0.62, 54, 0.013, 0.5], [0.42, 40, 0.019, 2.1], [0.24, 28, 0.027, 4.4]].forEach(([h, top, f, ph], j) => { c.fillStyle = dnRgb(dnLerp(dnV(MPD, [78, 112, 140]), hz, h)); c.beginPath(); c.moveTo(-10, HOR + 2); for (let x = -10; x <= 400; x += 8) c.lineTo(x, HOR - top * (0.55 + 0.3 * Math.sin(x * f + ph) + 0.15 * Math.sin(x * f * 2.7 + ph * 2))); c.lineTo(400, HOR + 2); c.closePath(); c.fill();
+    c.fillStyle = dnRgb(dnKey(MP_CLOUD, t), (0.16 + 0.34 * t).toFixed(2)); c.beginPath(); for (let i = 0; i < 4; i++) { const x = wr(j * 7 + i * 3.3) * 420 - 10; c.moveTo(x + 70, HOR - top * 0.2); c.ellipse(x, HOR - top * 0.2, 70, 3, 0, 0, 7); } c.fill(); });
+  if (t > 0.56 && t < 0.92) { const a = Math.sin((t - 0.56) / 0.36 * Math.PI) * 0.12; c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,220,160,${a.toFixed(3)})`; c.beginPath(); for (let i = 0; i < 7; i++) { const an = -3.05 + i * 0.3 + (reduced ? 0 : Math.sin(time * 0.1 + i) * 0.03); c.moveTo(sx, sy); c.lineTo(sx + Math.cos(an) * 460, sy + Math.sin(an) * 460); c.lineTo(sx + Math.cos(an + 0.1) * 460, sy + Math.sin(an + 0.1) * 460); c.closePath(); } c.fill(); c.restore(); }
+  if (t > 0.8) { const a = 0.34 * clamp((t - 0.8) / 0.14); c.lineWidth = 2.6; [[255, 90, 90], [255, 170, 70], [255, 236, 110], [110, 210, 130], [90, 160, 255], [150, 110, 230]].forEach((col, i) => { c.strokeStyle = dnRgb(col, a.toFixed(3)); c.beginPath(); c.arc(64, HOR + 70, 176 - i * 2.6, Math.PI * 1.08, Math.PI * 1.62); c.stroke(); }); } }
+// in the gorge: the Urubamba far below on the right, then the cloud that lies in the valley before dawn (it fills the gorge at night,
+// turns rose with the first sun and burns off through the morning); two fills
+function mpCloud(c, g, P, camZ, time) { const o = WALK_OSM_MACHU, t = MPD.t, ext = z => o.ext[Math.max(0, Math.min(o.ext.length - 1, Math.round((z + 16) / 2)))];
+  c.strokeStyle = mpC([150, 196, 226], 0.8); c.lineWidth = 2; c.beginPath(); let on = false; for (let z = camZ + 12; z < camZ + 110; z += 6) { const x = ext(Math.min(z, 140))[2] + 34 + 7 * Math.sin(z * 0.09), p = P(x, z); if (!p) { on = false; continue; } const y = p.y + 63 * WK.X * p.s; if (on) c.lineTo(p.x, y); else c.moveTo(p.x, y); on = true; } c.stroke();
+  const lev = lerp(2.6, 9, clamp((t - 0.5) / 0.5)), al = lerp(0.9, 0.4, clamp((t - 0.45) / 0.55)), A = [], B = [], i0 = Math.floor(camZ / 5);
+  for (let i = i0 + 2; i < i0 + 20; i++) for (let s = 0; s < 4; s++) { const k = i * 4 + s, side = s % 2 ? 1 : -1, z = i * 5 + wr(k * 3.1) * 4, e = ext(Math.min(z, 140)), x = (side > 0 ? e[2] : e[1]) + side * (3 + wr(k * 5.3) * 13) + (reduced ? 0 : Math.sin(time * 0.05 + k) * 1.2), p = P(x, z); if (!p) continue;
+    const U = WK.X * p.s, y = p.y + (lev + wr(k * 7.1) * 5) * U, rx = (4 + wr(k * 2.3) * 5) * U; if (p.x + rx < -10 || p.x - rx > 400) continue; (s < 2 ? A : B).push([p.x, y, rx, rx * 0.26]); }
+  [[A, 1], [B, 0.7]].forEach(([arr, f]) => { if (!arr.length) return; c.fillStyle = dnRgb(dnKey(MP_CLOUD, t), (al * f).toFixed(3)); c.beginPath(); arr.forEach(([x, y, rx, ry]) => { c.moveTo(x + rx, y); c.ellipse(x, y, rx, ry, 0, 0, 7); c.moveTo(x + rx * 0.3 + rx * 0.5, y - ry * 0.7); c.ellipse(x + rx * 0.3, y - ry * 0.7, rx * 0.5, ry * 0.8, 0, 0, 7); }); c.fill(); }); }
+function mpGround(c, o, P, zNear, zFar, camZ, time) { mpTime(walk.th, camZ); mpSky(c, P(0, camZ + 1e6).y, time); walkValley(c, o, P, zNear, zFar, camZ, time); }
+// a peak: forest, hazed by its distance; the first light on its tip, coming down it as the morning goes on; Huayna Picchu's granite
+// face and its summit terraces
+function mpPeak3(c, pk, P, time) { const [x, z, h, big] = pk, p = P(x, z); if (!p || p.dp < 1) return; const U = WK.X * p.s, base = p.y + 14 * U, top = p.y - h * U, hw = (big ? 0.4 : 0.9) * (h + 14) * U, t = MPD.t;
+  const shape = () => { c.beginPath(); c.moveTo(p.x - hw, base); c.bezierCurveTo(p.x - hw * 0.55, base - (base - top) * 0.45, p.x - hw * 0.32, top + (base - top) * 0.06, p.x - hw * 0.08, top); c.quadraticCurveTo(p.x, top - 0.6 * U, p.x + hw * 0.1, top + 0.4 * U); c.bezierCurveTo(p.x + hw * 0.3, top + (base - top) * 0.1, p.x + hw * 0.6, base - (base - top) * 0.4, p.x + hw, base); c.closePath(); };
+  shape(); c.fillStyle = dnRgb(dnLerp(dnV(MPD, big ? [58, 98, 66] : [72, 108, 74]), dnKey(MP_HOR, t), big ? 0.1 : 0.3)); c.fill();
+  if (big) { c.fillStyle = mpC([178, 178, 170], 0.5); c.beginPath(); c.moveTo(p.x + hw * 0.05, top + 1.5 * U); c.bezierCurveTo(p.x + hw * 0.2, top + (base - top) * 0.2, p.x + hw * 0.18, top + (base - top) * 0.5, p.x + hw * 0.32, top + (base - top) * 0.62); c.lineTo(p.x + hw * 0.12, top + (base - top) * 0.3); c.closePath(); c.fill();
+    c.fillStyle = mpC([30, 60, 44], 0.3); c.beginPath(); c.moveTo(p.x - hw, base); c.bezierCurveTo(p.x - hw * 0.55, base - (base - top) * 0.45, p.x - hw * 0.32, top + (base - top) * 0.06, p.x - hw * 0.08, top); c.lineTo(p.x - hw * 0.1, base); c.closePath(); c.fill(); }
+  if (t > 0.3) { c.save(); shape(); c.clip(); const yT = lerp(top, base, clamp((t - 0.3) / 0.45)), a = (big ? 0.5 : 0.24) * clamp((t - 0.3) / 0.08) * (1 - 0.72 * clamp((t - 0.72) / 0.28)), q = c.createLinearGradient(0, yT - (base - top) * 0.1, 0, yT); q.addColorStop(0, `rgba(255,206,120,${a.toFixed(3)})`); q.addColorStop(1, 'rgba(255,206,120,0)'); c.fillStyle = q; c.fillRect(p.x - hw * 0.04, top - U, hw * 1.1, yT - top + U); c.restore(); }
+  if (!big) return; c.strokeStyle = mpC([216, 212, 196], 0.6); c.lineWidth = Math.max(0.6, 0.15 * U); c.beginPath(); for (let k = 0; k < 4; k++) { const y = top + (1.6 + k * 1.3) * U, w = hw * (0.07 + k * 0.035); c.moveTo(p.x - w, y); c.lineTo(p.x + w, y); } c.stroke(); }
+// a roofless granite house: the far walls' inner faces, the near walls' outer faces (the ones turned to the sunrise go gold), the
+// stone courses, a trapezoid doorway and two windows, the wall tops catching the light
+function mpRuin3(c, b, P, u, zc) { const f = b.p, n = f.length / 2, k = WK.X * 0.8 / u, h = Math.max(2.6, b.h), base = [], top = [], su = mpSun();
+  for (let i = 0; i < n; i++) { if (f[i * 2 + 1] < zc + 0.15) return; const p = P(f[i * 2], f[i * 2 + 1]); if (!p) return; base.push(p); top.push({ x:p.x, y:p.y - h * k * p.s, s:p.s }); }
+  const cx = base.reduce((a, p) => a + p.x, 0) / n, cy = base.reduce((a, p) => a + p.y, 0) / n, len = i => Math.hypot(f[((i + 1) % n) * 2] - f[i * 2], f[((i + 1) % n) * 2 + 1] - f[i * 2 + 1]);
+  const order = Array.from({ length:n }, (_, i) => i).sort((a, b2) => len(a) - len(b2)), gab = new Set(n >= 4 ? [order[0], order[1]] : []);
+  const outer = i => { const j = (i + 1) % n, a = base[i], bb = base[j], dx = bb.x - a.x, dy = bb.y - a.y, mx = (a.x + bb.x) / 2 - cx, my = (a.y + bb.y) / 2 - cy; return dx * my - dy * mx < 0; };
+  const wall = (i, col) => { const j = (i + 1) % n; c.fillStyle = col; c.beginPath(); c.moveTo(base[i].x, base[i].y); c.lineTo(base[j].x, base[j].y); c.lineTo(top[j].x, top[j].y);
+    if (gab.has(i)) { const g = 1.8 * k * (base[i].s + base[j].s) / 2; c.lineTo((top[i].x + top[j].x) / 2, (top[i].y + top[j].y) / 2 - g); } c.lineTo(top[i].x, top[i].y); c.closePath(); c.fill(); };
+  c.fillStyle = mpC([88, 124, 74]); c.beginPath(); base.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); c.closePath(); c.fill();
+  const inner = mpC([112, 110, 102]), sh = mpC([156, 152, 140]), li = dnRgb(dnLerp(dnV(MPD, [184, 178, 162]), [246, 214, 150], su * 0.6));
+  for (let i = 0; i < n; i++) if (outer(i)) wall(i, inner);
+  for (let i = 0; i < n; i++) if (!outer(i)) wall(i, (base[i].x + base[(i + 1) % n].x) / 2 > cx ? li : sh);
+  c.strokeStyle = mpC([70, 68, 60], 0.45); c.lineWidth = 0.8; c.beginPath(); for (let i = 0; i < n; i++) { if (outer(i)) continue; const j = (i + 1) % n; [0.33, 0.66].forEach(t => { c.moveTo(base[i].x, lerp(base[i].y, top[i].y, t)); c.lineTo(base[j].x, lerp(base[j].y, top[j].y, t)); }); } c.stroke();
+  let l0 = -1, lb = 0; for (let i = 0; i < n; i++) if (!outer(i) && len(i) > lb) { lb = len(i); l0 = i; }
+  if (l0 >= 0 && base[l0].s > 0.12) { const j = (l0 + 1) % n, at = (t, hh) => [lerp(base[l0].x, base[j].x, t), lerp(base[l0].y, base[j].y, t) - hh * k * lerp(base[l0].s, base[j].s, t)]; c.fillStyle = mpC([46, 44, 40]); c.beginPath();
+    const d = [at(0.42, 0), at(0.58, 0), at(0.555, h * 0.62), at(0.445, h * 0.62)]; d.forEach(([x, y], q) => (q ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath();
+    [0.2, 0.8].forEach(t => { const w = [at(t - 0.05, h * 0.42), at(t + 0.05, h * 0.42), at(t + 0.04, h * 0.7), at(t - 0.04, h * 0.7)]; w.forEach(([x, y], q) => (q ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); }); c.fill(); }
+  c.strokeStyle = mpC([240, 236, 218], 0.55); c.lineWidth = 1; c.beginPath(); top.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); c.closePath(); c.stroke(); }
+// the terraces' stone walls, with height (2.2 m), in bands of the walk so they take their place among the ruins and llamas: each
+// band's faces in one fill, their top edges in one stroke
+function mpWalls(list, c, o, P, camZ) { const far = 26 * MAPV(), zc = camZ - 1.2, k = WK.X * 0.8 / o.unit_m * 2.2, BAND = 5;
+  if (!o.tseg) { o.tseg = []; o.terr.forEach(f => { for (let i = 0; i + 3 < f.length; i += 2) o.tseg.push([f[i], f[i + 1], f[i + 2], f[i + 3], (f[i + 1] + f[i + 3]) / 2]); }); }
+  for (let b0 = Math.floor(zc / BAND) * BAND; b0 < camZ + far; b0 += BAND) { const segs = o.tseg.filter(s => s[4] >= b0 && s[4] < b0 + BAND && s[1] > zc && s[3] > zc); if (!segs.length) continue;
+    list.push({ dp:b0 + BAND / 2 - camZ + 0.2, f:() => { const q = []; segs.forEach(([ax, az, bx, bz]) => { const a = P(ax, az), b = P(bx, bz); if (a && b && Math.max(a.x, b.x) > -10 && Math.min(a.x, b.x) < 400) q.push([a, b]); }); if (!q.length) return;
+      c.fillStyle = mpC([40, 70, 44], 0.35); c.beginPath(); q.forEach(([a, b]) => { c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(b.x - 2, b.y + k * b.s * 0.5); c.lineTo(a.x - 2, a.y + k * a.s * 0.5); c.closePath(); }); c.fill();
+      c.fillStyle = dnRgb(dnLerp(dnV(MPD, [172, 166, 150]), [240, 210, 150], mpSun() * 0.45)); c.beginPath(); q.forEach(([a, b]) => { c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(b.x, b.y - k * b.s); c.lineTo(a.x, a.y - k * a.s); c.closePath(); }); c.fill();
+      c.strokeStyle = mpC([238, 234, 214]); c.lineWidth = 1.2; c.beginPath(); q.forEach(([a, b]) => { c.moveTo(a.x, a.y - k * a.s); c.lineTo(b.x, b.y - k * b.s); }); c.stroke(); } }); } }
+// mist drifting over the ground before dawn; a condor out over the gorge once the sun is up
+function mpAir(c, P, camZ, time) { const t = MPD.t, na = clamp(1 - t / 0.7); if (!reduced && na > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; for (let k = 0; k < 7; k++) { const z = camZ + 3 + k * 4.2 + ((time * 0.12 + k * 1.7) % 4.2), side = k % 2 ? 1 : -1, x = walkPx(Math.min(z, 62)) + side * (2.4 + wr(k * 3.1) * 2.6), p = P(x, z); if (!p) continue; const U = WK.X * p.s;
+      c.save(); c.translate(p.x, p.y - 0.3 * U); c.scale(3.4, 1); jakGlow(c, 0, 0, 1.6 * U + 4, '220,226,240', 0.22 * na); c.restore(); } c.restore(); }
+  if (t > 0.6) { const a = clamp((t - 0.6) / 0.08), tm = reduced ? 4 : time, hor = P(0, camZ + 1e6).y, ga = c.globalAlpha; c.globalAlpha = a; drawCondor(c, 96 + Math.cos(tm * 0.11) * 70, hor - 40 + Math.sin(tm * 0.22) * 16, 0.62, tm); c.globalAlpha = ga; } }
+function mpMore3(list, c, o, P, camZ, time) { const far = 30 * MAPV(), u = o.unit_m, zc = camZ - 1.2, one = f => () => { const ga = c.globalAlpha; c.globalAlpha = 1; f(); c.globalAlpha = ga; };
+  o.blds.forEach(b => { let zs = 0, n = 0, zmin = 1e9, zmax = -1e9; for (let i = 1; i < b.p.length; i += 2) { const z = Math.max(zc, b.p[i]); zs += z; n++; zmin = Math.min(zmin, z); zmax = Math.max(zmax, b.p[i]); }
+    if (zmax <= zc + 0.3 || zmin - camZ > far) return; list.push({ dp:Math.min(far - 1, zs / n - camZ) + 0.3, f:() => mpRuin3(c, b, P, u, zc) }); });
+  mpWalls(list, c, o, P, camZ); list.push({ dp:far - 0.25, f:one(() => mpAir(c, P, camZ, time)) });
+  o.peaks.filter(pk => pk[1] > camZ + 8 && Math.abs(pk[0] - walkPx(Math.min(pk[1], 62))) < pk[1] - camZ).sort((a, b) => b[1] - a[1]).forEach((pk, i) => list.push({ dp:far - 1.3 + i * 0.01, f:one(() => mpPeak3(c, pk, P, time)) })); }
+Object.assign(JAK_PROPS, {
+  // the Sacred Rock: a great slab of granite standing on its stone plinth, its outline echoing the mountains behind
+  mprock3(c) { const su = mpSun(); c.fillStyle = mpC([140, 136, 124]); c.fillRect(-104, -14, 208, 14); c.fillStyle = mpC([196, 190, 172]); c.fillRect(-108, -18, 216, 5);
+    c.fillStyle = mpC([150, 148, 140]); c.beginPath(); c.moveTo(-92, -16); c.lineTo(-86, -58); c.lineTo(-52, -92); c.lineTo(-12, -80); c.lineTo(28, -108); c.lineTo(70, -72); c.lineTo(94, -16); c.closePath(); c.fill();
+    c.fillStyle = mpC([96, 96, 92], 0.4); c.beginPath(); c.moveTo(-92, -16); c.lineTo(-86, -58); c.lineTo(-52, -92); c.lineTo(-40, -50); c.lineTo(-30, -16); c.closePath(); c.fill();
+    c.fillStyle = su > 0 ? `rgba(255,206,130,${(0.2 + 0.4 * su).toFixed(2)})` : mpC([214, 218, 228], 0.25); c.beginPath(); c.moveTo(-86, -58); c.lineTo(-52, -92); c.lineTo(-12, -80); c.lineTo(28, -108); c.lineTo(70, -72); c.lineTo(62, -66); c.lineTo(26, -96); c.lineTo(-12, -70); c.lineTo(-50, -82); c.closePath(); c.fill(); },
+  // a lantern on a short stone post by the path, lit until the morning comes
+  mplamp3(c) { const n = mpNight(); c.fillStyle = mpC([130, 126, 114]); c.fillRect(-5, -26, 10, 26); c.fillStyle = mpC([60, 56, 50]); c.fillRect(-4, -38, 8, 12); if (n > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -32, 24, '255,190,110', 0.7 * n); c.restore(); } c.fillStyle = n > 0.02 ? dnRgb(dnLerp([160, 156, 150], [255, 216, 144], n)) : mpC([170, 166, 160]); c.fillRect(-2.5, -36, 5, 8); },
+  // a llama: lying down in the dark, up and grazing once it is light (each in its own time)
+  mpllama3(c, p, time) { const d = p.r < 0.5 ? -1 : 1, col = [[214, 202, 176], [150, 114, 80], [238, 230, 214]][Math.floor(p.r * 3)], up = MPD.t > 0.34 + p.r * 0.14, hd = reduced || !up ? 0 : Math.sin(time * 0.6 + p.r * 9) * 2; c.save(); c.scale(d, 1); c.fillStyle = mpC(col);
+    if (!up) { c.beginPath(); c.ellipse(0, -9, 21, 9, 0, 0, 7); c.fill(); c.fillRect(13, -34, 7, 26); c.beginPath(); c.ellipse(19, -36, 8, 5, 0.2, 0, 7); c.fill(); c.fillRect(14, -46, 2, 6); c.fillRect(18, -46, 2, 6); c.restore(); return; }
+    c.beginPath(); c.ellipse(0, -26, 20, 10, 0, 0, 7); c.fill(); c.fillRect(-14, -20, 4, 20); c.fillRect(-6, -20, 4, 20); c.fillRect(6, -20, 4, 20); c.fillRect(12, -20, 4, 20); c.fillRect(14, -54 + hd, 7, 30); c.beginPath(); c.ellipse(20, -56 + hd, 8, 5, 0.2, 0, 7); c.fill(); c.fillRect(15, -66 + hd, 2, 6); c.fillRect(19, -66 + hd, 2, 6); c.restore(); },
+  // the Temple of the Sun: the curved wall of fine ashlar on its rock, its trapezoid window; the sunrise shines through it
+  mptorr(c, p) { const su = mpSun(); c.fillStyle = mpC([120, 118, 110]); c.beginPath(); c.moveTo(-70, 0); c.lineTo(-58, -30); c.lineTo(-20, -40); c.lineTo(40, -36); c.lineTo(66, -18); c.lineTo(72, 0); c.closePath(); c.fill();
+    c.fillStyle = mpC([190, 184, 168]); c.beginPath(); c.moveTo(-40, -34); c.lineTo(-40, -92); c.quadraticCurveTo(0, -104, 40, -92); c.lineTo(40, -34); c.quadraticCurveTo(0, -46, -40, -34); c.closePath(); c.fill();
+    c.fillStyle = mpC([130, 126, 116], 0.5); c.beginPath(); c.moveTo(-40, -34); c.lineTo(-40, -92); c.quadraticCurveTo(-26, -97, -14, -99); c.lineTo(-14, -41); c.closePath(); c.fill();
+    c.strokeStyle = mpC([110, 106, 96], 0.5); c.lineWidth = 1; c.beginPath(); [-50, -62, -74, -86].forEach(y => { c.moveTo(-40, y); c.quadraticCurveTo(0, y - 12, 40, y); }); c.stroke(); c.strokeStyle = mpC([244, 240, 222], 0.7); c.lineWidth = 1.5; c.beginPath(); c.moveTo(-40, -92); c.quadraticCurveTo(0, -104, 40, -92); c.stroke();
+    c.fillStyle = mpC([44, 42, 38]); c.beginPath(); c.moveTo(4, -62); c.lineTo(20, -60); c.lineTo(18, -80); c.lineTo(6, -82); c.closePath(); c.fill();
+    if (su > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 12, -71, 30, '255,214,140', 0.8 * su); c.fillStyle = `rgba(255,220,150,${(0.3 * su).toFixed(2)})`; c.beginPath(); c.moveTo(6, -80); c.lineTo(18, -62); c.lineTo(-60, 6); c.lineTo(-96, 6); c.closePath(); c.fill(); c.restore(); } },
+  // the Intihuatana: the carved stone with its upright post, on the top of its stepped mound; it catches the first sun
+  mpinti(c, p) { const su = mpSun(); [[-110, 0, 220, 30, [96, 138, 78]], [-84, -30, 168, 28, [90, 130, 74]], [-58, -58, 116, 26, [84, 124, 70]]].forEach(([x, y, w, h, col]) => { c.fillStyle = mpC([176, 170, 152]); c.fillRect(x, y - h, w, h); c.fillStyle = mpC(col); c.fillRect(x, y - h - 4, w, 6); });
+    c.fillStyle = mpC([170, 168, 160]); c.beginPath(); c.moveTo(-26, -88); c.lineTo(-22, -100); c.lineTo(-4, -104); c.lineTo(-4, -124); c.lineTo(8, -124); c.lineTo(8, -104); c.lineTo(22, -100); c.lineTo(28, -88); c.closePath(); c.fill(); c.fillStyle = mpC([110, 108, 102], 0.5); c.fillRect(-4, -124, 5, 36);
+    if (su > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 4, -112, 34, '255,214,140', 0.6 * su); c.restore(); } },
+  // the City Gate's walls either side of the path: fitted stone, each jamb leaning in
+  mpgate(c, p) { const d = p.r < 0.5 ? -1 : 1; c.save(); c.scale(d, 1); c.fillStyle = mpC([172, 166, 150]); c.beginPath(); c.moveTo(0, 0); c.lineTo(8, -74); c.lineTo(96, -70); c.lineTo(100, 0); c.closePath(); c.fill(); c.fillStyle = mpC([116, 112, 102], 0.5); c.beginPath(); c.moveTo(0, 0); c.lineTo(8, -74); c.lineTo(20, -74); c.lineTo(14, 0); c.closePath(); c.fill();
+    c.strokeStyle = mpC([96, 92, 84], 0.5); c.lineWidth = 1; c.beginPath(); [-18, -36, -54].forEach(y => { c.moveTo(4, y); c.lineTo(98, y + 2); }); [30, 58, 82].forEach((x, i) => { c.moveTo(x, -18); c.lineTo(x + 2, -36); c.moveTo(x - 12, -36); c.lineTo(x - 10, -54); }); c.stroke(); c.fillStyle = mpC([240, 236, 218], 0.6); c.fillRect(8, -76, 88, 3); c.restore(); },
+  // people sitting on a terrace wall, come up early to watch the sun rise on the peak
+  mpsit(c, p) { c.fillStyle = mpC([172, 166, 150]); c.fillRect(-56, -16, 112, 16); c.fillStyle = mpC([238, 234, 214]); c.fillRect(-56, -18, 112, 3); c.fillStyle = SIL_COL; c.beginPath(); dnSit(c, -36, -17); dnSit(c, -14, -17, 0.92); dnSit(c, 20, -17); if (p.r > 0.4) dnSit(c, 40, -17, 0.9); c.fill(); },
+});
+function mpProps3(th, n) { const o = th.osm, end = (n - 1) * WK.gap, T = [walkPx(24.1) + 2.1, 24.1], I = [walkPx(45.5) - 3.1, 45.5];
+  // the staged landmarks' ground is cleared of the ruins mapped there (once)
+  if (!o.r3) { o.r3 = 1; o.blds = o.blds.filter(b => { let x = 0, z = 0; const m = b.p.length / 2; for (let i = 0; i < b.p.length; i += 2) { x += b.p[i] / m; z += b.p[i + 1] / m; } return Math.hypot(x - T[0], z - T[1]) > 1.5 && Math.hypot(x - I[0], z - I[1]) > 2.3 && !(Math.abs(z - 12.7) < 0.9 && Math.abs(x - walkPx(12.7)) < 2.6); }); }
+  const out = walkMachuPropsR2(th, n).filter(q => Math.hypot(q.x - T[0], q.z - T[1]) > 1.4 && Math.hypot(q.x - I[0], q.z - I[1]) > 2.2); out.forEach(q => { if (q.kind === 'mprock' || q.kind === 'mplamp' || q.kind === 'mpllama') q.kind += '3'; }); mpTime(th, 0); ['mpsit'].forEach(k => FAR_SKIP.add(k));   /* round 3's props have their own names */
+  out.push({ z:T[1], x:T[0], kind:'mptorr', r:0 }, { z:I[1], x:I[0], kind:'mpinti', r:0 }, { z:12.7, x:walkPx(12.7) - 0.85, kind:'mpgate', r:0.2 }, { z:12.7, x:walkPx(12.7) + 0.85, kind:'mpgate', r:0.8 });
+  [[33.5, -1.5], [52.5, 1.5], [end + 1.2, -1.7], [end + 2.4, 1.8]].forEach(([z, dx], k) => out.push({ z, x:walkPx(Math.min(z, end + 4)) + dx, kind:'mpsit', r:wr(k * 4.3) }));
+  return out; }
+Object.assign(WALK_THEMES.machupicchu, { oprops:mpProps3, obb:mpMore3, oground:mpGround });
+WALK_THEMES.machupicchu.vly.after = mpCloud;
 function walkGridPref() { try { return localStorage.getItem('bob_walkgrid') === '1'; } catch (_) { return false; } }
 function walkSetGrid(on) { try { localStorage.setItem('bob_walkgrid', on ? '1' : '0'); } catch (_) {} renderLevels(); }
 let walkRoute = null;
