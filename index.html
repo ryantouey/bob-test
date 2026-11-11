@@ -2294,7 +2294,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.586.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.587.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -5617,8 +5617,10 @@ function percHits(kind, j, per, s, bar) { const beat = j % s === 0, b = j / s, m
   default: return null; } }
 const seedRng = str => { let h = 1779033703 ^ str.length; for (const ch of str) { h = Math.imul(h ^ ch.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; } return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; }; };
 // Writes a stage's 8-bar loop as a list of notes on each step
+/* Version 587 (owner): the menu phrase: D4 q, B4 dotted q, A4 e, G4 q | F#4 q, E4 h, starting on bar 5 of Stage 1's 8-bar loop (bar index 4) */
+const MENU_MOTIF = { bar:4, v:0.055, notes:[[62, 2], [71, 3], [69, 1], [67, 2], [66, 2], [64, 4]] }, MENU_MUSIC_LEVEL = 0.75;
 function composeMusic(theme) {
-  const m = STAGE_MUSIC[theme] || STAGE_MUSIC.park, rnd = seedRng(`music|${theme}`), dur = 60 / m.bpm / m.s, per = m.b * m.s, bars = m.p.length, steps = per * bars, ev = Array.from({ length:steps }, () => []), mode = SCALES[m.m], lead = SCALES[m.l || m.m], ci = IN[m.ci] || IN.pluck, M = { mus:1 }, co = m.co || 0, cv = 0.032;
+  const tk = theme === 'menu' ? 'park' : theme, m = STAGE_MUSIC[tk] || STAGE_MUSIC.park, rnd = seedRng(`music|${tk}`),   /* Version 587: 'menu' = Stage 1's theme */ dur = 60 / m.bpm / m.s, per = m.b * m.s, bars = m.p.length, steps = per * bars, ev = Array.from({ length:steps }, () => []), mode = SCALES[m.m], lead = SCALES[m.l || m.m], ci = IN[m.ci] || IN.pluck, M = { mus:1 }, co = m.co || 0, cv = 0.032;
   const hz = (sc, i, oct = 0) => pitchAt(m.r, sc[((i % sc.length) + sc.length) % sc.length] + 1200 * (oct + Math.floor(i / sc.length)));
   const add = (k, fn, tag) => ev[k].push({ fn, tag }), beat = (bar, b, h = 0) => bar * per + b * m.s + h;
   const riff = Array.from({ length:8 }, () => Math.floor(rnd() * lead.length * 1.6));
@@ -5662,7 +5664,8 @@ function composeMusic(theme) {
   });
   // A sparse tune over the 8 bars. Phrases end on the home note.
   if (m.lead) { const li = IN[m.lead] || IN.flute; let p = Math.floor(lead.length * 0.5); m.p.forEach((deg, bar) => { for (let b = 0; b < m.b; b++) { const end = bar % 4 === 3 && b === m.b - 1, r = rnd(); if (!end && r < 0.38) continue; p = end ? Math.round(p / lead.length) * lead.length : clamp(p + [-2, -1, -1, 1, 1, 2][Math.floor(rnd() * 6)], 0, Math.floor(lead.length * 1.8)); const two = !end && m.s === 2 && r > 0.85, pitch = p, len = dur * m.s * (end ? 2.2 : two ? 0.5 : 1.1); add(beat(bar, b), at => li(hz(lead, pitch, 1), 0.04, at, len, M), 'lead'); if (two) { const q = clamp(p + (rnd() < 0.5 ? 1 : -1), 0, lead.length * 2); add(beat(bar, b, 1), at => li(hz(lead, q, 1), 0.035, at, len, M), 'lead'); p = q; } } }); }
-  return { ev, dur, per, steps, sw:m.s === 2 ? m.sw || 0 : 0, v:MUSIC_TRIM[theme] || 1 };
+  if (theme === 'menu') { const at0 = MENU_MOTIF.bar * per; for (let k = at0; k < at0 + per * 2 && k < steps; k++) ev[k] = ev[k].filter(e => e.tag !== 'lead'); let k = at0; MENU_MOTIF.notes.forEach(([midi, eighths]) => { const f = 440 * Math.pow(2, (midi - 69) / 12), len = eighths * dur * 0.95; add(k % steps, at => (IN[m.lead] || IN.flute)(f, MENU_MOTIF.v, at, len, M), 'motif'); k += eighths; }); }   /* Version 587 (owner): the menu phrase */
+  return { ev, dur, per, steps, sw:m.s === 2 ? m.sw || 0 : 0, v:MUSIC_TRIM[tk] || 1 };
 }
 const MUS = { theme:null, plan:null, k:0, loop:0, next:0, level:-1, ending:0 };
 function setMusic(v, tau) { const g = ac.music.gain, t = ac.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.setTargetAtTime(v, t, tau); }
@@ -5671,11 +5674,11 @@ function playStep(at) { const P = MUS.plan, k = MUS.k, swing = k % 2 && P.sw ? P
 // Runs every 60 ms: starts, fades, pauses and switches the music to match the game
 function musicTick() {
   if (!ac || ac.state !== 'running') return; bus();
-  const now = ac.currentTime, theme = $('musicOn').checked && G && G.phase !== 'result' ? G.setting : null, paused = document.hidden || !($('sheet').hidden && $('help').hidden && $('leave').hidden && $('intro').hidden);
+  const now = ac.currentTime, theme = !$('musicOn').checked ? null : G ? (G.phase !== 'result' ? G.setting : null) : 'menu',   /* Version 587: menu music outside levels */ paused = document.hidden || !($('sheet').hidden && $('help').hidden && $('leave').hidden && $('intro').hidden);
   if (MUS.theme && theme !== MUS.theme) { if (!MUS.ending) { MUS.ending = now + 0.9; setMusic(0, 0.25); } if (now >= MUS.ending) { MUS.theme = null; MUS.ending = 0; } return; }
   if (!theme) return;
   if (!MUS.theme) { Object.assign(MUS, { theme, plan:composeMusic(theme), k:0, loop:0, next:now + 0.12, level:-1 }); ac.music.gain.cancelScheduledValues(now); ac.music.gain.setValueAtTime(0, now); }
-  const level = paused ? 0 : G.phase === 'show' ? (S && S.failT != null ? 0 : FIREWORKS[pick.firework] && FIREWORKS[pick.firework].quiet ? MUSIC_QUIET : MUSIC_SHOW) : 1;
+  const level = paused ? 0 : !G ? MENU_MUSIC_LEVEL : G.phase === 'show' ? (S && S.failT != null ? 0 : FIREWORKS[pick.firework] && FIREWORKS[pick.firework].quiet ? MUSIC_QUIET : MUSIC_SHOW) : 1;
   if (level !== MUS.level) { setMusic(level * MUSIC_LEVEL * MUS.plan.v * volOf('musicVol'), level ? (MUS.level < 0 ? 0.6 : 0.4) : paused ? 0.2 : 0.12); MUS.level = level; }
   if (!level) { MUS.next = Math.max(MUS.next, now + 0.08); return; }
   if (MUS.next < now) MUS.next = now + 0.05;
