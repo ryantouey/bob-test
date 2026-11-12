@@ -2365,7 +2365,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.603.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.604.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -5081,6 +5081,8 @@ const STRINGS = {
   "1 pin":["1 bolo", "1 quille", "1 Pin", "1 pino", "1本", "핀 1개", "1 瓶", "1 pin", "1 pin", "1 lobut", "1 birillo", "1 पिन"],
   "Strikes {a} · Spares {b}":["Strikes {a} · Spares {b}", "Strikes {a} · Spares {b}", "Strikes {a} · Spares {b}", "Strikes {a} · Spares {b}", "ストライク{a} · スペア{b}", "스트라이크 {a} · 스페어 {b}", "全中 {a} · 补中 {b}", "Strike {a} · Spare {b}", "Strike {a} · Spare {b}", "Strike {a} · Spare {b}", "Strike {a} · Spare {b}", "स्ट्राइक {a} · स्पेयर {b}"],
   "Perfect game bonus: +{n} coins":["Extra por partida perfecta: +{n} monedas", "Bonus partie parfaite : +{n} pièces", "Bonus für perfektes Spiel: +{n} Münzen", "Bônus de jogo perfeito: +{n} moedas", "パーフェクトボーナス：+{n}コイン", "퍼펙트 게임 보너스: +{n} 코인", "完美比赛奖励：+{n} 金币", "Bonus sa perpektong laro: +{n} barya", "Bonus permainan sempurna: +{n} koin", "Kusursuz oyun bonusu: +{n} jeton", "Bonus partita perfetta: +{n} monete", "परफ़ेक्ट गेम बोनस: +{n} सिक्के"],
+  // Version 604
+  "Launch":["Lanzar", "Lancer", "Starten", "Lançar", "発射", "발사", "发射", "Ilunsad", "Luncurkan", "Fırlat", "Lancia", "छोड़ो"],
   // Version 150 cosmetics
   "Christmas Tree":["Árbol de Navidad", "Sapin de Noël", "Weihnachtsbaum", "Árvore de Natal", "クリスマスツリー", "크리스마스 트리", "圣诞树", "Christmas Tree", "Pohon Natal", "Noel Ağacı", "Albero di Natale", 'क्रिसमस ट्री'],
   "In the big heart":["En el gran corazón", "Dans le grand cœur", "Im großen Herzen", "No grande coração", "大きなハートの中", "큰 하트 안에", "大爱心里", "Sa malaking puso", "Di hati besar", "Büyük kalbin içinde", "Nel grande cuore", 'बड़े दिल में'],
@@ -24721,7 +24723,7 @@ const SKB_MAX = 10;   /* upgrade levels 1-10 in each skill */
 /* What each skill level does. Blast: radius and push. Accuracy: how fast the launcher sways, its wobble, and how much of the path you see.
    Curve: how hard a full curve bends Sparky (5 steps each way; a step is a fifth of it). */
 function skbLevels(up) { const f = k => Math.pow((Math.max(1, Math.min(SKB_MAX, k || 1)) - 1) / (SKB_MAX - 1), 1.3), b = f(up && up.blast), a = f(up && up.aim), c = f(up && up.curve);   /* the last levels matter most */
-  return { R:24 + 20.5 * b, power:1 + 0.4 * b, omega:2.5 - 1.4 * a, amp:0.34, wob:0.045 * (1 - a), prevT:0.25 + 1.15 * a, curve:40 + 190 * c }; }
+  return { R:24 + 20.5 * b, power:1 + 0.4 * b, omega:2.5 - 1.4 * a, amp:0.34, wob:0.045 * (1 - a), prevT:0.25 + 1.15 * a, curve:110 + 170 * c }; }
 /* Formations: 10 pins in pin spacings (1 = SKB_W.S units), y down = towards the launcher. Each fits inside 1.8 spacings of its middle,
    so one centred blast at the top Blast level covers all ten. */
 const skbRows = (counts, dx, dy) => { const o = []; counts.forEach((n, r) => { for (let i = 0; i < n; i++) o.push([(i - (n - 1) / 2) * dx, (r - (counts.length - 1) / 2) * dy]); }); return o; };
@@ -24864,20 +24866,24 @@ function skbHowOpen() { $('infoSheet').classList.add('over'); $('infoTitle').tex
 function skyStart() { const k = skyDay(); k.tries += 1; saveAll();
   startGame(1, { sky:true, seed:`sky|${dayKey()}`, offset:localDayNo() % tour1Last() }); skbBegin(); }
 function skbBegin() { const s = skbState(), plan = skbDayPlan(`skb|${dayKey()}`), lv = skbLevels(s.up);
-  M = null; G.cd = null; G.phase = 'sky'; $('hud').hidden = true; $('pillWrap').style.visibility = 'hidden';
+  M = null; G.cd = null; G.phase = 'sky'; $('hud').hidden = true; $('pillWrap').style.visibility = 'hidden'; resize();   /* Version 604: the stage grew when the HUD hid */
   const K = G.sky = { bowl:true, up:Object.assign({}, s.up), lv, plan, G0:{ rolls:[], frame:0, ball:0, standing:10 }, pins:skbRack(plan[0]), aimT:0, ph0:Math.random() * 6.28, curve:0, mode:'aim', fx:[], soot:null, react:null, banner:null, flash:null, strikes:0, spares:0, run:0, maxRun:0, throws:0, score:0, rackIn:1, rnd:Math.random };
   K.st = skbNewThrow(plan[0], 0, K.pins, lv); K.cols = ((SCENES[G.setting] || {}).bursts || ['#ffd25e', '#ff8ad0', '#7fd4ff']).slice();
   track('sky_bowl_start', { try_number:skyDay().tries, blast:s.up.blast, aim:s.up.aim, curve:s.up.curve, setups:plan.join('-') });
   if (!seenIntro.has('skbHow')) { seenIntro.add('skbHow'); saveAll(); skbHowOpen(); } }
 /* The world (390 x 740 units) is scaled so Sparky's launch point sits on the scene's launcher and world y 130 sits under the score sheet */
 function skbView() { const [ox, oy] = skyOrigin(), s = Math.min(1, (oy - 96) / (SKB_W.ly - 130)); return { s, tx:ox - SKB_W.lx * s, ty:oy - SKB_W.ly * s }; }
-function skbCurveBtns() { const y = H - 34; return [{ x:W / 2 - 128, y, d:-1 }, { x:W / 2 + 128, y, d:1 }]; }
+/* Version 604 (owner): the control bar. Below its dashed line taps only work its buttons (Curve, Launch); above it a tap launches or sets Sparky off */
+function skbBar() { const h = 56, y = H - h - 12; return { top:y - 12, curve:{ x:12, y, w:176, h }, minus:{ x:12, y, w:58, h }, plus:{ x:130, y, w:58, h }, fire:{ x:W - 188, y, w:176, h } }; }
+const skbIn = (r, x, y) => x >= r.x - 4 && x <= r.x + r.w + 4 && y >= r.y - 8 && y <= r.y + r.h + 8;
+function skbCurve(d) { const K = G.sky, c = Math.max(-5, Math.min(5, K.curve + d)); K.press = { id:d < 0 ? 'minus' : 'plus', at:clock }; if (c === K.curve) { try { buzz(8); } catch (e) {} return; } K.curve = c; try { sfx.tick(); buzz(10); } catch (e) {} }
 const skbAim = K => K.lv.amp * Math.sin(K.ph0 + K.lv.omega * K.aimT);
 function skbTap(x, y) { const K = G.sky; if (!K || !K.bowl) return;
   if (Math.hypot(x - (W - 26), y - 88) < 22) { pauseGame(); return; }
   if (K.mode === 'react') { if (K.soot && K.soot.t < 1.45) K.soot.t = 1.45; K.react.t = Math.max(K.react.t, K.react.dur - 0.05); return; }
-  if (K.mode === 'aim') { if (K.rackIn > 0.2) return; for (const b of skbCurveBtns()) if (Math.hypot(x - b.x, y - b.y) < 32) { K.curve = Math.max(-5, Math.min(5, K.curve + b.d)); try { sfx.tick(); } catch (e) {} return; } skbFire(); return; }
-  if (K.mode === 'fly' && K.st.rocket) { skbBlast(K.st, K.st.rocket.x, K.st.rocket.y, K.rnd); skbBoomFx(); } }
+  const B = skbBar(), low = y >= B.top;
+  if (K.mode === 'aim') { if (K.rackIn > 0.2) return; if (low) { if (skbIn(B.minus, x, y)) skbCurve(-1); else if (skbIn(B.plus, x, y)) skbCurve(1); else if (skbIn(B.fire, x, y)) { K.press = { id:'fire', at:clock }; skbFire(); } return; } skbFire(); return; }
+  if (K.mode === 'fly' && K.st.rocket && (!low || skbIn(B.fire, x, y))) { K.press = { id:'fire', at:clock }; skbBlast(K.st, K.st.rocket.x, K.st.rocket.y, K.rnd); skbBoomFx(); } }
 function skbFire() { const K = G.sky, a = skbAim(K) + (Math.random() * 2 - 1) * K.lv.wob; skbLaunch(K.st, a, K.curve); K.mode = 'fly'; K.throws++; K.soot = null; try { sfx.thump(); buzz(15); } catch (e) {} }
 function skbBoomFx() { const K = G.sky, b = K.st.blast; if (!b) return; K.flash = { x:b.x, y:b.y, R:b.R, t:0 };
   const n = reduced ? 14 : 38; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = 60 + Math.random() * 170; K.fx.push({ x:b.x, y:b.y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, age:0, life:0.55 + Math.random() * 0.5, c:K.cols[i % K.cols.length], r:1.6 + Math.random() * 1.6, g:90 }); }
@@ -24935,7 +24941,7 @@ function skbSheet(x0, y0, w, rolls, cur, big) { const S = skbScore(rolls), fw = 
     const nb = f === 9 ? 3 : 2, bw = Math.min(14, (ww - 4) / nb); for (let b = 0; b < nb; b++) { const bx = x + ww - 2 - (nb - b) * bw; ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.strokeRect(bx, y0, bw, bw); const m = (S.marks[f] || [])[b]; if (m) { const col = m === 'X' ? COL.gold : m === '/' ? '#7ff6ff' : COL.ink; label(m, bx + bw / 2, y0 + bw - 3, f1, col, 'center', bw); } }
     const c = S.cum[f]; if (c != null) label(String(c), x + ww / 2, y0 + h - 5, f2, COL.ink, 'center', ww - 2); else label(String(f + 1), x + ww / 2, y0 + h - 6, big ? 11 : 9, 'rgba(173,175,214,.6)', 'center', ww - 2); }   /* the frame number until its total is known */
   ctx.restore(); return S; }
-function skbDraw() { const K = G.sky, st = K.st, V = skbView(), T = st.T; drawWorld(0, G.setting, {}); drawSmoke(H - 104, 0);
+function skbDraw() { const K = G.sky, st = K.st, V = skbView(), T = st.T; drawWorld(0, G.setting, { taken:true }); drawSmoke(H - 104, 0); skbCrowd(K, skbCrowdN(K.score), !!(K.react && K.react.mood === 'cheer'));   /* Version 604 */
   ctx.save(); ctx.translate(V.tx, V.ty); ctx.scale(V.s, V.s);
   const rk = skbRackAt(st.si, T), drop = K.rackIn > 0 ? 70 * K.rackIn * K.rackIn : 0; skbCloudDeck(rk.x, rk.y + 52 - drop, 70);
   skbObsAt(st.si, T).forEach(o => skbObstacle(o, T));
@@ -24945,24 +24951,45 @@ function skbDraw() { const K = G.sky, st = K.st, V = skbView(), T = st.T; drawWo
   if (K.mode === 'aim') { const a = skbAim(K), L = K.lv, v = SKB_W.v0; let x = SKB_W.lx, y = SKB_W.ly, vx = Math.sin(a) * v, vy = -Math.cos(a) * v; const ax = K.curve / 5 * L.curve + st.wind, n = Math.round(L.prevT * 60);
     for (let i = 1; i <= n; i++) { for (let k = 0; k < 2; k++) { vx += ax / 120; vy += SKB_W.g / 120; x += vx / 120; y += vy / 120; } if (i % 3 === 0) { ctx.fillStyle = `rgba(255,236,170,${0.9 - 0.5 * i / n})`; ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill(); } }
     ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(255,214,110,.55)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, L.R, 0, 7); ctx.stroke(); ctx.restore();
-    ctx.save(); ctx.translate(SKB_W.lx, SKB_W.ly); ctx.rotate(a); drawSparky(0, -13, 13, 'happy', ctx, { fuse:1 }); ctx.restore(); }
+    ctx.save(); ctx.translate(SKB_W.lx, SKB_W.ly); ctx.rotate(a); if (K.curve) skbCurveArrow(K.curve); drawSparky(0, -13, 13, 'happy', ctx, { fuse:1 }); ctx.restore(); }
   if (st.rocket) { const r = st.rocket; ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(Math.atan2(r.vx, -r.vy) * 0.6); drawSparky(0, 0, 11, 'celebrate', ctx, { fuse:Math.max(0.05, 1 - r.t / r.fuse) }); ctx.restore(); }
   if (K.soot) skbSootDraw(K);
   ctx.restore();
   /* the score sheet, frame, wind, pause, curve */
   const S = skbSheet(7, 10, W - 14, K.G0.rolls, Math.min(9, K.G0.frame), false), fr = Math.min(9, K.G0.frame);
-  label(t('Score: {n}', { n:S.total }), W / 2, 84, 20, COL.gold);
   if (K.mode !== 'over') label(t('Frame {a} · Throw {b}', { a:fr + 1, b:Math.min(3, K.G0.ball + 1) }), 12, 84, 13, COL.ink, 'left', 140);
   { ctx.save(); ctx.fillStyle = 'rgba(13,15,42,.8)'; ctx.beginPath(); ctx.arc(W - 26, 88, 16, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = COL.ink; ctx.fillRect(W - 31, 81, 3.6, 14); ctx.fillRect(W - 24.6, 81, 3.6, 14); ctx.restore(); }
   if (st.wind) { const n = Math.abs(st.wind) <= 45 ? 1 : Math.abs(st.wind) <= 70 ? 2 : 3; label(`${t('Wind')} ${(st.wind > 0 ? '→' : '←').repeat(n)}`, W / 2, 106, 14, '#bfe6ff'); }
-  if (K.mode === 'aim' && K.rackIn <= 0.2) { const B = skbCurveBtns(), my = B[0].y; B.forEach(b => { ctx.save(); ctx.fillStyle = 'rgba(13,15,42,.86)'; ctx.beginPath(); ctx.arc(b.x, b.y, 22, 0, 7); ctx.fill(); ctx.strokeStyle = '#3fd17a'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore(); label(b.d < 0 ? '↶' : '↷', b.x, b.y + 8, 22, COL.ink); });
-    ctx.save(); for (let i = -5; i <= 5; i++) { const x = W / 2 + i * 13; ctx.fillStyle = i === K.curve ? '#3fd17a' : 'rgba(255,255,255,.28)'; ctx.beginPath(); ctx.arc(x, my, i === K.curve ? 5.5 : i === 0 ? 3.2 : 2.4, 0, 7); ctx.fill(); } ctx.restore(); label(K.curve ? `${t('Curve')} ${K.curve > 0 ? '+' : ''}${K.curve}` : t('Curve'), W / 2, my - 12, 12, COL.muted);
-    if (K.throws < 2) label(t('Tap to launch Sparky'), W / 2, H * 0.5, 18, COL.ink); }
+  skbBarDraw(K); if (K.mode === 'aim' && K.rackIn <= 0.2 && K.throws < 2) label(t('Tap to launch Sparky'), W / 2, H * 0.5, 18, COL.ink);
   if (K.mode === 'fly' && st.rocket && K.throws <= 3) label(t('Tap again to set him off!'), W / 2, H * 0.5, 18, COL.gold);
   if (K.banner && K.banner.t < 1.4) { const b = K.banner, pop = reduced ? 1 : b.t < 0.15 ? 0.5 + b.t / 0.15 * 0.6 : b.t < 0.25 ? 1.1 - (b.t - 0.15) : 1; ctx.save(); ctx.globalAlpha = Math.min(1, (1.4 - b.t) / 0.3); ctx.translate(W / 2, H * 0.44); ctx.scale(pop, pop); BLOCKS.outlined(b.text, 0, 0, b.gold ? 34 : 24, b.gold ? COL.gold : COL.ink, '#15133f'); ctx.restore(); } }
+/* Version 604: a curved arrow from the launcher showing which way, and how hard, a curve bends him (drawn in the aim's frame) */
+function skbCurveArrow(c) { const k = c / 5, x1 = k * 44, y1 = -108; ctx.save(); ctx.strokeStyle = 'rgba(95,240,154,.9)'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(0, -30); ctx.quadraticCurveTo(0, -84, x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  const ang = Math.atan2(y1 + 84, x1), hx = Math.cos(ang), hy = Math.sin(ang); ctx.fillStyle = '#5ff09a'; ctx.beginPath(); ctx.moveTo(x1 + hx * 9, y1 + hy * 9); ctx.lineTo(x1 - hy * 6 - hx * 3, y1 + hx * 6 - hy * 3); ctx.lineTo(x1 + hy * 6 - hx * 3, y1 - hx * 6 - hy * 3); ctx.closePath(); ctx.fill(); ctx.restore(); }
+/* a drawn curved arrow (base points left; s = -1 mirrors it) */
+function skbArrowIcon(cx, cy, s, col) { ctx.save(); ctx.translate(cx, cy); ctx.scale(s, 1); ctx.strokeStyle = col; ctx.lineWidth = 3.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(6, 11); ctx.quadraticCurveTo(7, -6, -5, -7.5); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-0.5, -13.5); ctx.lineTo(-7, -7.5); ctx.lineTo(-1, -1.5); ctx.stroke(); ctx.restore(); }
+function skbBarDraw(K) { const B = skbBar(), aim = K.mode === 'aim' && K.rackIn <= 0.2, fly = K.mode === 'fly' && !!K.st.rocket, pr = id => K.press && K.press.id === id && clock - K.press.at < 0.14 ? 0.9 : 1;
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1; ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.moveTo(10, B.top); ctx.lineTo(W - 10, B.top); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = 'rgba(8,8,26,.55)'; ctx.fillRect(0, B.top, W, H - B.top); ctx.restore();
+  const c = B.curve; ctx.save(); ctx.globalAlpha = aim ? 1 : 0.45; ctx.fillStyle = 'rgba(13,15,42,.94)'; rr(c.x, c.y, c.w, c.h, 22); ctx.fill(); ctx.strokeStyle = '#3fd17a'; ctx.lineWidth = 2; ctx.stroke();
+  [['minus', B.minus, 1], ['plus', B.plus, -1]].forEach(([id, r, sd]) => { const cx = r.x + r.w / 2, cy = r.y + r.h / 2, k = pr(id), end = (id === 'minus' && K.curve <= -5) || (id === 'plus' && K.curve >= 5); ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); const g = ctx.createLinearGradient(0, -22, 0, 22); g.addColorStop(0, end ? '#5a6a62' : '#6ff5a6'); g.addColorStop(1, end ? '#34423b' : '#18a052'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill(); ctx.strokeStyle = '#0b3a1d'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.ellipse(-6, -11, 9, 4.5, -0.4, 0, 7); ctx.fill(); skbArrowIcon(0, 1, sd, '#fff'); ctx.restore(); });
+  const mx = c.x + c.w / 2; label(t('Curve'), mx, c.y + 21, 11, COL.muted, 'center', 58); label(K.curve ? `${K.curve > 0 ? '+' : '−'}${Math.abs(K.curve)}` : '0', mx, c.y + 45, 22, K.curve ? '#6ff5a6' : COL.ink, 'center', 58); ctx.restore();
+  const f = B.fire, k = pr('fire'); ctx.save(); ctx.translate(f.x + f.w / 2, f.y + f.h / 2); ctx.scale(k, k); ctx.globalAlpha = aim || fly ? 1 : 0.45; const g = ctx.createLinearGradient(0, -f.h / 2, 0, f.h / 2);
+  if (fly) { g.addColorStop(0, '#ff8a6a'); g.addColorStop(1, '#d8322a'); } else { g.addColorStop(0, '#ffe08a'); g.addColorStop(1, '#f5a623'); }
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(-f.w / 2, -f.h / 2 + 4, f.w, f.h, 22); ctx.fill(); ctx.fillStyle = g; rr(-f.w / 2, -f.h / 2, f.w, f.h, 22); ctx.fill(); ctx.strokeStyle = fly ? '#5a0f0a' : '#7a4a0a'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,.28)'; rr(-f.w / 2 + 10, -f.h / 2 + 5, f.w - 20, 12, 6); ctx.fill();
+  if (fly) { ctx.fillStyle = '#ffe37a'; ctx.beginPath(); for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, rr2 = i % 2 ? 7 : 15; ctx.lineTo(-f.w / 2 + 32 + Math.cos(a) * rr2, Math.sin(a) * rr2); } ctx.closePath(); ctx.fill(); } else drawSparky(-f.w / 2 + 32, 4, 13, 'happy', ctx, { fuse:1 });
+  label(fly ? t('BOOM!') : t('Launch'), 18, 8, 22, fly ? '#fff' : COL.night, 'center', f.w - 74); ctx.restore(); }
+/* Version 604 (owner): the crowd grows with the score: 8 fans, then 4 more every 20 points, up to 72 in three rows beside the launcher */
+const SKB_CROWD = { base:8, add:4, step:20, max:72, rows:[[24, 1], [26, 0.86], [22, 0.74]] };
+const skbCrowdN = sc => Math.min(SKB_CROWD.max, SKB_CROWD.base + SKB_CROWD.add * Math.floor((sc || 0) / SKB_CROWD.step));
+function skbCrowd(K, n, cheer) { if (K.crowdN == null) K.crowdN = n; if (n > K.crowdN) { K.arrive = K.arrive || {}; for (let i = K.crowdN; i < n; i++) K.arrive[i] = clock + (i - K.crowdN) * 0.07; K.crowdN = n; }
+  const base = skbBar().top - 3, R = SKB_CROWD.rows; let first = 0; const spots = []; R.forEach(([cap, sc], r) => { const m = Math.max(0, Math.min(cap, n - first)), y = base - r * 12, half = cap / 2;
+    for (let j = 0; j < cap; j++) { if (!(Math.floor((j + 1) * m / cap) > Math.floor(j * m / cap))) continue; const left = j % 2 === 0, q = Math.floor(j / 2), span = W / 2 - 46 * sc - 6, x = left ? 6 + (q + 0.5) * span / half + (r % 2) * 6 : W - 6 - (q + 0.5) * span / half - (r % 2) * 6; spots.push({ x, y, s:sc, p:first + spots.filter(z => z.y === y).length }); }
+    first += m; });
+  ctx.save(); ctx.fillStyle = SIL_COL; spots.sort((a, b) => a.y - b.y).forEach(z => { const at = (K.arrive || {})[z.p], k = at == null ? 1 : clamp((clock - at) / 0.3); if (k <= 0) return; const fresh = at != null && clock - at < 1.2, hop = !reduced && (cheer || fresh) ? Math.abs(Math.sin(clock * 6 + z.p)) * 5 * z.s : 0, s = z.s, b = z.y - 34 * s - hop + (1 - k) * 18;
+    ctx.globalAlpha = k; rr(z.x - 6 * s, b, 12 * s, 34 * s, 5 * s); ctx.fill(); ctx.beginPath(); ctx.arc(z.x, b - 7 * s, 6.5 * s, 0, 7); ctx.fill(); }); ctx.restore(); }
 /* ---- the result ---- */
 function skbResButtons() { const list = []; if (skyDay().tries === 1) list.push({ id:'again', text:t('Watch ad: 1 more try') }); list.push({ id:'done', text:t('Done') });   /* Version 603: Done returns to the Sky Shot page */ let y = H * 0.66; return list.map(b => { const r = { ...b, x:W / 2 - 130, y, w:260, h:52 }; y += 62; return r; }); }
-function skbResDraw() { const K = G.sky; if (!K || !K.bowl) return; drawWorld(0, G.setting, { cheer:!!K.tier }); drawParts(); ctx.fillStyle = 'rgba(13,15,42,.66)'; ctx.fillRect(0, 0, W, H);
+function skbResDraw() { const K = G.sky; if (!K || !K.bowl) return; drawWorld(0, G.setting, { taken:true }); skbCrowd(K, skbCrowdN(K.score), !!K.tier); drawParts(); ctx.fillStyle = 'rgba(13,15,42,.66)'; ctx.fillRect(0, 0, W, H);
   label(t('Sky Bowling'), W / 2, H * 0.12, 26, COL.ink); skbSheet(10, H * 0.16, W - 20, K.G0.rolls, -1, true);
   label(String(K.score), W / 2, H * 0.32, 56, COL.gold); label(t('Strikes {a} · Spares {b}', { a:K.strikes, b:K.spares }), W / 2, H * 0.36, 16, COL.muted);
   label(K.score === 300 ? t('PERFECT GAME!') : K.tier ? t(K.tier) : t('No medal this time'), W / 2, H * 0.43, 30, K.score === 300 ? '#7ff6ff' : K.tier === 'Diamond' ? '#7ff6ff' : K.tier === 'Gold' ? COL.gold : K.tier === 'Silver' ? '#dfe3f2' : K.tier ? '#e8a46c' : COL.muted);
@@ -24973,6 +25000,8 @@ function skbResDraw() { const K = G.sky; if (!K || !K.bowl) return; drawWorld(0,
 function skbResTap(x, y) { const K = G.sky; if (!K || !K.bowl) { skyResTap(x, y); return; } const b = skbResButtons().find(q => x >= q.x && x <= q.x + q.w && y >= q.y && y <= q.y + q.h); if (!b) return;
   if (b.id === 'done') { quit('home'); openSky(); } else watchAd(() => { quit('home'); skyStart(); }, 'sky_retry'); }
 $('skbHow').onclick = () => { $('infoSheet').classList.add('over'); skbHowOpen(); };
+/* Version 604: measure the stage again whenever it changes size (phone toolbars, HUD shown or hidden), so taps and drawing agree */
+{ let skbRo = 0; const remeasure = () => { clearTimeout(skbRo); skbRo = setTimeout(() => { const r = $('stage').getBoundingClientRect(); if (r.width && r.height && Math.abs(r.height * 390 / r.width - H) > 0.5) resize(); }, 60); }; addEventListener('resize', remeasure); try { new ResizeObserver(remeasure).observe($('stage')); } catch (e) {} }
 // Test hook for the level tools (developer build only; release builds and the playtest link don't expose it)
 if (!RELEASE_BUILD) window.LF = { withSeed, startTutorial, TUT, buildShellCells, levelId, stageOf, BLOCKS_MAKE:() => BLOCKS.make(), SCENES, drawWorld, FOLK, bought, STORE_ROTATION, storeToday, renderStore, openBuy,  OTHERS, WORLD, storeDayItems, showUnlocks, levelUnlocks, COUNTRIES, guessCountry, langFor, openCountry, flagFor, stats, startRun, CHAINS, survItems, login, checkLogin, stepFrame:n => stepFrame(n), get parts() { return parts; }, FIREWORKS, BLASTS, STRINGS, LANGUAGES, t, applyLanguage, SHOP, wallet, STAGE, stam, done, tickStamina, spendStamina, tryStart, show, CONFIG, get G() { return G; }, get S() { return S; }, get M() { return M; }, pick, startGame, startShow, startFuse, finishMini, BLOCKS, LOOKS, LAUNCHERS };
 </script>
