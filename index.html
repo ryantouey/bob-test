@@ -2365,7 +2365,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.605.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.606.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -5085,6 +5085,8 @@ const STRINGS = {
   "Launch":["Lanzar", "Lancer", "Starten", "Lançar", "発射", "발사", "发射", "Ilunsad", "Luncurkan", "Fırlat", "Lancia", "छोड़ो"],
   // Version 605
   "Total":["Total", "Total", "Gesamt", "Total", "合計", "합계", "总分", "Kabuuan", "Total", "Toplam", "Totale", "कुल"],
+  // Version 606
+  "Blast size":["Tamaño de la explosión", "Taille de l'explosion", "Explosionsgröße", "Tamanho da explosão", "爆発の大きさ", "폭발 크기", "爆炸范围", "Laki ng pagsabog", "Ukuran ledakan", "Patlama boyutu", "Raggio dell'esplosione", "धमाके का आकार"],
   // Version 150 cosmetics
   "Christmas Tree":["Árbol de Navidad", "Sapin de Noël", "Weihnachtsbaum", "Árvore de Natal", "クリスマスツリー", "크리스마스 트리", "圣诞树", "Christmas Tree", "Pohon Natal", "Noel Ağacı", "Albero di Natale", 'क्रिसमस ट्री'],
   "In the big heart":["En el gran corazón", "Dans le grand cœur", "Im großen Herzen", "No grande coração", "大きなハートの中", "큰 하트 안에", "大爱心里", "Sa malaking puso", "Di hati besar", "Büyük kalbin içinde", "Nel grande cuore", 'बड़े दिल में'],
@@ -24725,7 +24727,7 @@ const SKB_MAX = 10;   /* upgrade levels 1-10 in each skill */
 /* What each skill level does. Blast: radius and push. Accuracy: how fast the launcher sways, its wobble, and how much of the path you see.
    Curve: how hard a full curve bends Sparky (5 steps each way; a step is a fifth of it). */
 function skbLevels(up) { const f = k => Math.pow((Math.max(1, Math.min(SKB_MAX, k || 1)) - 1) / (SKB_MAX - 1), 1.3), b = f(up && up.blast), a = f(up && up.aim), c = f(up && up.curve);   /* the last levels matter most */
-  return { R:24 + 20.5 * b, power:1 + 0.4 * b, omega:2.5 - 1.4 * a, amp:0.34, wob:0.045 * (1 - a), prevT:0.25 + 1.15 * a, curve:110 + 170 * c }; }
+  return { R:24 + 20.5 * b, power:1 + 0.4 * b, omega:2.5 - 1.4 * a, amp:0.34, wob:0.045 * (1 - a), prevT:0.8 + 0.6 * a, curve:0.55 + 0.65 * c }; }
 /* Formations: 10 pins in pin spacings (1 = SKB_W.S units), y down = towards the launcher. Each fits inside 1.8 spacings of its middle,
    so one centred blast at the top Blast level covers all ten. */
 const skbRows = (counts, dx, dy) => { const o = []; counts.forEach((n, r) => { for (let i = 0; i < n; i++) o.push([(i - (n - 1) / 2) * dx, (r - (counts.length - 1) / 2) * dy]); }); return o; };
@@ -24774,14 +24776,14 @@ function skbRack(si) { return skbForm(si).map(([ox, oy], i) => ({ i, ox, oy, x:0
 function skbNewThrow(si, T, pins, lv) { const st = { si, T, pins, rocket:null, blast:null, lv, wind:SKB_SETUPS[si].w || 0, done:false, settle:0, down0:pins.filter(p => !p.up).length, hitObs:false }; skbPlace(st); return st; }
 function skbPlace(st) { const c = skbRackAt(st.si, st.T); st.pins.forEach(p => { if (p.up) { p.x = c.x + p.ox; p.y = c.y + p.oy; } }); }
 /* Launch at angle a (radians from straight up), curve step c (-5..5) */
-function skbLaunch(st, a, c) { const L = st.lv, v = SKB_W.v0, vy = -Math.cos(a) * v; st.rocket = { x:SKB_W.lx, y:SKB_W.ly, vx:Math.sin(a) * v, vy, ax:(c || 0) / 5 * L.curve + st.wind, t:0, fuse:-vy / SKB_W.g + 0.35 }; st.curve = c || 0; }
+function skbLaunch(st, a, c) { const L = st.lv, v = SKB_W.v0, vy = -Math.cos(a) * v; st.rocket = { x:SKB_W.lx, y:SKB_W.ly, vx:Math.sin(a) * v, vy, ax:st.wind, turn:(c || 0) / 5 * L.curve, t:0, fuse:-vy / SKB_W.g + 0.35 }; st.curve = c || 0; }
 function skbHitObs(st, x, y) { return skbObsAt(st.si, st.T).some(o => { const dx = (x - o.x) / (o.rx + 5), dy = (y - o.y) / (o.ry + 5); return dx * dx + dy * dy < 1; }); }
 function skbBlast(st, x, y, rnd) { const L = st.lv; st.rocket = null; st.blast = { x, y, R:L.R, t:0 }; let n = 0;
   st.pins.forEach(p => { if (!p.up) return; const dx = p.x - x, dy = p.y - y, d = Math.hypot(dx, dy); if (d >= L.R) return; const ux = d > 0.5 ? dx / d : rnd() - 0.5, uy = d > 0.5 ? dy / d : -0.5, sp = (250 + 240 * (1 - d / L.R)) * L.power; skbKnock(p, ux, uy, sp, rnd); n++; }); return n; }
 function skbKnock(p, ux, uy, sp, rnd) { const l = Math.hypot(ux, uy) || 1; p.up = false; p.vx = ux / l * sp; p.vy = uy / l * sp - 70; p.age = 0; p.vr = (rnd() - 0.5) * 22; }
 /* One step of the world (call with dt <= 1/120). Returns 'boom' the step Sparky goes off. */
 function skbStep(st, dt, rnd) { let ev = null; st.T += dt; skbPlace(st); const r = st.rocket;
-  if (r) { r.vx += r.ax * dt; r.vy += SKB_W.g * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.t += dt;
+  if (r) { if (r.turn) { const q = r.turn * dt, cs = Math.cos(q), sn = Math.sin(q), vx0 = r.vx; r.vx = vx0 * cs - r.vy * sn; r.vy = vx0 * sn + r.vy * cs; }   /* Version 606: a curve turns him (a hook), wind pushes him */ r.vx += r.ax * dt; r.vy += SKB_W.g * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.t += dt;
     if (skbHitObs(st, r.x, r.y)) { st.hitObs = true; skbBlast(st, r.x, r.y, rnd); ev = 'boom'; }
     else if (r.t >= r.fuse || r.y < SKB_W.top || r.x < -30 || r.x > 420 || r.y > SKB_W.ly + 30) { skbBlast(st, r.x, r.y, rnd); ev = 'boom'; } }
   const S2 = (2 * SKB_W.pinR + 1) ** 2;
@@ -24965,10 +24967,10 @@ function skbDraw() { const K = G.sky, st = K.st, V = skbView(), T = st.T; drawWo
   st.pins.forEach(p => { if (p.up) skbPin(p.x, p.y - drop, 0, 1 - K.rackIn); else if (p.age < 0.9 && p.y < 760) skbPin(p.x, p.y, p.rot, Math.max(0, 1 - p.age / 0.9)); });
   if (K.flash) { const f = K.flash, k = Math.min(1, f.t / 0.22); ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.R); g.addColorStop(0, `rgba(255,244,200,${0.75 * (1 - f.t / 0.5)})`); g.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, f.R * (0.6 + 0.4 * k), 0, 7); ctx.fill(); ctx.strokeStyle = `rgba(255,226,140,${1 - f.t / 0.5})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(f.x, f.y, f.R * (0.6 + 0.4 * k), 0, 7); ctx.stroke(); ctx.restore(); }
   K.fx.forEach(p => { ctx.globalAlpha = Math.max(0, 1 - p.age / p.life); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); }); ctx.globalAlpha = 1;
-  if (K.mode === 'aim') { const a = skbAim(K), L = K.lv, v = SKB_W.v0; let x = SKB_W.lx, y = SKB_W.ly, vx = Math.sin(a) * v, vy = -Math.cos(a) * v; const ax = K.curve / 5 * L.curve + st.wind, n = Math.round(L.prevT * 60);
-    for (let i = 1; i <= n; i++) { for (let k = 0; k < 2; k++) { vx += ax / 120; vy += SKB_W.g / 120; x += vx / 120; y += vy / 120; } if (i % 3 === 0) { ctx.fillStyle = `rgba(255,236,170,${0.9 - 0.5 * i / n})`; ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill(); } }
-    ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(255,214,110,.55)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, L.R, 0, 7); ctx.stroke(); ctx.restore();
-    ctx.save(); ctx.translate(SKB_W.lx, SKB_W.ly); ctx.rotate(a); if (K.curve) skbCurveArrow(K.curve); drawSparky(0, -13, 13, 'happy', ctx, { fuse:1 }); ctx.restore(); }
+  if (K.mode === 'aim') { const a = skbAim(K), L = K.lv, v = SKB_W.v0; let x = SKB_W.lx, y = SKB_W.ly, vx = Math.sin(a) * v, vy = -Math.cos(a) * v; const ax = st.wind, tq = K.curve / 5 * L.curve / 120, n = Math.round(L.prevT * 60);
+    const cg = Math.min(1, Math.abs(K.curve) / 3); for (let i = 1; i <= n; i++) { for (let k = 0; k < 2; k++) { if (tq) { const v0 = vx; vx = v0 * Math.cos(tq) - vy * Math.sin(tq); vy = v0 * Math.sin(tq) + vy * Math.cos(tq); } vx += ax / 120; vy += SKB_W.g / 120; x += vx / 120; y += vy / 120; } if (i % 2 === 0) { const u = i / n, m = cg * u; ctx.fillStyle = `rgba(${Math.round(255 - 160 * m)},${Math.round(236 + 4 * m)},${Math.round(170 - 16 * m)},${0.95 - 0.45 * u})`; ctx.beginPath(); ctx.arc(x, y, 2.8 - 0.9 * u, 0, 7); ctx.fill(); } }   /* Version 606: the line itself bends, greener as it curves */
+    skbBlastZone(x, y, L.R);
+    ctx.save(); ctx.translate(SKB_W.lx, SKB_W.ly); ctx.rotate(a); drawSparky(0, -13, 13, 'happy', ctx, { fuse:1 }); ctx.restore(); }
   if (st.rocket) { const r = st.rocket; ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(Math.atan2(r.vx, -r.vy) * 0.6); drawSparky(0, 0, 11, 'celebrate', ctx, { fuse:Math.max(0.05, 1 - r.t / r.fuse) }); ctx.restore(); }
   if (K.soot) skbSootDraw(K);
   ctx.restore();
@@ -25004,6 +25006,13 @@ function skbCrowd(K, n, cheer) { if (K.crowdN == null) K.crowdN = n; if (n > K.c
     first += m; });
   ctx.save(); ctx.fillStyle = SIL_COL; spots.sort((a, b) => a.y - b.y).forEach(z => { const at = (K.arrive || {})[z.p], k = at == null ? 1 : clamp((clock - at) / 0.3); if (k <= 0) return; const fresh = at != null && clock - at < 1.2, hop = !reduced && (cheer || fresh) ? Math.abs(Math.sin(clock * 6 + z.p)) * 5 * z.s : 0, s = z.s, b = z.y - 34 * s - hop + (1 - k) * 18;
     ctx.globalAlpha = k; rr(z.x - 6 * s, b, 12 * s, 34 * s, 5 * s); ctx.fill(); ctx.beginPath(); ctx.arc(z.x, b - 7 * s, 6.5 * s, 0, 7); ctx.fill(); }); ctx.restore(); }
+/* Version 606 (owner): the blast zone at the end of the aim line: what Sparky's blast covers if he goes off there */
+function skbBlastZone(x, y, R) { const p = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(clock * 4); ctx.save();
+  const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, 'rgba(255,214,110,.26)'); g.addColorStop(0.7, 'rgba(255,150,60,.16)'); g.addColorStop(1, 'rgba(255,110,40,.05)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill();
+  ctx.strokeStyle = `rgba(255,${200 + Math.round(30 * p)},120,${0.75 + 0.25 * p})`; ctx.lineWidth = 2.6; ctx.setLineDash([7, 4]); ctx.lineDashOffset = -clock * 12; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(255,236,170,.85)'; ctx.lineWidth = 2; ctx.lineCap = 'round'; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + clock * 0.4; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * (R + 3), y + Math.sin(a) * (R + 3)); ctx.lineTo(x + Math.cos(a) * (R + 9), y + Math.sin(a) * (R + 9)); ctx.stroke(); }
+  ctx.fillStyle = '#ffd25e'; ctx.beginPath(); for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, r = k % 2 ? 3 : 7; ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } ctx.closePath(); ctx.fill();
+  const tx = t('Blast size'); ctx.font = "800 11px 'Figtree','Segoe UI',system-ui,sans-serif"; const tw = ctx.measureText(tx).width + 14, ty = y - R - 18; ctx.fillStyle = 'rgba(13,15,42,.85)'; rr(x - tw / 2, ty - 9, tw, 18, 9); ctx.fill(); ctx.strokeStyle = 'rgba(255,214,110,.8)'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = '#ffe7a0'; ctx.textAlign = 'center'; ctx.fillText(tx, x, ty + 4); ctx.restore(); }
 /* ---- the result ---- */
 function skbResButtons() { const list = []; if (skyDay().tries === 1) list.push({ id:'again', text:t('Watch ad: 1 more try') }); list.push({ id:'done', text:t('Done') });   /* Version 603: Done returns to the Sky Shot page */ let y = H * 0.66; return list.map(b => { const r = { ...b, x:W / 2 - 130, y, w:260, h:52 }; y += 62; return r; }); }
 function skbResDraw() { const K = G.sky; if (!K || !K.bowl) return; drawWorld(0, G.setting, { taken:true }); skbCrowd(K, skbCrowdN(K.score), !!K.tier); drawParts(); ctx.fillStyle = 'rgba(13,15,42,.66)'; ctx.fillRect(0, 0, W, H);
