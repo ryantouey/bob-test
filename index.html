@@ -2404,7 +2404,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.638.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.639.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -2497,7 +2497,7 @@ const TUNABLE = [['base','Base cost of any flaw',0,0.05,0.002,'pct'],['growth','
 // Turned + Chop (38-50).
 const STAGES = [{ theme:'park', rockets:1, pieces:4, size:4, cut:0, cols:2, secs:20, levels:5 },   /* Version 428 (owner): 5 levels (were 10) */
   { theme:'boracay', rockets:1, pieces:6, size:6, cut:2, cols:2, secs:22, levels:25 },   /* Version 636 (owner, BLO-85): 22 s (was 30) */   // Version 294 (owner): Stages 2-4 on Stage 5's board
-  { theme:'paris', rockets:2, pieces:6, size:6, cut:2, cols:2, secs:20, levels:25 },
+  { theme:'paris', rockets:2, pieces:6, size:6, cut:2, cols:2, secs:21, levels:25 },
   { theme:'jakarta', rockets:2, pieces:6, size:6, cut:2, cols:2, secs:19, levels:25 },   // Version 284 (owner): Jakarta and Tokyo swapped places
   { theme:'grandcanyon', rockets:3, pieces:6, size:6, cut:2, cols:2, secs:19, levels:25 },
   { theme:'bali', rockets:3, pieces:7, size:6, cut:2, cols:3, secs:18, levels:25 },
@@ -2745,7 +2745,7 @@ function lvTrapLoss(y, top, s0) { const s = s0 || `${t('Tricky one!')} ${t('That
   lines.forEach((q, i) => label(q, W / 2, y0 + i * lh, size, i ? COL.ink : COL.gold, 'center', W - 40)); }
 // Version 554 (owner): after 2 first-try 3-star wins in a row, Stage 2 from Level 2 on deals tricky 5+1 boards (dev/tricky554.py).
 /* Version 636 (BLO-85): seconds a shell taken off Stages 2-5 (30/28/25/22 -> 22/20/19/19); star targets drop by cut x shells */
-var FUSE_CUT636 = { 2:8, 3:8, 4:6, 5:3 }, FUSE_SHELLS636 = { 2:1, 3:2, 4:2, 5:3 };
+var FUSE_CUT636 = { 2:8, 3:7, 4:6, 5:3 },   /* Version 639: Stage 3 at 21 s (cut 7) */ FUSE_SHELLS636 = { 2:1, 3:2, 4:2, 5:3 };
 function starCut636(st, pair) { const c = (FUSE_CUT636[st] || 0) * (FUSE_SHELLS636[st] || 1); if (!c || !pair) return pair; const two = Math.max(1, pair[0] - c); return [two, Math.max(two + 1, pair[1] - c)]; }
 const TRICKY = [{"seed":"30458:5+1:heart", "score":358.9, "need":19.4, "stars":[8, 11]}, {"seed":"30473:5+1:heart", "score":348.9, "need":18.7, "stars":[9, 11]}, {"seed":"30895:5+1:heart", "score":356.8, "need":19.2, "stars":[8, 11]}, {"seed":"30459:5+1:heart", "score":356.0, "need":19.2, "stars":[9, 11]}, {"seed":"30469:5+1:rocket", "score":312.6, "need":16.3, "stars":[11, 13]}, {"seed":"30294:5+1:square", "score":321.9, "need":16.9, "stars":[10, 13]}, {"seed":"10766:5+1", "score":339.7, "need":18.0, "stars":[9, 12]}, {"seed":"11417:5+1", "score":333.5, "need":17.6, "stars":[10, 12]}, {"seed":"10324:5+1", "score":324.7, "need":17.0, "stars":[10, 13]}, {"seed":"10265:5+1", "score":330.5, "need":17.4, "stars":[10, 12]}, {"seed":"30879:5+1:square", "score":314.3, "need":16.4, "stars":[11, 13]}, {"seed":"30361:5+1:rocket", "score":325.6, "need":17.1, "stars":[10, 13]}];
 TRICKY.forEach(e => { if (e.stars) e.stars = starCut636(2, e.stars); });   /* Version 636 */
