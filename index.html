@@ -2398,7 +2398,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.624.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.625.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -25600,7 +25600,7 @@ const SKB_MAX = 10;   /* upgrade levels 1-10 in each skill */
 /* What each skill level does. Blast: radius and push. Accuracy: how fast the launcher sways, its wobble, and how much of the path you see.
    Curve: how hard a full curve bends Sparky (5 steps each way; a step is a fifth of it). */
 function skbLevels(up) { const f = k => Math.pow((Math.max(1, Math.min(SKB_MAX, k || 1)) - 1) / (SKB_MAX - 1), 1.3), b = f(up && up.blast), a = f(up && up.aim), c = f(up && up.curve);   /* the last levels matter most */
-  return { R:24 + 20.5 * b, power:1 + 0.4 * b, omega:2.5 - 1.4 * a, amp:0.34, wob:0.045 * (1 - a), prevT:0.8 + 0.6 * a, curve:0.55 + 0.65 * c }; }
+  return { R:34 + 10.5 * b, power:1 + 0.4 * b, omega:2.5 - 1.4 * a, amp:0.34, wob:0.045 * (1 - a), prevT:0.8 + 0.6 * a, curve:0.55 + 0.65 * c }; }
 /* Formations: 10 pins in pin spacings (1 = SKB_W.S units), y down = towards the launcher. Each fits inside 1.8 spacings of its middle,
    so one centred blast at the top Blast level covers all ten. */
 const skbRows = (counts, dx, dy) => { const o = []; counts.forEach((n, r) => { for (let i = 0; i < n; i++) o.push([(i - (n - 1) / 2) * dx, (r - (counts.length - 1) / 2) * dy]); }); return o; };
@@ -25694,7 +25694,7 @@ if (typeof module !== 'undefined') module.exports = { SKB_W, SKB_MAX, SKB_SETUPS
    Upgrades cost coins and last for every game (Blast, Accuracy, Curve, levels 1-10). Medals pay once a day for the best one, as before;
    a perfect 300 also pays a bonus once a week. dev/skb-sim.js: skilled players hit 300 in about 40% of games with every skill at 10
    and essentially never without upgrades. ---- */
-const SKB = { costs:[60, 90, 140, 200, 280, 380, 500, 650, 850], perfect:150, skills:['blast', 'aim', 'curve'],
+const SKB = { costs:[60, 100, 180, 300, 520, 890, 1530, 2630, 4500],   /* Version 625 (owner): 60 -> 4500, x1.72 a level */ perfect:150, skills:['blast', 'aim', 'curve'],
   tiers:[{ min:70, name:'Bronze', coins:20 }, { min:120, name:'Silver', coins:35, hints:1 }, { min:180, name:'Gold', coins:55, hints:1, freezes:1, spin:1 }, { min:240, name:'Diamond', coins:85, hints:2, freezes:2, spin:1 }] };
 stats.skb = saved.skb || null;
 function skbState() { const s = stats.skb || (stats.skb = {}); s.up = Object.assign({ blast:1, aim:1, curve:1 }, s.up || {}); ['games', 'best', 'strikes', 'perfects'].forEach(k => { s[k] = s[k] || 0; }); return s; }
