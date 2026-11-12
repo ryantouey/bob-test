@@ -2398,7 +2398,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.626.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.627.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -6806,7 +6806,7 @@ LOOKS.gem = function (c, pc, s) {
    on the top surface, empty cells are dim and anything lit is filled. Links run from the shell's edge to the fuse ring and light as
    their cell is packed; the ring itself glows only when the whole shell is full. Depth is drawn only (walls, sides, shadows): cells,
    touch and landing are exactly as before. stats.b3d false (Testing tools, or ?b3d=0) brings the flat board back. ---- */
-const B3 = { dep:0.2, lift:0.7, held:0.08,
+const B3 = { dep:0.2, lift:0.35,   /* Version 627: was 0.7 */ held:0.08,
   /* per look and colour (red, white, blue, yellow): top light, top dark, neon edge */
   col:{ A:[['#ff9aa8', '#e8264a', '#ff5f7c'], ['#ffffff', '#e4dff1', '#ffffff'], ['#86caff', '#2c82ee', '#6fbaff'], ['#ffdc6a', '#ffa91c', '#ffc24a']],
     gem:[['#ff7a8c', '#d91e42', '#ff4d6a'], ['#f6f8ff', '#c3cdec', '#cfe0ff'], ['#4fa0ff', '#1f6de0', '#3aa0ff'], ['#ffd04a', '#f3a914', '#ffb020']],
@@ -6946,8 +6946,8 @@ function b3Preview(m, d, spot) { const s = m.cell; ctx.save(); ctx.translate(m.o
   d.pc.cells.forEach(([a, b]) => { const x = spot[0] + a, y = spot[1] + b; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([u, v]) => { if (!m.filled.get((x + u) + ',' + (y + v))) return; const mx = m.ox + (x + 0.5 + u * 0.5) * s, my = m.oy + (y + 0.5 + v * 0.5) * s; ctx.fillStyle = 'rgba(8,8,24,.85)'; ctx.beginPath(); ctx.arc(mx, my, 5, 0, 7); ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(mx, my, 4.2, 0, 7); ctx.stroke(); }); }); }
 /* The held piece: a little bigger, lifted above its landing outline over the board, with a large soft shadow */
 /* Version 617: how much higher the held piece is drawn than its centre; landing tests use the drawn spot */
-function b3Lf(d) { return b3dOn() && d && d.lf ? d.lf : 0; }
-function b3Held(m, d, x, y) { const s = m.cell, k = clamp((trayY0() - trayH() / 2 - (y + d.pc.h * s / 2)) / (s * 1.2)), want = s * B3.lift * k; d.lf = reduced || d.lf == null ? want : d.lf + (want - d.lf) * 0.3; const sc = ctx.getTransform().a;
+function b3Lf(d) { return b3dOn() && d ? (d.lfT != null ? d.lfT : d.lf || 0) : 0; }   /* Version 627: the hover's target, so a quick drop lands like a slow one */
+function b3Held(m, d, x, y) { const s = m.cell, k = clamp((trayY0() - trayH() / 2 - (y + d.pc.h * s / 2)) / (s * 1.2)), want = s * B3.lift * k; d.lfT = want; d.lf = reduced || d.lf == null ? want : d.lf + (want - d.lf) * 0.3; const sc = ctx.getTransform().a;
   ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 14 * sc; ctx.shadowOffsetY = (7 + d.lf) * sc; drawPiece(d.pc, x, y - d.lf, s, B3.held); ctx.restore(); }
 /* ---- Loading the rocket (Version 609): the instant a shell is done it is rammed down into the tube, two doors slam shut over it and
    "LOADED!" lands; then the doors snap open on the next shell. About 1.1 s the first three times, 0.7 s after; a tap skips it. ---- */
@@ -7236,7 +7236,7 @@ const BLOCKS = {
   outlined(s, x, y, size, fill, edge) { ctx.font = `800 ${size}px 'Bricolage Grotesque','Figtree',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.strokeStyle = edge; ctx.lineWidth = size * 0.24; ctx.strokeText(s, x, y); ctx.fillStyle = fill; ctx.fillText(s, x, y); },
   // Version 327 (playtest v0.323): a dragged piece's centre floats 70 px above the finger, or more for a tall piece, so its bottom edge
   // stays at least 30 px above the fingertip
-  liftOf(m, pc) { return -Math.max(80, pc.h * m.cell / 2 + 8); }   /* Version 554: about the same lift for every piece */,
+  liftOf(m, pc) { return -Math.max(64, pc.h * m.cell / 2 + 8); }   /* Version 627: was 80 */   /* Version 554: about the same lift for every piece */,
   centre(d) { const u = clamp(d.far / 40); return { x:d.x + lerp(d.ox, 0, u), y:d.y + lerp(d.oy, d.lift || -70, u) }; },
   overlaps(m, pc, gx, gy) { const hit = new Set(); pc.cells.forEach(([a, b]) => { const q = m.filled.get((gx + a) + ',' + (gy + b)); if (q) hit.add(q); }); return [...hit]; },
   inside(m, pc, gx, gy) { return pc.cells.every(([a, b]) => m.shape.has((gx + a) + ',' + (gy + b)) && !m.sealed.has((gx + a) + ',' + (gy + b))); },
@@ -26382,7 +26382,7 @@ function zdDown(x, y) { const K = G.zd; if (!K) return; const L = zdLay(), R = K
   for (let i = 0; i < 3; i++) { const s = L.slot(i), pc = R.tray[i]; if (!pc || x < s.x - 4 || x > s.x + s.w + 4) continue; K.drag = { slot:i, pc, x, y, x0:x, y0:y, moved:0, t0:clock, spot:null, lift:0 }; K.back = null; return; } }
 function zdMove(x, y) { const K = G.zd; if (!K || !K.drag) return; const d = K.drag; d.moved = Math.max(d.moved, Math.hypot(x - d.x0, y - d.y0)); d.x = x; d.y = y; }
 /* where the held piece would land: the nearest spot it fits within most of a cell of where it is drawn */
-function zdSpot(K, L, d) { const s = L.cell, pc = d.pc, left = d.x - pc.w * s / 2, top = d.y - d.lift - pc.h * s / 2 - (b3dOn() && d.lf ? d.lf : 0), fx = (left - L.bx) / s, fy = (top - L.by) / s, gx0 = Math.round(fx), gy0 = Math.round(fy); let best = null;
+function zdSpot(K, L, d) { const s = L.cell, pc = d.pc, left = d.x - pc.w * s / 2, top = d.y - d.lift - pc.h * s / 2 - (b3dOn() ? (d.lfT != null ? d.lfT : d.lf || 0) : 0), fx = (left - L.bx) / s, fy = (top - L.by) / s, gx0 = Math.round(fx), gy0 = Math.round(fy); let best = null;
   for (let gy = gy0 - 1; gy <= gy0 + 1; gy++) for (let gx = gx0 - 1; gx <= gx0 + 1; gx++) { if (!zdFits(K.R.board, pc, gx, gy)) continue; const dist = Math.hypot(gx - fx, gy - fy); if (dist < 0.85 && (!best || dist < best.dist)) best = { gx, gy, dist }; } return best; }
 function zdUp() { const K = G.zd; if (!K || !K.drag) return; const d = K.drag, L = zdLay(), R = K.R; K.drag = null; if (zdBusy(K)) return;
   if (d.moved < 9 && clock - d.t0 < 0.4) { if (d.pc.turn && zdTurn(R, d.slot)) { K.spin[d.slot] = clock; zdSay(K, 'turn', 0.05, () => { sfx.tick(); buzz(8); }); } else K.spin[d.slot] = -clock; return; }
@@ -26574,7 +26574,7 @@ function zdDrawTray(K, L) { const R = K.R; for (let i = 0; i < 3; i++) { const b
   if (K.back) { const q = K.back, u = (clock - q.t0) / 0.14, b = L.slot(q.slot); if (u >= 1 || reduced) K.back = null; else { const m = zdMini(L, q.pc), s = L.cell + (m - L.cell) * u, x = q.x + (b.x + b.w / 2 - q.x) * u, y = q.y + (b.y + b.h / 2 - q.y) * u; zdPieceAt(L, q.pc, x - q.pc.w * s / 2, y - q.pc.h * s / 2, s, b3Look()); } }
   /* the held piece (owner 11/12, the 3D boards' hold): a little bigger and lifted above where it will land, with a soft shadow on its
      landing spot (High) or a flat one (Low, no shadowBlur); its bottom edge rides above the finger */
-  const d = K.drag; if (d && d.moved >= 9) { const s = L.cell, on3 = b3dOn(), want = d.pc.h * s / 2 + 26; d.lift = reduced ? want : d.lift + (want - d.lift) * 0.35; d.spot = zdSpot(K, L, d); const x = d.x - d.pc.w * s / 2, y = d.y - d.lift - d.pc.h * s / 2, kk = clamp((L.trayY - 6 - (y + d.pc.h * s)) / (s * 1.2)), lfWant = on3 ? s * B3.lift * kk : 0; d.lf = reduced || d.lf == null ? lfWant : d.lf + (lfWant - d.lf) * 0.3; d.bx = x; d.by = y;
+  const d = K.drag; if (d && d.moved >= 9) { const s = L.cell, on3 = b3dOn(), want = d.pc.h * s / 2 + 26; d.lift = reduced ? want : d.lift + (want - d.lift) * 0.35; d.spot = zdSpot(K, L, d); const x = d.x - d.pc.w * s / 2, y = d.y - d.lift - d.pc.h * s / 2, kk = clamp((L.trayY - 6 - (y + d.pc.h * s)) / (s * 1.2)), lfWant = on3 ? s * B3.lift * kk : 0; d.lfT = lfWant; d.lf = reduced || d.lf == null ? lfWant : d.lf + (lfWant - d.lf) * 0.3; d.bx = x; d.by = y;
     ctx.save(); if (K.gfx === 'high') { const sc = ctx.getTransform().a; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 14 * sc; ctx.shadowOffsetY = (7 + d.lf) * sc; } else if (d.lf > 2) { ctx.save(); ctx.translate(x, y + 5); outline(ctx, d.pc, s, 3, s * 0.15); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fill(); ctx.restore(); }
     drawPiece(d.pc, x, y - d.lf, s, on3 ? B3.held : 0.06, b3Look()); ctx.restore(); if (d.pc.el) zdPieceAt(L, d.pc, x, y - d.lf, s, b3Look()); } else if (d) d.spot = null; }
 function zdVignette(L) { return zdArt.get(`vig|${H.toFixed(0)}`, W, H, 0.25, c => { [[0, 0, 60, 0], [W, 0, W - 60, 0], [0, 0, 0, 70], [0, H, 0, H - 70]].forEach(([x0, y0, x1, y1]) => { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(255,40,40,.75)'); g.addColorStop(1, 'rgba(255,40,40,0)'); c.fillStyle = g; c.fillRect(0, 0, W, H); }); }); }
