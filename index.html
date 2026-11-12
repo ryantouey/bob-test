@@ -2365,7 +2365,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.607.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.608.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -22636,6 +22636,282 @@ function mpProps3(th, n) { const o = th.osm, end = (n - 1) * WK.gap, T = [walkPx
   return out; }
 Object.assign(WALK_THEMES.machupicchu, { oprops:mpProps3, obb:mpMore3, oground:mpGround });
 WALK_THEMES.machupicchu.vly.after = mpCloud;
+// ---- Stage 33 Marrakech, round 3 (Version 608; owner, 11/11/26: "can do Marrakech next", after "apply the day night cycles ... think
+// deeply about how you can make each stage feel extra special to a player arriving there ... a person who has been there should recognize
+// the path and where they are, but you can be creative and add that extra magic touch"): the evening Jemaa el-Fnaa comes alive. The walk
+// is the same (the souk lane Derb Dabachi, then across the square toward the Koutoubia); the hour follows the walk. Levels 1-9 are a
+// golden afternoon in the souk: sun through the reed roof in stripes, lantern shops, rugs, spices. Out on the square the sun comes down
+// toward the minaret (a winter sun really sets behind it from this walk), slips behind its top at Levels 12-13 and sets beside it at
+// Level 17; the minaret's lamps come on, the stalls' bulbs light one by one (Levels 15-20), the smoke rises, and Levels 21-25 are the
+// square at night under a thin moon. Both testers: "Jemaa el-Fnaa really transforms at dusk"; "the most 'the place comes alive' arc".
+// - Every colour is in the hour's light (mkC); lights, bulbs and smoke come on stall by stall (mkOn).
+// - Their fixes: lantern shops in the souk throwing points of light; rugs, spices, pottery; doors and green tiles on the houses; the
+//   medina's roofs fill the flat ground beside the walk; snake charmers, water sellers and parasols by day, Gnawa players, a storyteller,
+//   acrobats and lantern sellers; the food stalls stand close on both sides (grills, tagines, snail soup) with strings of bulbs over the
+//   lane; cafe terraces on the roofs; caleches and palms at the finish with the minaret floodlit above.
+// No writing, signs or flags; people are black silhouettes. Staged: the acts, stalls and caleches stand where the square has room
+// (OpenStreetMap doesn't map them); houses are added where it maps none; the sun's path is fitted to the minaret.
+const MK_LIGHT = { mul:[[0, [1, 0.96, 0.88]], [0.4, [1.04, 0.9, 0.74]], [0.62, [1.02, 0.74, 0.58]], [0.74, [0.84, 0.58, 0.58]], [0.86, [0.7, 0.54, 0.54]], [1, [0.66, 0.54, 0.52]]],
+  add:[[0, [6, 3, 0]], [0.4, [10, 5, 2]], [0.62, [16, 6, 6]], [0.74, [20, 10, 22]], [0.86, [16, 8, 16]], [1, [14, 8, 12]]] };
+const MK_HOR = [[0, [246, 226, 186]], [0.4, [255, 206, 130]], [0.62, [255, 160, 80]], [0.74, [244, 124, 84]], [0.86, [200, 96, 90]], [1, [124, 66, 92]]];
+const MK_SKY = [[0, [[0, [64, 132, 214]], [0.4, [70, 112, 196]], [0.62, [62, 70, 150]], [0.74, [36, 34, 104]], [0.86, [20, 18, 66]], [1, [12, 10, 44]]]],
+  [0.5, [[0, [128, 178, 226]], [0.4, [150, 160, 200]], [0.62, [164, 104, 150]], [0.74, [120, 64, 130]], [0.86, [58, 38, 100]], [1, [30, 22, 70]]]],
+  [0.82, [[0, [226, 214, 188]], [0.4, [250, 200, 140]], [0.62, [250, 150, 90]], [0.74, [226, 104, 90]], [0.86, [150, 70, 100]], [1, [74, 42, 90]]]], [1, MK_HOR]];
+const MK_SUN1 = [[0, [255, 250, 226]], [0.5, [255, 230, 160]], [0.72, [255, 176, 100]], [1, [250, 130, 100]]], MK_SUN2 = [[0, [255, 240, 200]], [0.5, [255, 186, 110]], [1, [240, 104, 96]]];
+const MK_ATL = [[0, [150, 166, 204]], [0.4, [172, 150, 172]], [0.62, [176, 110, 122]], [0.74, [110, 70, 112]], [0.86, [56, 40, 84]], [1, [38, 28, 66]]], MK_SNOW = [[0, [250, 250, 252]], [0.4, [255, 236, 214]], [0.62, [255, 196, 170]], [0.74, [226, 150, 160]], [0.86, [120, 104, 150]], [1, [84, 76, 120]]];
+const MK_GND = [[0, [186, 138, 110]], [0.62, [190, 120, 90]], [0.74, [120, 76, 84]], [1, [50, 34, 40]]], MK_GND2 = [[0, [204, 160, 130]], [0.62, [206, 140, 104]], [0.74, [128, 84, 86]], [1, [58, 40, 42]]];
+const MK_SQ = [[0, [214, 184, 160]], [0.4, [230, 186, 140]], [0.62, [224, 150, 110]], [0.74, [150, 100, 104]], [0.86, [112, 78, 72]], [1, [108, 76, 62]]];
+const MK_TOWER = [[0, [214, 160, 114]], [0.4, [206, 140, 96]], [0.58, [150, 90, 72]], [0.68, [92, 54, 58]], [0.74, [84, 50, 60]], [0.84, [214, 156, 104]], [1, [226, 168, 112]]];
+const MK_TILE = [[0, [58, 138, 122]], [0.58, [50, 96, 96]], [0.7, [40, 54, 66]], [0.84, [58, 138, 122]]], MK_GOLD = [[0, [242, 200, 74]], [0.6, [200, 130, 60]], [0.7, [120, 70, 56]], [0.84, [242, 200, 74]]];
+const MK_W = [[230, 152, 116], [218, 138, 106], [236, 166, 128], [208, 128, 100], [240, 178, 138]], MK_R = [[238, 196, 164], [224, 176, 146]], MK_DOORS = [[40, 120, 130], [50, 90, 170], [50, 120, 80], [120, 76, 50]];
+const MKD = { t:0, m:[1, 1, 1], a:[0, 0, 0], k:-1 };
+const mkC = (col, al) => dnC(MKD, col, al), mkNight = () => clamp((MKD.t - 0.7) / 0.22), mkOn = r => clamp((MKD.t - (0.62 + 0.2 * r)) / 0.03);
+// a point inside a polygon (a flat [x, z, ...] list); a box touching one of OpenStreetMap's buildings (or the houses added beside the lane)
+const mkIn = (f, x, z) => { let k = false; for (let i = 0, j = f.length - 2; i < f.length; j = i, i += 2) if ((f[i + 1] > z) !== (f[j + 1] > z) && x < (f[j] - f[i]) * (z - f[i + 1]) / (f[j + 1] - f[i + 1]) + f[i]) k = !k; return k; };
+function mkHit(o, x0, x1, z0, z1) { return o.blds.some(b => { if (!b.bb) { let a = 1e9, e = -1e9, g = 1e9, d = -1e9; for (let i = 0; i < b.p.length; i += 2) { a = Math.min(a, b.p[i]); e = Math.max(e, b.p[i]); g = Math.min(g, b.p[i + 1]); d = Math.max(d, b.p[i + 1]); } b.bb = [a, e, g, d]; } const q = b.bb; return q[0] < x1 && q[1] > x0 && q[2] < z1 && q[3] > z0; }); }
+// the hour from the walk: afternoon at Level 1, the sun on the horizon at Level 17, night from Level 23; the theme's colours remade when it moves
+const mkBlocked = (o, x, z, r) => mkHit(o, x - r, x + r, z - r, z + r) && o.blds.some(b => [[0, 0], [-r, -r * 0.6], [r, -r * 0.6], [-r, r * 0.6], [r, r * 0.6]].some(([dx, dz]) => mkIn(b.p, x + dx, z + dz)));
+function mkTime(th, camZ) { const end = walk && walk.ids ? (walk.ids.length - 1) * WK.gap : 62.4, u = clamp(camZ / end); dnSet(MKD, MK_LIGHT, u < 0.54 ? u / 0.54 * 0.6 : Math.min(1, 0.6 + (u - 0.54) / 0.38 * 0.4)); if (th.mkK === MKD.k) return; th.mkK = MKD.k; const C = mkC, t = MKD.t, n = mkNight();
+  th.ground = [dnRgb(dnKey(MK_GND, t)), dnRgb(dnKey(MK_GND2, t))]; th.path = [C([226, 208, 184]), C([238, 222, 200])]; th.edge = C([170, 136, 112]); th.steps = C([90, 60, 50], 0.18); th.dots = C([255, 236, 200], 0.5); th.stripe = C([255, 230, 200], 0.03);
+  th.haze = dnRgb(dnLerp(dnKey(MK_GND, t), dnKey(MK_HOR, t), 0.6), 0.55); th.oc = Object.assign({}, th.oc, { park:C([120, 130, 84]), kerb:C([196, 150, 122]), road:C([178, 132, 106]), main:C([178, 132, 106]) });
+  const S = th.bsty; S.walls = MK_W.map(w => dnV(MKD, w)); S.roofs = MK_R.map(w => dnV(MKD, w)); S.trim = dnV(MKD, [250, 226, 196]);
+  if (n > 0.04) { S.win = '255,200,130'; S.winA = +(0.2 + 0.7 * n).toFixed(2); } else { S.win = dnV(MKD, [124, 74, 62]).map(Math.round).join(','); S.winA = 0.8; }
+  th.osm.blds.forEach(b => { b.wb = null; }); }
+// the High Atlas along the horizon, higher to the left (the south), snow on its peaks: blue in the afternoon haze, rose as the sun sets
+function mkAtlas(c, HOR, t) { const yAt = x => HOR - (15 + 22 * Math.abs(Math.sin(x * 0.013 + 0.6)) + 6 * Math.sin(x * 0.05)) * (0.3 + 0.7 * clamp((330 - x) / 200));
+  c.fillStyle = dnRgb(dnKey(MK_ATL, t)); c.beginPath(); c.moveTo(-270, HOR + 1); for (let x = -270; x <= 660; x += 11) c.lineTo(x, yAt(x)); c.lineTo(660, HOR + 1); c.closePath(); c.fill();
+  c.fillStyle = dnRgb(dnKey(MK_SNOW, t)); c.beginPath(); c.moveTo(-270, yAt(-270)); for (let x = -259; x <= 330; x += 11) c.lineTo(x, yAt(x)); for (let x = 330; x >= -270; x -= 11) c.lineTo(x, Math.max(yAt(x), HOR - 28 + 2.5 * Math.sin(x * 0.37))); c.closePath(); c.fill(); }
+// the sky: the afternoon sun comes down toward the minaret (mx is the minaret on screen), slips behind its top and sets just to its
+// right; then the afterglow, a thin moon and the stars. Thin clouds catch the light from below
+function mkSky(c, HOR, time, mx) { const t = MKD.t; dnSky(c, HOR, t, MK_SKY);
+  dnStars(c, HOR, clamp((t - 0.8) / 0.2) * 0.9, time, 90, 33); const ma = clamp((t - 0.76) / 0.12); if (ma > 0) { const r = 9.5, d = r * 0.36, R2 = Math.hypot(d, r), g = Math.atan(r / d); c.save(); c.translate(mx - 82, HOR * 0.36); c.rotate(Math.PI + 0.9); c.fillStyle = `rgba(255,244,214,${(0.95 * ma).toFixed(3)})`; c.beginPath(); c.arc(0, 0, r, Math.PI / 2, Math.PI * 1.5, false); c.arc(d, 0, R2, Math.PI + g, Math.PI - g, true); c.closePath(); c.fill(); c.restore(); }   /* a thin young moon, lit from where the sun went down */
+  const A = (0.72 - t) * 579, sx = mx + 56 - 0.5 * A, sy = HOR - A, ga = t < 0.72 ? 1 : clamp(1 - (t - 0.72) / 0.2), cy = clamp(sy, -70, HOR + 8), r = 190 + 80 * clamp(t / 0.72);
+  if (ga > 0.01) { const q = c.createRadialGradient(sx, cy, 0, sx, cy, r); q.addColorStop(0, dnRgb(dnKey(MK_SUN1, t), (0.85 * ga).toFixed(3))); q.addColorStop(0.3, dnRgb(dnKey(MK_SUN2, t), (0.4 * ga).toFixed(3))); q.addColorStop(1, 'rgba(255,150,90,0)'); c.fillStyle = q; const y0 = Math.max(0, cy - r); c.fillRect(sx - r, y0, r * 2, HOR + 2 - y0); }
+  if (sy > -20 && sy < HOR + 20) { c.save(); c.beginPath(); c.rect(-400, 0, 1590, HOR); c.clip(); c.fillStyle = dnRgb(dnKey(MK_SUN1, t)); c.beginPath(); c.arc(sx, sy, 16, 0, 7); c.fill(); c.fillStyle = 'rgba(255,248,222,.85)'; c.beginPath(); c.arc(sx, sy, 10, 0, 7); c.fill(); c.restore(); }
+  const body = dnRgb(dnKey([[0, [252, 248, 240]], [0.4, [255, 220, 184]], [0.7, [206, 104, 116]], [1, [50, 40, 90]]], t), 0.5), lit = dnRgb(dnKey([[0, [255, 252, 246]], [0.4, [255, 236, 190]], [0.7, [255, 170, 100]], [1, [110, 70, 110]]], t), 0.6);
+  [[60, 0.56, 120, 5], [300, 0.44, 150, 6], [-90, 0.3, 130, 6], [470, 0.62, 140, 5], [200, 0.2, 90, 4]].forEach(([x, fy, w, h]) => { const y = HOR * fy; c.fillStyle = body; c.beginPath(); c.ellipse(x, y, w / 2, h / 2, 0, 0, 7); c.fill(); c.fillStyle = lit; c.beginPath(); c.ellipse(x - w * 0.04, y + h * 0.24, w * 0.44, h * 0.24, 0, 0, 7); c.fill(); });
+  mkAtlas(c, HOR, t); }
+// the ground: the sky first (over the stage picture's dusk), then the square's paving in the hour's light
+function mkGround3(c, o, P, zNear, zFar, camZ, time) { mkTime(walk.th, camZ); const k = P(o.koutoubia[0], o.koutoubia[1]); mkSky(c, P(0, camZ + 1e6).y, time, k ? k.x : 230);
+  const f = o.square, pts = []; for (let i = 0; i < f.length; i += 2) { const p = P(f[i], Math.max(camZ - 1.1, f[i + 1])); if (p) pts.push(p); } if (pts.length < 3) return;
+  c.fillStyle = dnRgb(dnKey(MK_SQ, MKD.t)); c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); c.closePath(); c.fill();
+  // its paving joints, a grid running to the horizon
+  c.save(); c.clip(); c.strokeStyle = MKD.t < 0.74 ? mkC([150, 104, 90], 0.2) : 'rgba(255,214,170,.07)'; c.lineWidth = 1; c.beginPath(); for (let z = Math.ceil(Math.max(camZ - 1, 20) / 1.3) * 1.3; z < Math.min(76, camZ + 24); z += 1.3) { const a = P(-18, z), b = P(15, z); if (a && b) { c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); } }
+  for (let x = -18; x <= 15; x += 1.5) { const a = P(x, Math.max(camZ - 1, 20)), b = P(x, Math.min(76, camZ + 24)); if (a && b) { c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); } } c.stroke(); c.restore(); }
+// the Koutoubia's minaret (as before: the sandstone tower, its arched panels, the band of tiles, the merlons, the lantern and its three
+// golden balls, 1.8 times life) in the hour's light: warm stone in the afternoon, a dark shape against the setting sun, then floodlit;
+// its lamps come on at sunset, swifts wheel round it at dusk; the prayer hall's wall and green tiles at its foot
+function mkMinaret3(c, o, P, camZ, time) { const [x, z] = o.koutoubia, p = P(x, z); if (!p || p.dp < 4) return; const t = MKD.t, U = WK.X * p.s / 6 * 1.8, X = m => p.x + m * U, Y = m => p.y - m * U, fl = clamp((t - 0.74) / 0.1), body = dnRgb(dnKey(MK_TOWER, t));
+  if (fl > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, p.x, Y(40), 60 * U, '255,190,120', 0.35 * fl); c.restore(); }
+  c.fillStyle = mkC([206, 150, 112]); c.fillRect(X(-52), Y(8.5), 45.6 * U, 8.5 * U); c.fillStyle = body; c.beginPath(); c.rect(X(-6.4), Y(69), 12.8 * U, 69 * U); for (let k = 0; k < 5; k++) c.rect(X(-6.4 + k * 2.8), Y(71.5), 1.6 * U, 2.5 * U); c.rect(X(-2.6), Y(79), 5.2 * U, 10 * U); c.fill(); c.beginPath(); c.arc(X(0), Y(79), 2.6 * U, Math.PI, 0); c.fill();
+  c.fillStyle = dnRgb(dnKey(MK_TILE, t)); c.beginPath(); c.rect(X(-6.4), Y(64), 12.8 * U, 2.2 * U); c.fill(); c.fillStyle = mkC([52, 124, 104]); c.fillRect(X(-52), Y(10.6), 45.6 * U, 2.2 * U);
+  c.fillStyle = 'rgba(110,60,44,.42)'; c.beginPath(); c.rect(X(2.4), Y(69), 4 * U, 69 * U); [[18, 7], [36, 8], [52, 8]].forEach(([h, w]) => { c.moveTo(X(-w / 2), Y(h)); c.lineTo(X(-w / 2), Y(h + w * 0.9)); c.quadraticCurveTo(X(0), Y(h + w * 1.5), X(w / 2), Y(h + w * 0.9)); c.lineTo(X(w / 2), Y(h)); c.closePath(); }); c.fill();
+  c.fillStyle = dnRgb(dnKey(MK_GOLD, t)); c.beginPath(); c.rect(X(0) - 0.6, Y(88), 1.2, 6.4 * U); [83, 85.2, 87].forEach((h, i) => { c.moveTo(X(0) + (0.9 - i * 0.18) * U, Y(h)); c.arc(X(0), Y(h), (0.9 - i * 0.18) * U, 0, 7); }); c.fill();
+  const rim = clamp(1 - Math.abs(t - 0.64) / 0.1); if (rim > 0) { c.fillStyle = `rgba(255,206,130,${(0.8 * rim).toFixed(3)})`; c.fillRect(X(6.4) - 1.2, Y(69), 1.4, 69 * U); }
+  const la = clamp((t - 0.68) / 0.05); if (la > 0) { c.fillStyle = `rgba(255,238,180,${la.toFixed(3)})`; c.fillRect(X(-1.1), Y(77), 2.2 * U, 3.2 * U); walkGlow(c, X(0), Y(75.5), 9 * U, '255,220,150', 0.55 * la); }
+  if (!reduced && t > 0.42 && t < 0.86) { const a = Math.sin((t - 0.42) / 0.44 * Math.PI); c.strokeStyle = `rgba(40,26,44,${(0.85 * a).toFixed(3)})`; c.lineWidth = 1.1; c.lineCap = 'round'; c.beginPath();
+    for (let i = 0; i < 11; i++) { const ph = time * (0.45 + wr(i * 1.7) * 0.5) + i * 1.9, r = 16 + wr(i * 3.3) * 48, bx = X(0) + Math.cos(ph) * r, by = Y(60) + Math.sin(ph * 1.3) * r * 0.5, f = Math.sin(time * 9 + i * 2) * 1.5; c.moveTo(bx - 3.2, by - 1 - f); c.lineTo(bx, by); c.lineTo(bx + 3.2, by - 1 - f); } c.stroke(); } }
+// the gardens between the square and the mosque: a green band and its far palms (the near ones are props)
+function mkGardens(c, o, P, camZ) { const [kx, kz] = o.koutoubia, q = [P(-46, 78), P(58, 78), P(58, kz + 3), P(-46, kz + 3)]; if (q.some(v => !v) || q[0].dp < 2) return;
+  c.fillStyle = mkC([112, 124, 84]); c.beginPath(); q.forEach((v, i) => (i ? c.lineTo(v.x, v.y) : c.moveTo(v.x, v.y))); c.closePath(); c.fill();
+  const tr = [], fr = []; for (let i = 0; i < 20; i++) { const p = P(kx - 44 + wr(i * 3.7) * 88, 97 + wr(i * 5.3) * (kz - 104)); if (!p || p.dp < 6) continue; const h = (11 + wr(i * 7.1) * 5) / 6 * WK.X * p.s * 1.4; tr.push([p.x, p.y, h]); fr.push([p.x, p.y - h, h * 0.34]); }
+  c.strokeStyle = mkC([110, 86, 64]); c.lineWidth = 1.5; c.beginPath(); tr.forEach(([x, y, h]) => { c.moveTo(x, y); c.lineTo(x, y - h); }); c.stroke();
+  c.strokeStyle = mkC([62, 110, 62]); c.lineWidth = 1.4; c.beginPath(); fr.forEach(([x, y, r]) => { for (let k = 0; k < 6; k++) { const a = -Math.PI * (0.06 + k / 5 * 0.88), dx = Math.cos(a) * r, dy = Math.sin(a) * r * 0.5; c.moveTo(x, y); c.quadraticCurveTo(x + dx * 0.6, y + dy - r * 0.3, x + dx, y + dy + r * 0.3); } }); c.stroke(); }
+// houses where OpenStreetMap maps none. Beside the souk's lane they are real buildings (added to the map's own once, so they get the
+// same windows, doors and fade); behind the front rows the medina's flat roofs fill the ground, drawn band by band in a few fills
+function mkFront(o) { if (o.r3) return; o.r3 = 1; const [s0] = mkSq(o), add = [];
+  for (let z = -8, k = 0; z < s0 + 0.6; z += 2.3, k++) [-1, 1].forEach(sd => { const z1 = z + 2.2, a = walkPxOf(o, z), b = walkPxOf(o, z1), w = 1.6 + wr(k * 3.1 + sd) * 0.9, x0 = Math.min(a, b) + (sd > 0 ? 1.2 : -1.2 - w), x1 = x0 + w + Math.abs(a - b);
+    if (mkHit(o, x0 - 0.1, x1 + 0.1, z - 0.05, z1 + 0.05) || mkIn(o.square, (x0 + x1) / 2, z + 1.1)) return; add.push({ h:wr(k * 5.7 + sd) < 0.5 ? 7 : 9, p:[a + sd * 1.2, z, a + sd * (1.2 + w), z, b + sd * (1.2 + w), z1, b + sd * 1.2, z1] }); });
+  add.forEach(b => o.blds.push(b)); }
+function mkRoofs(o) { if (o.rf3) return o.rf3; const out = []; let k = 0;
+  for (let z = -9; z < 104; z += 1.55) [3.4, 5.3, 7.4, 9.8, 12.5, 15.6].forEach((d, row) => [-1, 1].forEach(sd => { k++; if (wr(k * 1.7) < 0.1 + row * 0.03) return; const w = 1.15 + wr(k * 2.3) * 0.7 + row * 0.12, dz = 1 + wr(k * 3.1) * 0.45, x0 = walkPxOf(o, Math.min(z, 66)) + sd * d + (sd < 0 ? -w : 0) + (wr(k * 4.1) - 0.5) * 0.3, x1 = x0 + w, z0 = z + wr(k * 5.3) * 0.3, z1 = z0 + dz;
+    if (z0 > 73 && Math.abs((x0 + x1) / 2 - 3) < 17 + (z0 - 73) * 0.5) return;   /* the gardens toward the Koutoubia stay open */
+    if (mkHit(o, x0 - 0.25, x1 + 0.25, z0 - 0.25, z1 + 0.25) || [[x0, z0], [x1, z0], [x0, z1], [x1, z1], [(x0 + x1) / 2, (z0 + z1) / 2]].some(([x, zz]) => mkIn(o.square, x, zz))) return;
+    out.push({ x0, x1, z0, z1, h:(6 + Math.floor(wr(k * 6.7) * 3) * 1.6) / 6 * 0.8, tone:wr(k * 7.9) < 0.5 ? 0 : 1, win:wr(k * 9.1), k }); }));
+  return (o.rf3 = out); }
+function mkBands(list, c, o, P, camZ, time) { const far = 30 * MAPV(), zc = camZ - WALK_NEAR, hs = mkRoofs(o), BAND = 5, n = mkNight(), t = MKD.t, hzc = dnLerp(dnKey(MK_GND, t), dnKey(MK_HOR, t), 0.6);
+  for (let b0 = Math.floor(zc / BAND) * BAND; b0 < camZ + far; b0 += BAND) { const band = hs.filter(q => q.z0 >= b0 && q.z0 < b0 + BAND && q.z0 > zc + 0.2); if (!band.length) continue; const dpB = b0 + BAND - camZ, hz = clamp((dpB - 14 * MAPV()) / (16 * MAPV())) * 0.45, K = col => dnRgb(dnLerp(dnV(MKD, col), hzc, hz));
+    list.push({ dp:Math.min(far - 1.1, dpB), f:() => { const ga = c.globalAlpha, fr = [[], []], sd = [], tp = [[], []], wl = []; c.globalAlpha = 1;
+      band.slice().sort((a, b) => b.z0 - a.z0).forEach(q => { const a = P(q.x0, q.z0), b = P(q.x1, q.z0), e = P(q.x1, q.z1), d = P(q.x0, q.z1); if (!a || !b || !e || !d || b.x < -20 || a.x > 410) return; const H = q.h * WK.X, up = (p, h) => ({ x:p.x, y:p.y - h * p.s });
+        const at = up(a, H), bt = up(b, H), et = up(e, H), dt = up(d, H); fr[q.tone].push([a, b, bt, at]); if (a.x > 195) sd.push([a, d, dt, at]); else if (b.x < 195) sd.push([b, e, et, bt]); tp[q.tone].push([at, bt, et, dt]);
+        if (n > 0 && q.win < n * 0.7 && a.s > 0.07) wl.push([lerp(a.x, b.x, 0.3 + q.win * 0.5), a.y - H * a.s * 0.55, Math.max(1, 0.2 * WK.X * a.s), Math.max(1, 0.26 * WK.X * a.s)]); });
+      const quads = (arr, col) => { if (!arr.length) return; c.fillStyle = col; c.beginPath(); arr.forEach(qd => { c.moveTo(qd[0].x, qd[0].y); for (let i = 1; i < 4; i++) c.lineTo(qd[i].x, qd[i].y); c.closePath(); }); c.fill(); };
+      quads(sd, K([176, 106, 86])); quads(fr[0], K(MK_W[0])); quads(fr[1], K(MK_W[3])); quads(tp[0], K(MK_R[0])); quads(tp[1], K(MK_R[1]));
+      if (wl.length) { c.fillStyle = `rgba(255,204,130,${(0.9 * n).toFixed(3)})`; c.beginPath(); wl.forEach(([x, y, w, h]) => c.rect(x, y, w, h)); c.fill(); } c.globalAlpha = ga; } }); } }
+// a cafe terrace on a roof beside the square: parasols, people at the parapet (black silhouettes), a string of bulbs once it is dusk
+function mkTerrace(c, b, p, time) { const C = mkC, on = mkOn(b.tr); c.save(); c.translate(p.x, p.y - b.h * WK.X * 0.8 / 6 * p.s); c.scale(p.s, p.s);
+  if (on > 0) walkGlow(c, 0, -12, 44, '255,190,110', 0.34 * on);
+  c.strokeStyle = C([84, 62, 52]); c.lineWidth = 1.8; c.beginPath(); c.moveTo(-17, 0); c.lineTo(-17, -26); c.moveTo(17, 0); c.lineTo(17, -26); c.stroke();
+  [[-17, [244, 238, 226]], [17, b.tr < 0.5 ? [226, 92, 62] : [60, 140, 110]]].forEach(([x, col]) => { c.fillStyle = C(col); c.beginPath(); c.moveTo(x - 18, -24); c.quadraticCurveTo(x, -42, x + 18, -24); c.closePath(); c.fill(); });
+  c.fillStyle = SIL_COL; c.beginPath(); [-28, -9, 8, 27].forEach(x => dnSit(c, x, 0, 0.85)); c.fill();
+  if (on > 0) { c.fillStyle = `rgba(255,232,170,${on.toFixed(3)})`; c.beginPath(); for (let k = 0; k < 9; k++) c.rect(-38 + k * 9.5, -34 - Math.sin(k / 8 * Math.PI) * -5, 2.4, 2.4); c.fill(); } c.restore(); }
+function mkTerraces(list, c, o, P, camZ, time) { const far = 30 * MAPV(), zc = camZ - WALK_NEAR;
+  o.blds.forEach((b, i) => { if (b.tr == null) { let cx = 0, cz = 0; const m = b.p.length / 2; for (let j = 0; j < b.p.length; j += 2) { cx += b.p[j] / m; cz += b.p[j + 1] / m; } b.cx = cx; b.cz = cz; const gw = Math.abs(cx - walkPxOf(o, cz)); b.tr = b.h >= 7 && cz > 21 && cz < 80 && gw > 1.6 && gw < 9 && wr(i * 3.7) < 0.55 ? wr(i * 5.1) : -1; }
+    if (b.tr < 0 || b.cz < zc + 0.8 || b.cz - camZ > far - 3) return; let zs = 0; for (let j = 1; j < b.p.length; j += 2) zs += Math.max(zc, b.p[j]); const dm = zs / (b.p.length / 2) - camZ, p = P(b.cx, b.cz); if (!p || p.x < -40 || p.x > 430) return;
+    list.push({ dp:Math.min(far - 1, dm) + 0.28, f:() => mkTerrace(c, b, p, time) }); }); }
+// on the ground, under everything: the shade under the souk's reed roof with the sun through it in stripes; the long shadows the low
+// sun throws toward you from the stalls, carts and parasols (gone once it has set)
+const MK_SHADOW = { mkstall3:0.7, mktag3:0.65, mksnail3:0.4, mjuice3:0.5, mknut3:0.45, mkpara3:0.42, mksnake3:0.42, mkcal3:0.7, mkpalm3:0.12, mklant3:0.5 };
+function mkDecals(c, o, P, camZ, time) { const t = MKD.t, [s0] = mkSq(o), zs = Math.max(camZ - 2.2, -8), ze = Math.min(s0 - 0.4, camZ + 24);
+  if (ze > zs + 0.5) { const L = [], R = []; for (let z = zs; z < ze + 0.4; z += 0.8) { const zz = Math.min(z, ze), a = P(walkPx(zz) - 1.2, zz), b = P(walkPx(zz) + 1.2, zz); if (a && b) { L.push(a); R.push(b); } }
+    if (L.length > 1) { c.fillStyle = 'rgba(56,26,34,.3)'; c.beginPath(); L.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); for (let i = R.length - 1; i >= 0; i--) c.lineTo(R[i].x, R[i].y); c.closePath(); c.fill(); }
+    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,206,130,.26)'; c.beginPath(); for (let z = Math.ceil(zs / 0.64) * 0.64; z < Math.min(ze, camZ + 18); z += 0.64) { const a = P(walkPx(z) - 1.1, z), b = P(walkPx(z) + 1.1, z), e = P(walkPx(z) + 1.1, z + 0.24), d = P(walkPx(z) - 1.1, z + 0.24); if (!a || !b || !e || !d) continue; c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(e.x, e.y); c.lineTo(d.x, d.y); c.closePath(); } c.fill(); c.restore(); }
+  const sh = clamp((0.72 - t) / 0.1); if (sh <= 0.01) return; const len = 0.6 + 2.4 * clamp(t / 0.7); c.fillStyle = `rgba(70,36,44,${(0.22 * sh).toFixed(3)})`; c.beginPath();
+  walk.props.forEach(q => { const w = MK_SHADOW[q.kind]; if (!w || q.z < camZ - 1 || q.z > camZ + 18) return; const z1 = Math.max(q.z - len, camZ - 2.2), a = P(q.x - w, q.z), b = P(q.x + w, q.z), e = P(q.x + w * 1.15 - len * 0.12, z1), d = P(q.x - w * 1.15 - len * 0.12, z1); if (!a || !b || !e || !d) return; c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(e.x, e.y); c.lineTo(d.x, d.y); c.closePath(); }); c.fill(); }
+// the souk's reed roof across the lane (as before, 4.5 m up, until the square opens), sunlit
+function mkCanopy3(c, o, P, camZ) { const z1 = mkSq(o)[0] - 0.5; if (camZ > z1) return; c.strokeStyle = mkC([196, 156, 100], 0.8); c.lineWidth = 1.3; c.beginPath();
+  for (let z = Math.max(camZ + 0.4, -6); z < Math.min(z1, camZ + 22); z += 0.32) { const a = P(walkPx(z) - 1.1, z), b = P(walkPx(z) + 1.1, z); if (!a || !b) continue; c.moveTo(a.x, a.y - 4.5 * WK.X * a.s / 6); c.lineTo(b.x, b.y - 4.5 * WK.X * b.s / 6); } c.stroke(); }
+// strings of bulbs across the lane between the food stalls, lit as dusk comes
+function mkFestoons(c, o, P, camZ, end) { const on = clamp((MKD.t - 0.64) / 0.12), w = [], d = [];
+  for (let z = 43.35; z < end + 1; z += 2.3) { if (z < camZ + 1.5 || z > camZ + 26) continue; const a = P(walkPx(z) - 1.9, z), b = P(walkPx(z) + 1.9, z); if (!a || !b) continue; const ha = 5.4 * WK.X * 0.8 / 6 * a.s, sag = 12 * a.s; w.push([a.x, a.y - ha, b.x, b.y - ha, sag]); for (let i = 1; i < 9; i++) { const u = i / 9; d.push([lerp(a.x, b.x, u), lerp(a.y, b.y, u) - ha + sag * Math.sin(u * Math.PI), Math.max(1.3, 3 * a.s)]); } }
+  if (!w.length) return; c.strokeStyle = mkC([70, 50, 46], 0.7); c.lineWidth = 0.8; c.beginPath(); w.forEach(([x0, y0, x1, y1, s]) => { c.moveTo(x0, y0); c.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 + s * 2, x1, y1); }); c.stroke();
+  c.fillStyle = on > 0 ? `rgba(255,232,170,${(0.35 + 0.65 * on).toFixed(3)})` : mkC([200, 190, 176], 0.8); c.beginPath(); d.forEach(([x, y, r]) => c.rect(x - r / 2, y - r / 2, r, r)); c.fill(); }
+// the grills' smoke over the stalls, lit from below, a few big soft puffs at this depth
+function mkSmoke(c, P, camZ, d, time, end) { const sm = clamp((MKD.t - 0.66) / 0.2), z = camZ + d; if (sm <= 0 || z < 42 || z > end + 5) return; const ga = c.globalAlpha, img = softPuff('rgba(236,206,180,1)');
+  for (let k = 0; k < 4; k++) { const u = reduced ? (k * 0.27 + d * 0.13) % 1 : (time * 0.05 + k * 0.27 + d * 0.13) % 1, p = P(walkPx(z) + [-5.2, -2.3, 2.5, 6.2][k] + u * 0.8, z); if (!p) continue; const R = (70 + u * 90) * p.s; c.globalAlpha = ga * 0.3 * sm * (1 - u * 0.75); c.drawImage(img, p.x - R, p.y - (70 + u * 190) * p.s - R, R * 2, R * 2); } c.globalAlpha = ga; }
+function mkMore3(list, c, o, P, camZ, time) { const far = 30 * MAPV(), end = (walk.ids.length - 1) * WK.gap, one = f => () => { const ga = c.globalAlpha; c.globalAlpha = 1; f(); c.globalAlpha = ga; };
+  walkBlds(list, c, o, P, camZ, time); mkBands(list, c, o, P, camZ, time); mkTerraces(list, c, o, P, camZ, time);
+  list.push({ dp:far - 0.05, f:one(() => mkDecals(c, o, P, camZ, time)) }); list.push({ dp:far - 0.2, f:one(() => { mkGardens(c, o, P, camZ); mkMinaret3(c, o, P, camZ, time); }) });
+  list.push({ dp:far - 0.3, f:one(() => mkCanopy3(c, o, P, camZ)) }); list.push({ dp:far - 0.4, f:one(() => mkFestoons(c, o, P, camZ, end)) });
+  [7, 13, 19].forEach(d => list.push({ dp:d, f:() => mkSmoke(c, P, camZ, d, time, end) })); }
+// a prop wholly off the screen's sides (w is its half width with its glow, in its own space) is not drawn: the square is far wider than the view
+const mkOff = (c, w) => { const T = c.getTransform(), k = 390 / c.canvas.width, x = T.e * k, s = T.a * k; return x < -w * s || x > 390 + w * s; };
+// shapes shared by the stalls: a canvas roof on two poles with a counter, its row of bulbs, diners on a bench with their backs to you
+const mkRoof = (c, w, y, col, pole, lod) => { c.fillStyle = col; c.beginPath(); c.moveTo(-w, y); c.lineTo(w, y); c.lineTo(w - 8, y - 12); c.lineTo(-w + 8, y - 12); c.closePath(); if (lod) { c.rect(-w + 2.5, y, 3, -y); c.rect(w - 5.5, y, 3, -y); c.fill(); return; } c.fill(); c.fillStyle = pole; c.beginPath(); c.rect(-w + 2.5, y, 3, -y); c.rect(w - 5.5, y, 3, -y); c.rect(-w + 6, -26, w * 2 - 12, 8); c.fill(); };
+const mkBulbs = (c, w, y, on) => { c.fillStyle = on > 0 ? `rgba(255,234,176,${(0.3 + 0.7 * on).toFixed(3)})` : mkC([196, 186, 172]); c.beginPath(); for (let k = 0; k < 7; k++) c.rect(-w + 10 + k * (w * 2 - 23) / 6, y + 2 + (k % 2) * 2, 3, 3); c.fill(); };
+const mkDiners = (c, xs) => { c.fillStyle = SIL_COL; c.beginPath(); xs.forEach((x, i) => { const y = i % 2 ? -1 : 0; c.moveTo(x + 4.5, -30 + y); c.arc(x, -30 + y, 4.5, 0, 7); c.rect(x - 5, -26 + y, 10, 14); c.rect(x - 6, -12, 12, 3); }); c.fill(); };
+Object.assign(JAK_PROPS, {
+  // a brass lantern hanging in the souk, its pierced pattern throwing little points of light
+  mklamp3(c, p) { c.strokeStyle = mkC([60, 44, 40]); c.lineWidth = 1.4; c.beginPath(); c.moveTo(0, -90); c.lineTo(0, -60); c.stroke(); c.fillStyle = '#c89a4a'; c.beginPath(); c.moveTo(-8, -60); c.lineTo(8, -60); c.lineTo(10, -46); c.lineTo(0, -38); c.lineTo(-10, -46); c.closePath(); c.fill();
+    c.fillStyle = '#ffe2a0'; c.beginPath(); [[-4, -54], [4, -54], [0, -48], [-5, -46], [5, -46]].forEach(([x, y]) => c.rect(x - 1, y - 1, 2, 2)); c.fill(); walkGlow(c, 0, -50, 22, '255,190,110', 0.5); },
+  // a souk stall in its arched niche: rows of coloured slippers, warm light inside
+  mshop3(c, p) { if (mkOff(c, 40)) return; const C = mkC, cols = [[[232, 64, 46], [242, 192, 42], [58, 138, 232], [232, 90, 154]], [[242, 154, 42], [42, 176, 122], [226, 218, 204], [160, 58, 138]]][Math.floor(p.r * 2) % 2];
+    c.fillStyle = C([74, 46, 42]); c.beginPath(); c.moveTo(-30, 0); c.lineTo(-30, -44); c.quadraticCurveTo(0, -66, 30, -44); c.lineTo(30, 0); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,196,128,.4)'; c.fillRect(-26, -40, 52, 40);
+    if (propS(c) > 0.3) cols.forEach((col, q) => { c.fillStyle = C(col); c.beginPath(); for (let r = 0; r < 4; r++) for (let k = 0; k < 6; k++) if ((r + k) % 4 === q) c.rect(-24 + k * 8, -36 + r * 9, 6, 4); c.fill(); }); c.fillStyle = C([150, 50, 46]); c.fillRect(-28, -10, 56, 10); },
+  // a lantern shop: its dark mouth full of hanging brass lanterns, every one lit, their pierced patterns thrown as points of light on
+  // the lane and the walls around it, slowly turning
+  mklshop3(c, p, time) { if (mkOff(c, 120)) return; const C = mkC, lod = propS(c) < 0.42, tw = reduced ? 0 : time * 0.15;
+    c.fillStyle = C([70, 42, 38]); c.beginPath(); c.moveTo(-44, 0); c.lineTo(-44, -62); c.quadraticCurveTo(0, -94, 44, -62); c.lineTo(44, 0); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,170,84,.55)'; c.beginPath(); c.moveTo(-38, 0); c.lineTo(-38, -58); c.quadraticCurveTo(0, -86, 38, -58); c.lineTo(38, 0); c.closePath(); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -40, 96, '255,180,90', 0.5); c.restore(); if (lod) return;
+    const L = []; for (let i = 0; i < 17; i++) { const row = Math.floor(i / 6); L.push([-32 + (i % 6) * 12.8 + (row % 2) * 6, -68 + row * 18 + wr(i * 3.1 + p.r) * 6, 0.8 + wr(i * 5.3 + p.r) * 0.5]); }
+    c.fillStyle = '#b8862e'; c.beginPath(); L.forEach(([x, y, s]) => { c.moveTo(x, y - 7 * s); c.lineTo(x + 4.6 * s, y); c.lineTo(x, y + 7 * s); c.lineTo(x - 4.6 * s, y); c.closePath(); }); c.fill();
+    c.fillStyle = '#fff0b8'; c.beginPath(); L.forEach(([x, y, s], i) => { if (i % 4 !== 1) c.rect(x - 1.6 * s, y - 2.4 * s, 3.2 * s, 4.8 * s); }); c.fill(); c.fillStyle = '#ff7a52'; c.beginPath(); L.forEach(([x, y, s], i) => { if (i % 8 === 1) c.rect(x - 1.6 * s, y - 2.4 * s, 3.2 * s, 4.8 * s); }); c.fill();
+    c.fillStyle = '#52d8c8'; c.beginPath(); L.forEach(([x, y, s], i) => { if (i % 8 === 5) c.rect(x - 1.6 * s, y - 2.4 * s, 3.2 * s, 4.8 * s); }); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,214,140,.6)'; c.beginPath(); for (let i = 0; i < 30; i++) { const a = i * 2.4 + tw, r = 50 + wr(i * 1.9) * 56, x = Math.cos(a) * r, y = Math.min(16, -30 + Math.sin(a) * r * 0.72), s = 1.3 + wr(i * 4.7) * 1.3; c.moveTo(x, y - s); c.lineTo(x + s, y); c.lineTo(x, y + s); c.lineTo(x - s, y); c.closePath(); } c.fill(); c.restore(); },
+  // a rug hung out on the wall: deep red, indigo, saffron or cream, with a border and a row of diamonds
+  mkrug3(c, p) { if (mkOff(c, 30)) return; const C = mkC, pal = [[[176, 40, 44], [240, 200, 120]], [[44, 64, 136], [232, 124, 72]], [[216, 152, 42], [124, 42, 62]], [[232, 222, 202], [172, 52, 52]]][Math.floor(p.r * 4) % 4];
+    c.fillStyle = C([96, 64, 46]); c.fillRect(-21, -70, 42, 3); c.fillStyle = C(pal[0]); c.fillRect(-17, -68, 34, 58); c.fillStyle = C(pal[1]); c.beginPath(); c.rect(-17, -68, 34, 3.5); c.rect(-17, -13.5, 34, 3.5); for (let k = 0; k < 3; k++) { const y = -55 + k * 15.5; c.moveTo(0, y - 6); c.lineTo(9, y); c.lineTo(0, y + 6); c.lineTo(-9, y); c.closePath(); } c.fill(); },
+  // a spice stall: cones of paprika, turmeric, cumin, saffron, dried rose, mint and salt under a red awning
+  mkspice3(c, p) { if (mkOff(c, 44)) return; const C = mkC; c.fillStyle = C([204, 72, 52]); c.fillRect(-38, -64, 76, 7); c.fillStyle = C([96, 64, 46]); c.beginPath(); c.rect(-36, -57, 3, 41); c.rect(33, -57, 3, 41); c.fill(); c.fillStyle = C([124, 86, 62]); c.fillRect(-34, -16, 68, 16);
+    if (propS(c) < 0.3) return; [[214, 60, 40], [240, 180, 40], [150, 110, 60], [232, 122, 40], [196, 64, 96], [120, 152, 62], [240, 224, 180]].forEach((col, i) => { const x = -27 + i * 9; c.fillStyle = C(col); c.beginPath(); c.moveTo(x - 5, -16); c.lineTo(x, -33 - (i % 2) * 5); c.lineTo(x + 5, -16); c.closePath(); c.fill(); }); },
+  // a pottery stall: blue-and-white plates on the wall, glazed tagines along the shelf
+  mkpots3(c, p) { if (mkOff(c, 40)) return; const C = mkC; c.fillStyle = C([114, 78, 58]); c.beginPath(); c.rect(-32, -14, 64, 14); c.rect(-32, -60, 64, 3); c.fill(); if (propS(c) < 0.3) return;
+    c.fillStyle = C([242, 242, 238]); c.beginPath(); for (let i = 0; i < 5; i++) { c.moveTo(-24 + i * 12 + 5.4, -45); c.arc(-24 + i * 12, -45, 5.4, 0, 7); } c.fill(); c.fillStyle = C([42, 92, 172]); c.beginPath(); for (let i = 0; i < 5; i++) { c.moveTo(-24 + i * 12 + 2.7, -45); c.arc(-24 + i * 12, -45, 2.7, 0, 7); } c.fill();
+    [[196, 96, 60], [42, 122, 152], [216, 162, 52], [62, 142, 102]].forEach((col, i) => { const x = -24 + i * 16; c.fillStyle = C(col); c.beginPath(); c.moveTo(x - 7, -14); c.lineTo(x - 7, -18); c.lineTo(x - 2, -32); c.lineTo(x + 2, -32); c.lineTo(x + 7, -18); c.lineTo(x + 7, -14); c.closePath(); c.fill(); }); },
+  // a cat on a step, its tail flicking
+  mkcat3(c, p, time) { const f = reduced ? 0 : Math.sin(time * 2 + p.r * 9) * 3; c.fillStyle = SIL_COL; c.beginPath(); c.ellipse(0, -5, 6, 5, 0, 0, 7); c.moveTo(7.6, -11); c.arc(4, -11, 3.6, 0, 7); c.moveTo(1.4, -13); c.lineTo(2.4, -17); c.lineTo(4, -14); c.moveTo(4.4, -14); c.lineTo(6, -17); c.lineTo(6.8, -13); c.fill();
+    c.strokeStyle = SIL_COL; c.lineWidth = 1.8; c.beginPath(); c.moveTo(-5, -3); c.quadraticCurveTo(-11, -4, -10 + f * 0.4, -11 - Math.abs(f)); c.stroke(); },
+  // a juice cart: green canopy, pyramids of oranges, its lamp once it is dusk
+  mjuice3(c, p) { if (mkOff(c, 44)) return; const C = mkC, on = mkOn(p.r); c.fillStyle = C([42, 138, 90]); c.fillRect(-36, -64, 72, 8); c.fillStyle = C([232, 224, 208]); c.beginPath(); c.rect(-33.5, -56, 3, 30); c.rect(30.5, -56, 3, 30); c.fill(); c.fillStyle = C([74, 54, 46]); c.fillRect(-34, -26, 68, 24);
+    c.fillStyle = C([255, 154, 42]); c.beginPath(); for (let r = 0; r < 4; r++) for (let k = 0; k < 7 - r * 2; k++) { const x = -24 + r * 6 + k * 6, y = -30 - r * 5; c.moveTo(x + 3, y); c.arc(x, y, 3, 0, 7); } c.fill(); if (on > 0) walkGlow(c, 0, -50, 26, '255,210,130', 0.5 * on); },
+  // a stall of dates, figs and nuts heaped in tiers under a pale awning
+  mknut3(c, p) { if (mkOff(c, 44)) return; const C = mkC, on = mkOn(p.r); c.fillStyle = C([222, 196, 156]); c.fillRect(-34, -64, 68, 7); c.fillStyle = C([96, 64, 46]); c.beginPath(); c.rect(-33, -57, 3, 35); c.rect(30, -57, 3, 35); c.fill(); c.fillStyle = C([114, 78, 58]); c.fillRect(-32, -22, 64, 22);
+    [[100, 58, 32], [196, 144, 62], [228, 204, 154], [152, 82, 42]].forEach((col, r) => { c.fillStyle = C(col); c.beginPath(); for (let k = 0; k < 5 - r; k++) { const x = -22 + r * 5.5 + k * 11; c.moveTo(x + 6, -22 - r * 6); c.ellipse(x, -22 - r * 6, 6, 4.4, 0, Math.PI, 0); } c.fill(); }); if (on > 0) walkGlow(c, 0, -46, 26, '255,210,130', 0.5 * on); },
+  // a parasol on the square with people on low stools under it (the henna painters, the fortune tellers)
+  mkpara3(c, p) { if (mkOff(c, 44)) return; const C = mkC, cols = [[226, 62, 62], [240, 190, 52], [52, 150, 200], [240, 240, 230], [230, 122, 52], [122, 190, 92]], i = Math.floor(p.r * 6) % 6;
+    c.strokeStyle = C([84, 62, 52]); c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -58); c.stroke(); c.fillStyle = C(cols[i]); c.beginPath(); c.moveTo(-34, -52); c.quadraticCurveTo(0, -86, 34, -52); c.closePath(); c.fill();
+    c.fillStyle = C(cols[(i + 3) % 6]); c.beginPath(); c.moveTo(-11, -52); c.lineTo(0, -69); c.lineTo(11, -52); c.closePath(); c.moveTo(-34, -52); c.lineTo(-22, -52); c.lineTo(-13, -65); c.closePath(); c.moveTo(34, -52); c.lineTo(22, -52); c.lineTo(13, -65); c.closePath(); c.fill();
+    if (propS(c) < 0.3) return; c.fillStyle = SIL_COL; c.beginPath(); dnSit(c, -12, 0, 1); dnSit(c, 12, 0, 0.92); c.fill(); },
+  // a snake charmer under his parasol: the cobra up out of its basket, swaying to the pipe
+  mksnake3(c, p, time) { if (mkOff(c, 44)) return; JAK_PROPS.mkpara3(c, p); if (propS(c) < 0.3) return; const sw = reduced ? 0 : Math.sin(time * 1.6 + p.r * 9) * 2.6;
+    c.fillStyle = mkC([196, 156, 96]); c.beginPath(); c.ellipse(31, -4, 8, 5, 0, 0, 7); c.fill(); c.strokeStyle = '#26361e'; c.lineWidth = 2.8; c.beginPath(); c.moveTo(31, -6); c.quadraticCurveTo(26 + sw, -16, 31 + sw, -25); c.stroke(); c.fillStyle = '#26361e'; c.beginPath(); c.ellipse(31 + sw, -27, 4.2, 5.2, 0, 0, 7); c.fill();
+    c.strokeStyle = mkC([206, 166, 96]); c.lineWidth = 1.8; c.beginPath(); c.moveTo(15, -15); c.lineTo(24, -11); c.stroke(); },
+  // a water seller: the wide tasselled hat, brass cups on his chest catching the light
+  mkwater3(c, p) { if (propS(c) < 0.3) return; c.fillStyle = SIL_COL; c.beginPath(); dnSil(c, 0, 0, 1.05); c.moveTo(13, -31); c.ellipse(0, -31, 13, 3, 0, 0, 7); c.moveTo(-5, -33); c.lineTo(0, -41); c.lineTo(5, -33); c.closePath(); c.fill();
+    c.fillStyle = '#e8c860'; c.beginPath(); [[-4, -17], [0, -15], [4, -17], [-2, -12], [3, -11]].forEach(([x, y]) => c.rect(x - 1.2, y - 1.2, 2.4, 2.4)); c.fill(); },
+  // Gnawa players in a ring of listeners (black silhouettes): a drummer, a guembri player, a dancer leaping with his arms up; the
+  // listeners at the front sit, so the players show; a lamp on the ground once it is dusk
+  mcircle3(c, p, time) { if (mkOff(c, 70)) return; if (propS(c) < 0.3) return; const b = reduced ? 0 : Math.abs(Math.sin(time * 6 + p.r * 5)) * 3, on = mkOn(p.r); if (on > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -10, 64, '255,180,100', 0.42 * on); c.restore(); }
+    c.fillStyle = SIL_COL; c.beginPath(); for (let k = 0; k < 13; k++) { const a = k / 13 * 6.283 + 0.2, x = Math.cos(a) * 50, y = Math.sin(a) * 12 - 2; if (Math.sin(a) > 0.1) dnSit(c, x, y, 0.95); else dnSil(c, x, y, 0.9); }
+    dnSil(c, -11, -2, 1); dnSil(c, 11, -2, 1); dnSil(c, 0, -4 - b, 1.05); c.fill(); c.strokeStyle = SIL_COL; c.lineWidth = 2.4; c.beginPath(); c.moveTo(-4, -24 - b); c.lineTo(-10, -35 - b); c.moveTo(4, -24 - b); c.lineTo(10, -35 - b); c.stroke();
+    c.fillStyle = mkC([206, 156, 86]); c.beginPath(); c.ellipse(-17, -12, 6, 4.6, 0.3, 0, 7); c.fill(); c.strokeStyle = mkC([156, 104, 62]); c.lineWidth = 2; c.beginPath(); c.moveTo(7, -10); c.lineTo(22, -19); c.stroke(); },
+  // a storyteller: he stands with his staff and an arm raised, his listeners sit round him in a ring
+  mkstory3(c, p, time) { if (mkOff(c, 64)) return; if (propS(c) < 0.3) return; const on = mkOn(p.r), g = reduced ? 0 : Math.sin(time * 1.3 + p.r * 7) * 3; if (on > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 6, -6, 54, '255,180,100', 0.4 * on); c.restore(); }
+    c.fillStyle = SIL_COL; c.beginPath(); for (let k = 0; k < 11; k++) { const a = k / 11 * 6.283 + 0.5, x = Math.cos(a) * 42, y = Math.sin(a) * 10 - 2; dnSit(c, x, y, 0.92); } dnSil(c, 0, -3, 1.08); c.fill();
+    c.strokeStyle = SIL_COL; c.lineWidth = 2.4; c.beginPath(); c.moveTo(5, -22); c.lineTo(15, -34 - g); c.moveTo(-9, -1); c.lineTo(-9, -36); c.stroke(); if (on > 0) { c.fillStyle = `rgba(255,226,160,${on.toFixed(3)})`; c.fillRect(4, -7, 4, 5); } },
+  // acrobats: three, two and one in a tower, a row of people watching either side
+  mkacro3(c, p, time) { if (mkOff(c, 74)) return; if (propS(c) < 0.3) return; const w = reduced ? 0 : Math.sin(time * 2 + p.r * 3) * 0.9; c.fillStyle = SIL_COL; c.beginPath(); [-13, 0, 13].forEach(x => dnSil(c, x, 0, 1)); [-6.5, 6.5].forEach(x => dnSil(c, x + w * 0.5, -27, 0.92)); dnSil(c, w, -52, 0.85);
+    [-62, -50, -38, 38, 50, 62].forEach((x, i) => dnSil(c, x, -2 + (i % 2) * 4, 0.92)); c.fill(); c.strokeStyle = SIL_COL; c.lineWidth = 2.2; c.beginPath(); c.moveTo(w - 4, -70); c.lineTo(w - 13, -78); c.moveTo(w + 4, -70); c.lineTo(w + 13, -78); c.stroke(); },
+  // a lantern seller: brass lanterns set out on a red mat, lit as the light goes, their patterns scattered on the paving
+  mklant3(c, p, time) { if (mkOff(c, 90)) return; const C = mkC, on = Math.max(0.3, mkOn(p.r)), lod = propS(c) < 0.42, tw = reduced ? 0 : time * 0.12; c.fillStyle = C([156, 52, 52]); c.beginPath(); c.moveTo(-46, 5); c.lineTo(46, 5); c.lineTo(37, -10); c.lineTo(-37, -10); c.closePath(); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -10, 72, '255,180,90', 0.46 * on); c.restore(); if (lod) return;
+    const L = []; for (let i = 0; i < 13; i++) L.push([-36 + (i % 7) * 12 + (i > 6 ? 6 : 0), i > 6 ? 1 : -8, 0.8 + wr(i * 3.7 + p.r) * 0.6]);
+    c.fillStyle = '#b8862e'; c.beginPath(); L.forEach(([x, y, s]) => { c.moveTo(x - 4 * s, y); c.lineTo(x - 3 * s, y - 10 * s); c.lineTo(x, y - 15 * s); c.lineTo(x + 3 * s, y - 10 * s); c.lineTo(x + 4 * s, y); c.closePath(); }); c.fill();
+    c.fillStyle = `rgba(255,238,176,${on.toFixed(3)})`; c.beginPath(); L.forEach(([x, y, s]) => c.rect(x - 1.7 * s, y - 9 * s, 3.4 * s, 5.4 * s)); c.fill();
+    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,214,140,${(0.55 * on).toFixed(3)})`; c.beginPath(); for (let i = 0; i < 22; i++) { const a = i * 2.4 + tw, r = 52 + wr(i * 1.9) * 30, x = Math.cos(a) * r, y = 2 + Math.sin(a) * r * 0.3, s = 1.2 + wr(i * 4.7); c.moveTo(x, y - s); c.lineTo(x + s, y); c.lineTo(x, y + s); c.lineTo(x - s, y); c.closePath(); } c.fill(); c.restore();
+    c.fillStyle = SIL_COL; c.beginPath(); dnSit(c, 50, -4, 1); c.fill(); },
+  // a food stall: a white canvas roof on poles, a string of bulbs, the grill; set up and waiting in the afternoon, then its bulbs come
+  // on, the grill glows, smoke rises lit from below and the benches fill
+  mkstall3(c, p, time) { if (mkOff(c, 84)) return; const C = mkC, T = reduced ? 0 : time, lod = propS(c) < 0.5, on = mkOn(p.r);
+    if (on > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -30, 74, '255,170,90', 0.42 * on); c.restore(); if (!lod) { const u = (T * 0.12 + p.r) % 1, r = 24 + u * 44, ga = c.globalAlpha; c.globalAlpha = ga * 0.42 * (1 - u) * on; c.drawImage(softPuff('rgba(230,214,196,1)'), -r + u * 30, -110 - u * 150 - r, r * 2, r * 2); c.globalAlpha = ga; } }
+    mkRoof(c, 52, -60, C([240, 234, 222]), C([74, 54, 46]), lod); c.fillStyle = on > 0 ? `rgba(255,122,42,${on.toFixed(3)})` : C([110, 86, 74]); c.fillRect(-20, -28, 40, 3); mkBulbs(c, 52, -60, on); if (lod) return;
+    if (on > 0.5) mkDiners(c, [-38, -24, 22, 36]); c.fillStyle = SIL_COL; c.beginPath(); c.moveTo(4.5, -46); c.arc(0, -46, 4.5, 0, 7); c.rect(-5.5, -42, 11, 14); if (on <= 0.5) { c.moveTo(-23.5, -46); c.arc(-28, -46, 4.5, 0, 7); c.rect(-33.5, -42, 11, 14); } c.fill(); },
+  // a tagine stall: the clay pots in a row under an ochre roof, each a dish and a tall cone lid, steam rising from them
+  mktag3(c, p, time) { if (mkOff(c, 78)) return; const C = mkC, T = reduced ? 0 : time, lod = propS(c) < 0.5, on = mkOn(p.r); if (on > 0) { c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, 0, -30, 68, '255,180,100', 0.4 * on); c.restore(); }
+    mkRoof(c, 48, -60, C([234, 182, 72]), C([74, 54, 46]), lod); c.fillStyle = C([192, 94, 60]); c.beginPath(); for (let k = 0; k < 6; k++) { const x = -32 + k * 12.8; c.moveTo(x - 5.5, -26); c.lineTo(x - 5.5, -29); c.lineTo(x - 1.6, -40); c.lineTo(x + 1.6, -40); c.lineTo(x + 5.5, -29); c.lineTo(x + 5.5, -26); c.closePath(); } c.fill();
+    mkBulbs(c, 48, -60, on); if (lod) return; c.fillStyle = C([62, 132, 152]); c.beginPath(); for (let k = 1; k < 6; k += 2) c.rect(-32 + k * 12.8 - 5.5, -29, 11, 2.4); c.fill();
+    if (on > 0) { c.strokeStyle = `rgba(244,234,224,${(0.4 * on).toFixed(3)})`; c.lineWidth = 1.6; c.beginPath(); for (let k = 0; k < 6; k += 2) { const x = -32 + k * 12.8, u = (T * 0.5 + k * 0.3) % 1; c.moveTo(x, -42); c.quadraticCurveTo(x + 4 * Math.sin(T * 2 + k), -49 - u * 6, x - 2, -56 - u * 8); } c.stroke(); mkDiners(c, [-36, -22, 24]); } },
+  // a snail-soup cart: the big pot, bowls stacked round it, one bare bulb, people standing round with their bowls
+  mksnail3(c, p) { if (mkOff(c, 60)) return; const C = mkC, on = mkOn(p.r), lod = propS(c) < 0.5; if (on > 0) walkGlow(c, 9, -54, 34, '255,214,150', 0.55 * on);
+    c.fillStyle = C([228, 224, 212]); c.beginPath(); c.moveTo(-26, 0); c.lineTo(-30, -24); c.lineTo(30, -24); c.lineTo(26, 0); c.closePath(); c.fill(); c.fillStyle = C([62, 122, 92]); c.fillRect(-30, -27, 60, 4);
+    c.strokeStyle = C([74, 54, 46]); c.lineWidth = 1.8; c.beginPath(); c.moveTo(24, -27); c.lineTo(24, -60); c.lineTo(9, -60); c.lineTo(9, -57); c.stroke(); c.fillStyle = on > 0 ? '#fff0c0' : C([204, 198, 190]); c.beginPath(); c.arc(9, -54, 3, 0, 7); c.fill(); if (lod) return;
+    c.fillStyle = C([156, 156, 162]); c.beginPath(); c.ellipse(0, -30, 12, 6, 0, 0, 7); c.fill(); c.fillStyle = C([246, 242, 232]); c.beginPath(); [-24, -12, 12].forEach(x => { c.rect(x - 4, -33, 8, 2); c.rect(x - 3.4, -36, 6.8, 2); c.rect(x - 2.8, -39, 5.6, 2); }); c.fill();
+    c.fillStyle = SIL_COL; c.beginPath(); dnSil(c, -42, 3, 1); dnSil(c, 41, 4, 0.95); c.moveTo(4.5, -47); c.arc(0, -47, 4.5, 0, 7); c.rect(-5.5, -43, 11, 10); c.fill(); },
+  // a caleche waiting for a fare: the green carriage with its folding hood, the driver on the box, a bay horse in the shafts, a lamp
+  mkcal3(c, p) { if (mkOff(c, 80)) return; const C = mkC, on = mkOn(p.r); c.save(); if (p.r < 0.5) c.scale(-1, 1);
+    c.strokeStyle = C([60, 44, 40]); c.lineWidth = 2; c.beginPath(); c.moveTo(-28 + 11, -11); c.arc(-28, -11, 11, 0, 7); c.moveTo(-2 + 8, -8); c.arc(-2, -8, 8, 0, 7); c.moveTo(6, -19); c.lineTo(40, -22); c.stroke();
+    c.fillStyle = C([42, 122, 82]); c.beginPath(); c.moveTo(-40, -30); c.lineTo(8, -30); c.lineTo(12, -16); c.lineTo(-40, -16); c.closePath(); c.fill(); c.fillStyle = C([30, 84, 60]); c.beginPath(); c.moveTo(-40, -30); c.quadraticCurveTo(-38, -56, -12, -52); c.lineTo(-14, -47); c.quadraticCurveTo(-32, -48, -33, -30); c.closePath(); c.fill();
+    c.fillStyle = C([98, 62, 44]); c.beginPath(); c.ellipse(36, -25, 17, 8.5, 0, 0, 7); c.moveTo(47, -30); c.lineTo(55, -46); c.lineTo(66, -43); c.lineTo(66, -38); c.lineTo(59, -38); c.lineTo(54, -24); c.closePath(); [23, 28, 44, 49].forEach(x => c.rect(x, -19, 3, 19)); c.fill();
+    c.strokeStyle = C([60, 40, 32]); c.lineWidth = 2.4; c.beginPath(); c.moveTo(20, -27); c.quadraticCurveTo(14, -24, 14, -13); c.stroke(); c.fillStyle = SIL_COL; c.beginPath(); dnSit(c, 2, -30, 1); c.fill(); if (on > 0) walkGlow(c, 12, -36, 16, '255,214,150', 0.6 * on); c.restore(); },
+  // a lamp post on the way to the mosque: a globe on an iron post, lit at dusk
+  mkpost3(c, p) { if (mkOff(c, 36)) return; const on = mkOn(p.r * 0.5); c.strokeStyle = mkC([60, 50, 50]); c.lineWidth = 2.4; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -62); c.stroke(); c.fillStyle = on > 0 ? '#fff0c4' : mkC([230, 224, 212]); c.beginPath(); c.arc(0, -66, 5, 0, 7); c.fill(); if (on > 0) walkGlow(c, 0, -66, 30, '255,214,150', 0.55 * on); },
+  // a date palm
+  mkpalm3(c, p) { if (mkOff(c, 44)) return; const C = mkC, h = 74 + p.r * 36, lean = (p.r - 0.5) * 18; c.strokeStyle = C([128, 98, 70]); c.lineWidth = 5; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(lean * 0.3, -h * 0.5, lean, -h); c.stroke();
+    c.strokeStyle = C([66, 118, 62]); c.lineWidth = 3; c.beginPath(); for (let k = 0; k < 9; k++) { const a = -Math.PI * (0.04 + k / 8 * 0.92), dx = Math.cos(a) * 32, dy = Math.sin(a) * 17; c.moveTo(lean, -h); c.quadraticCurveTo(lean + dx * 0.6, -h + dy - 10, lean + dx, -h + dy + 11); } c.stroke(); },
+});
+// the houses: a door in a pale plaster arch on the longest wall, green tiles over it (the medina's doors; the walls stay plain, as they are)
+const MK_STY3 = Object.assign({}, MK_STY, { deco(c, b, vis, wp, wallH, r, base) { if (base[0].s < 0.3 || b.h < 6) return; let w = null; vis.forEach(v => { if (v.L > 4.5 && (!w || v.L > w.L)) w = v; }); if (!w) return;
+  const C = mkC, tm = 0.3 + (r.h % 5) * 0.1, d = 0.8 / w.L, q = pts => { c.beginPath(); pts.forEach(([t, h], i) => { const a = wp(w, t, h); if (i) c.lineTo(a.x, a.y); else c.moveTo(a.x, a.y); }); c.closePath(); c.fill(); };
+  if (base[0].s > 0.42) { c.fillStyle = C([246, 230, 206]); q([[tm - d * 1.5, 0], [tm - d * 1.5, 2.5], [tm, 3.6], [tm + d * 1.5, 2.5], [tm + d * 1.5, 0]]); c.fillStyle = C([46, 132, 104]); q([[tm - d * 2.3, 3.9], [tm + d * 2.3, 3.9], [tm + d * 1.9, 4.5], [tm - d * 1.9, 4.5]]); }
+  c.fillStyle = C(MK_DOORS[r.h % 4]); q([[tm - d, 0], [tm - d, 2.1], [tm, 3], [tm + d, 2.1], [tm + d, 0]]); } });
+// where everything stands. The souk (Levels 1-9): lanterns, stalls of slippers, rugs, spices and pottery, three lantern shops, cats.
+// The square: juice carts and dried-fruit stalls where the lane opens; the day's acts under their parasols (Levels 11-14); the players,
+// the storyteller, the acrobats and a lantern seller (Levels 15-18); the food stalls close on both sides from Level 17 to the finish;
+// caleches and palms beyond the prize, toward the mosque
+function mkProps3(th, n) { const o = th.osm, out = [], end = (n - 1) * WK.gap, [s0] = mkSq(o), px = z => walkPx(z); mkFront(o); mkTime(th, 0);
+  ['mcircle3', 'mkstory3', 'mkacro3', 'mkwater3', 'mkcat3', 'bfolk'].forEach(k => FAR_SKIP.add(k));
+  const free = (x, z, r) => !mkBlocked(o, x, z, r), inSq = (x, z) => mkIn(o.square, x, z), put = (kind, z, dx, r) => out.push({ z, x:px(z) + dx, kind, r:r == null ? wr(z * 3.7 + dx) : r });
+  const LS = [[7.2, -1], [12.6, 1], [17.4, -1]], SOUK = ['mshop3', 'mkrug3', 'mkspice3', 'mkrug3', 'mkpots3', 'mshop3'];
+  for (let z = -2.4, k = 0; z < s0 - 0.6; z += 1.5, k++) { const sd = k % 2 ? 1 : -1, z2 = z + 0.75; put('mklamp3', z, sd * 0.72, wr(k * 1.3)); if (!LS.some(([lz, ls]) => ls === -sd && Math.abs(lz - z2) < 1.3)) put(SOUK[k % 6], z2, -sd * 1.06, wr(k * 3.7)); }
+  LS.forEach(([z, sd]) => put('mklshop3', z, sd * 1.2, wr(z))); put('mkcat3', 4.4, 0.78, 0.3); put('mkcat3', 14.2, -0.8, 0.7);
+  for (let k = 0; k < 5; k++) put('mjuice3', s0 + 0.9 + k * 1.3, k % 2 ? 1.65 : -1.7, wr(k * 2.9));
+  [[s0 + 2.4, 3.1], [s0 + 4.9, -3.2], [s0 + 6.6, 3.0]].forEach(([z, dx]) => { if (free(px(z) + dx, z, 0.6)) put('mknut3', z, dx); });
+  const acts = [];   /* each act keeps the food stalls off its patch */ const act = (kind, z, dx, r, rad = 1.5) => { const cand = [dx, -dx, dx * 1.5, -dx * 1.5].find(d => free(px(z) + d, z, 0.9) && inSq(px(z) + d, z)); if (cand == null) return; put(kind, z, cand, r); acts.push([px(z) + cand, z, rad]); };
+  act('mksnake3', 27.6, -2.3, 0.1, 1); act('mkpara3', 28.9, 2.6, 0.55, 1); act('mkpara3', 30.0, 4.2, 0.9, 1); act('mksnake3', 30.6, 2.2, 0.35, 1); act('mkpara3', 31.9, -3.8, 0.2, 1); act('mkpara3', 32.6, 3.5, 0.7, 1); act('mksnake3', 33.4, -2.5, 0.8, 1); act('mkpara3', 34.8, 2.4, 0.4, 1);
+  put('mkwater3', 29.3, 0.92, 0.2); put('mkwater3', 34.1, -0.95, 0.6);
+  act('mcircle3', 37.7, -2.9, 0.15, 1.9); act('mklant3', 39.7, 1.9, 0.05, 1.3); act('mkacro3', 41.2, -3.2, 0.5, 1.9); act('mkstory3', 44.0, -2.7, 0.3, 1.7); act('mcircle3', 51.0, 5.2, 0.55, 1.9); act('mklant3', 57.4, -2.5, 0.4, 1.3); act('mcircle3', 60.6, 4.6, 0.8, 1.9);
+  // the food stalls, in rows close beside the lane and out across the square: mostly grills, some tagines, some snail-soup carts
+  for (let z = 42.2, j = 0; z < end + 1.7; z += 2.3, j++) [-6.3, -4.15, -2, 2, 4.15, 6.3, 8.5, 10.7, 12.9].forEach((dx, i) => { const zz = z + (i % 2) * 1.15, x = px(zz) + dx + (wr(j * 7 + i) - 0.5) * 0.3, h = wr(j * 5 + i * 1.3);
+    if (!inSq(x, zz) || !free(x, zz, 0.75) || acts.some(([ax, az, ar]) => Math.hypot(ax - x, az - zz) < ar + 0.75) || (Math.abs(dx) > 2.5 && wr(j * 3.1 + i * 2.7) < 0.14)) return; out.push({ z:zz, x, kind:h < 0.56 ? 'mkstall3' : h < 0.82 ? 'mktag3' : 'mksnail3', r:wr(j * 9 + i * 4.3) }); });
+  // beyond the prize, toward the Koutoubia: caleches waiting, palms on both sides
+  [[end + 4.6, 2.9, 0.7], [end + 6.4, -2.6, 0.2], [end + 7.8, 3.6, 0.9], [end + 9.4, -2.2, 0.4]].forEach(([z, dx, r]) => { if (free(px(z) + dx, z, 0.8)) put('mkcal3', z, dx, r); });
+  for (let z = end + 5.2, k = 0; z < end + 31; z += 2.5, k++) [-1, 1].forEach(sd => { const dx = sd * (4.6 + wr(k * 3.3 + sd) * 6.5), x = px(Math.min(z, 66)) + dx; if (free(x, z, 0.4)) out.push({ z, x, kind:'mkpalm3', r:wr(k * 5.9 + sd) }); });
+  for (let z = end + 4.4, k = 0; z < end + 26; z += 3.3, k++) [-1.45, 1.45].forEach(dx => put('mkpost3', z, dx, wr(k * 2.7 + dx)));
+  // people along the whole walk (black silhouettes), more of them among the stalls
+  for (let z = 0.6, k = 0; z < end + 2; z += (z > 42 ? 1.1 : 1.4) + wr(k) * 1.1, k++) out.push({ z, x:px(z) + (k % 2 ? 0.46 : -0.5) + (z > s0 ? (wr(k * 2.2) - 0.5) * 2 : 0), kind:'bfolk', r:wr(k * 6.1) });
+  return out; }
+Object.assign(WALK_THEMES.marrakech, { oprops:mkProps3, obb:mkMore3, oground:mkGround3, bsty:MK_STY3 });
 function walkGridPref() { try { return localStorage.getItem('bob_walkgrid') === '1'; } catch (_) { return false; } }
 function walkSetGrid(on) { try { localStorage.setItem('bob_walkgrid', on ? '1' : '0'); } catch (_) {} renderLevels(); }
 let walkRoute = null;
