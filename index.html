@@ -2385,7 +2385,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.618.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.619.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -23277,6 +23277,64 @@ function mkProps3(th, n) { const o = th.osm, out = [], end = (n - 1) * WK.gap, [
   for (let z = 0.6, k = 0; z < end + 2; z += (z > 42 ? 1.1 : 1.4) + wr(k) * 1.1, k++) out.push({ z, x:px(z) + (k % 2 ? 0.46 : -0.5) + (z > s0 ? (wr(k * 2.2) - 0.5) * 2 : 0), kind:'bfolk', r:wr(k * 6.1) });
   return out; }
 Object.assign(WALK_THEMES.marrakech, { oprops:mkProps3, obb:mkMore3, oground:mkGround3, bsty:MK_STY3 });
+// ---- Stage 13 Santorini, the caldera's cliff and coastline (Version 619; owner, 11/12/26, with a phone screenshot: "the coastline looks
+// terrible (understand need to balance performance)"; Linear BLO-66). The cliff was drawn as 47 cross-slices of the caldera, each
+// filled with the rock's colour bands; seen along the cliff, every slice showed as a wedge, so the bands read as sawteeth (the old
+// night colours hid it). Now each band of rock is ONE smooth strip running along the cliff, between two lines of equal depth worked
+// out once from the same depth map (so the houses on the cliff still sit on it). Fewer fills than before, not more.
+// Also: pale shallows and a line of surf at the cliff's foot; the sea runs to the horizon across the whole view (it was a hard-edged
+// block from the middle to the right, and bare ground showed left of it); the sun's glitter lies on the water only, not on the rock;
+// Thirasia has a ridge line. The route, the houses and the hour of the day are unchanged.
+const SAN_CT = [0, 1.5, 4.35, 7.15, 9.75, 12.65, 16.15, 20], SAN_CB = [[216, 186, 146], [164, 82, 62], [80, 68, 74], [182, 136, 94], [116, 60, 54], [68, 56, 68], [116, 82, 74]];
+// for every row of the depth map, where the cliff reaches each band's depth, going out from the rim (made once)
+function sanContours(o, g) { if (g.ct) return g.ct; const n = g.NZ, m = SAN_CT.length, X = SAN_CT.map(() => new Float32Array(n)); let last = null, first = -1;
+  for (let j = 0; j < n; j++) { const z = g.Z0 + j * g.CS, x0 = walkPxOf(o, z) + SANTO_RIM + 1, row = []; let t = 0, px = x0, pd = -1, best = -1, bx = x0;
+    for (let x = x0; x > x0 - 46 && t < m; x -= 0.15) { const d = vlyDepth(g, x, z); if (d > best) { best = d; bx = x; } while (t < m && d >= SAN_CT[t]) { row.push(pd < 0 || d === pd ? x : px + (x - px) * (SAN_CT[t] - pd) / (d - pd)); t++; } px = x; pd = d; }
+    if (!row.length) { if (last) for (let k = 0; k < m; k++) X[k][j] = last[k]; continue; } if (first < 0) first = j;
+    while (row.length < m) row.push(bx - 80);   /* a depth this row never reaches lies far off to the side */ for (let k = 0; k < m; k++) X[k][j] = row[k]; last = row; }
+  for (let j = 0; j < first; j++) for (let k = 0; k < m; k++) X[k][j] = X[k][first]; return (g.ct = X); }
+// in the caldera: the boats gathered under Oia for the sunset, their lights and the village's trembling on the water once it is dusk
+// (as before; the sun's glitter is drawn under the cliff's bands now)
+function sanAfter4(c, g, P, camZ, time) { const o = WALK_OSM_SANTORINI, t = SAND.t, n = sanNight(), bs = [];
+  SAN_BOATS.forEach(([dx, z, kind]) => { if (z < camZ + 3) return; const x = walkPxOf(o, Math.min(z, 100)) + SANTO_RIM + dx, D = vlyDepth(g, x, z); if (D < 18) return; const p = P(x, z); if (!p || p.x < -40 || p.x > 430) return; const U = WK.X * p.s; bs.push([p.x, p.y + D * U, (kind === 2 ? 5 : kind ? 1.8 : 1.1) * U, U, kind]); });
+  c.fillStyle = sanC([250, 248, 244]); c.beginPath(); bs.forEach(([x, y, L, U, kind]) => { c.rect(x - L / 2, y - 0.22 * U, L, 0.22 * U + 0.6); if (kind === 2) { c.rect(x - L * 0.36, y - 0.5 * U, L * 0.66, 0.3 * U); c.rect(x + L * 0.02, y - 0.78 * U, L * 0.1, 0.3 * U); } else if (!kind) c.rect(x - 0.03 * U, y - 1.3 * U, Math.max(0.6, 0.06 * U), 1.1 * U); }); c.fill();
+  c.fillStyle = dnRgb(dnKey([[0, [255, 252, 244]], [0.6, [255, 224, 170]], [0.8, [255, 170, 110]], [1, [90, 84, 130]]], t)); c.beginPath(); bs.forEach(([x, y, L, U, kind]) => { if (kind !== 1) return; c.moveTo(x, y - 0.26 * U); c.lineTo(x, y - 1.75 * U); c.lineTo(x + 0.78 * U, y - 0.3 * U); c.closePath(); c.moveTo(x - 0.08 * U, y - 0.3 * U); c.lineTo(x - 0.08 * U, y - 1.4 * U); c.lineTo(x - 0.6 * U, y - 0.3 * U); c.closePath(); }); c.fill();
+  if (n < 0.03) return; c.fillStyle = `rgba(255,226,170,${(0.95 * n).toFixed(3)})`; c.beginPath(); bs.forEach(([x, y, L, U, kind]) => { const q = kind === 2 ? 9 : kind ? 3 : 2; for (let i = 0; i < q; i++) c.rect(x - L / 2 + (i + 0.5) * L / q - 0.6, y - 0.3 * U - 0.6, 1.2, 1.2); }); c.fill();
+  if (reduced) return; c.save(); c.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 26; k++) { const z = camZ + 4 + wr(k * 3.3) * 50, x = walkPxOf(o, z) + SANTO_RIM - 7 - wr(k * 5.1) * 6, D = vlyDepth(g, x, z); if (D < 18) continue; const p = P(x, z); if (!p) continue; const U = WK.X * p.s, a = (0.16 + 0.1 * Math.sin(time * 2 + k)) * n;
+    c.fillStyle = `rgba(255,200,130,${a.toFixed(2)})`; c.fillRect(p.x - 0.1 * U, p.y + D * U, 0.2 * U + 1, (0.8 + wr(k) * 1.6) * U); } c.restore(); }
+// the caldera: the sea first, the sun's path on it, then the cliff's bands of rock from the waterline up to the lip, each one strip
+function sanCliff(c, o, P, zNear, zFar, camZ, time) { const th = walk.th, v = th.vly, g = vlyInit(o, v), p0 = P(0, camZ); if (!p0) return; const Hm = p0.y + 92, zc = camZ - WALK_NEAR, HOR = P(0, camZ + 1e6).y, X = sanContours(o, g), t = SAND.t, m = SAN_CT.length;
+  c.save(); c.beginPath(); let any = 0; v.polys.forEach(f => { const pts = osmClip(f, zc, true); if (pts.length < 3) return; let ok = 0; pts.forEach(([x, z]) => { const p = P(x, z); if (!p) return; if (ok++) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); if (ok > 2) { c.closePath(); any++; } }); if (!any) { c.restore(); return; } c.clip();
+  // the colours, paler toward the horizon (one gradient a band, remade only when the hour or the screen changes)
+  const key = SAND.k + '|' + Math.round(HOR) + '|' + Math.round(Hm); if (v.cK !== key) { v.cK = key; const sea = dnKey(SAN_SEA, t), G = col => { const gr = c.createLinearGradient(0, HOR, 0, Hm); [[0, 0.62], [0.076, 0.6], [0.135, 0.3], [0.25, 0.12], [0.43, 0.03], [0.57, 0], [1, 0]].forEach(([p, h]) => gr.addColorStop(p, vlyMix(col, v.hz, h))); return gr; };
+    v.cG = [G(sea)].concat(SAN_CB.map(col => G(dnV(SAND, col)))).concat([G(dnLerp(sea, dnV(SAND, [150, 220, 224]), 0.45))]); }
+  c.fillStyle = v.cG[0]; c.fillRect(-400, HOR - 2, 1190, Hm - HOR + 4);
+  // the sun's path on the water (under the rock, so it never lies on the cliff)
+  const ga = t < 0.8 ? 0.3 + 0.7 * t / 0.8 : clamp(1 - (t - 0.8) / 0.12); if (ga > 0.02) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = dnRgb(dnKey([[0, [255, 240, 200]], [0.6, [255, 200, 120]], [0.8, [255, 150, 90]]], t), (0.5 * ga).toFixed(3)); c.beginPath();
+    for (let i = 0; i < 22; i++) { const u = i / 22, y = HOR + 2 + u * u * 70, w = (5 + u * 50) * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.7 + (reduced ? 0 : time * 1.6)))), dx = (wr(i * 3.1) - 0.5) * (8 + u * 30); c.rect(120 + dx - w / 2, y, w, 1 + u * 2.2); } c.fill(); c.restore(); }
+  // the lines of equal depth at this frame's rows (close together near you, wider apart far off)
+  const zEnd = Math.min(g.Z0 + (g.NZ - 1) * g.CS, camZ + (v.reach || 160)), rows = []; for (let z = zc + 0.03; z < zEnd; z += z - camZ < 10 ? 0.6 : z - camZ < 25 ? 1.2 : z - camZ < 60 ? 2.4 : 4.8) rows.push(z); rows.push(zEnd);
+  const xAt = (k, z) => { const f = (z - g.Z0) / g.CS, j = Math.max(0, Math.min(g.NZ - 2, Math.floor(f))); return X[k][j] + (X[k][j + 1] - X[k][j]) * clamp(f - j); }, pt = (x, z, d) => { const p = P(x, z); return p ? [p.x, p.y + d * WK.X * p.s] : null; };
+  const E = SAN_CT.map((d, k) => rows.map(z => pt(xAt(k, z), z, d))); E.push(rows.map(z => pt(xAt(m - 1, z) - 1.7, z, 20)));   /* the shallows' outer edge */
+  const mix = (a, b, u) => (a && b ? [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u] : a), strip = (A, B, fill) => { c.fillStyle = fill; c.beginPath(); let q = 0; A.forEach(p => { if (!p) return; if (q++) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); for (let i = B.length - 1; i >= 0; i--) if (B[i]) c.lineTo(B[i][0], B[i][1]); c.closePath(); c.fill(); };
+  strip(E[m - 1], E[m], v.cG[m]);   /* pale shallows at the cliff's foot */
+  for (let k = m - 2; k >= 0; k--) strip(E[k], E[k + 1].map((p, i) => mix(p, E[k + 2][i], 0.14)), v.cG[k + 1]);   /* each band laps a little over the one below, so no seam shows */
+  c.strokeStyle = sanC([255, 255, 255], 0.6); c.lineWidth = 1.1; c.lineJoin = 'round'; c.beginPath(); let q = 0; E[m - 1].forEach((p, i) => { if (!p || rows[i] - camZ > 70) return; if (q++) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke();   /* surf */
+  sanAfter4(c, g, P, camZ, time); c.restore();
+  if (v.lip) { c.strokeStyle = v.lip; c.lineWidth = 1.2; c.lineJoin = 'round'; c.beginPath(); v.polys.forEach(f => { let on = false; for (let i = 0; i <= f.length; i += 2) { const x = f[i % f.length], z = f[(i + 1) % f.length], p = z > zc && z < camZ + 40 * MAPV() ? P(x, z) : null; if (!p) { on = false; continue; } if (on) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); on = true; } }); c.stroke(); } }
+// the ground: the sky, the sea to the horizon across the whole view, the fields' rise on the land side, then the caldera
+function sanGround4(c, o, P, zNear, zFar, camZ, time) { const th = walk.th; sanTime(th, camZ); const v0 = P(0, camZ + 1e6), HOR = v0.y, yb = P(0, camZ + 64).y; sanSky(c, HOR, time);
+  c.fillStyle = dnRgb(dnKey(SAN_SEA, SAND.t)); c.fillRect(-400, HOR, 1590, yb - HOR); c.fillStyle = th.ground[0]; c.beginPath(); for (let i = 0; i < 9; i++) { const x = v0.x + 14 + i * 52 + wr(i * 3.3) * 20; c.moveTo(x + 30, yb + 1); c.ellipse(x, yb + 1, 30 + wr(i * 5.1) * 16, 1.5 + wr(i * 7.7) * 3, 0, Math.PI, 0); } c.fill();
+  sanCliff(c, o, P, zNear, zFar, camZ, time); }
+// Thirasia across the water, with a ridge line (it was a flat-topped band)
+function sanThirasia4(c, o, P, time) { const f = o.thira, lo = [], hi = [], n = sanNight(); for (let i = 0; i < f.length; i += 2) { const p = P(f[i], f[i + 1]); if (!p) return; const U = WK.X * p.s, k = clamp((100 - p.x) / 50) * (0.62 + 0.38 * Math.sin(i * 0.45 + 1)); lo.push([p.x, p.y + 20 * U]); hi.push([p.x, p.y + 20 * U - 30 * U * k]); }
+  c.fillStyle = dnRgb(dnLerp(dnV(SAND, [124, 100, 112]), dnKey(SAN_SEA, SAND.t), 0.45)); c.beginPath(); const m = lo.length; for (let i = 0; i < m; i++) { const j = (i + 1) % m; c.moveTo(lo[i][0], lo[i][1]); c.lineTo(lo[j][0], lo[j][1]); c.lineTo(hi[j][0], hi[j][1]); c.lineTo(hi[i][0], hi[i][1]); c.closePath(); } hi.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fill();
+  c.fillStyle = n > 0.03 ? `rgba(255,210,150,${(0.85 * n).toFixed(2)})` : sanC([250, 248, 244], 0.8); c.beginPath(); o.tvil.forEach(([x, z], i) => { const p = P(x, z); if (!p || p.x > 60) return; const U = WK.X * p.s; for (let k = 0; k < 6; k++) c.rect(p.x + (wr(i * 9 + k) - 0.5) * 30 * U, p.y - 10 * U + wr(i * 7 + k) * 1.5 * U, 1.3, 1.3); }); c.fill(); }
+function sanMore4(list, c, o, P, camZ, time) { const far = 30 * MAPV(), g = walk.th.vly.g, one = f => () => { const ga = c.globalAlpha; c.globalAlpha = 1; f(); c.globalAlpha = ga; };
+  walkBlds(list, c, o, P, camZ, time); list.push({ dp:far - 1.4, f:one(() => sanThirasia4(c, o, P, time)) }); sanBands(list, c, o, P, camZ, time);
+  if (g) o.chapels.forEach(ch => { if (ch[1] < camZ - 0.5 || ch[1] - camZ > far) return; list.push({ dp:ch[1] - camZ, f:one(() => sanChapel(c, ch, P, g, ch[2])) }); }); }
+Object.assign(WALK_THEMES.santorini, { oground:sanGround4, obb:sanMore4 });
 function walkGridPref() { try { return localStorage.getItem('bob_walkgrid') === '1'; } catch (_) { return false; } }
 function walkSetGrid(on) { try { localStorage.setItem('bob_walkgrid', on ? '1' : '0'); } catch (_) {} renderLevels(); }
 let walkRoute = null;
