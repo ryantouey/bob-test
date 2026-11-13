@@ -2030,26 +2030,44 @@ body.fullmap #globeIntro { top:calc(104px + env(safe-area-inset-top,0px)); }
 .zdemb, .zdcoin { display:inline-block; width:14px; height:14px; border-radius:50%; flex:none; background:radial-gradient(circle at 35% 35%,#ffe1b8,#ff7a3c 55%,#b33a12); box-shadow:0 0 6px rgba(255,122,60,.8); }
 .zdcoin { background:radial-gradient(circle at 35% 35%,#fff6c8,#ffd25e 55%,#b8860b); box-shadow:none; }
 .zdgarnote { margin:4px 0 8px; font-size:.78rem; line-height:1.3; color:#b9b6e6; text-align:left; }
-.zdtabs { display:flex; gap:4px; margin-bottom:8px; }
-.zdtabs button { flex:1; min-width:0; min-height:32px; padding:5px 1px; border:0; border-radius:9px; background:#221d5e; color:#c9c4f0; font:800 .7rem/1.1 'Figtree',system-ui,sans-serif; overflow-wrap:anywhere; }
-.zdtabs button[aria-pressed="true"] { background:linear-gradient(#ffd25e,#f0a020); color:#1d1a33; }
-.zdups { display:grid; gap:6px; }
-.zdup { display:grid; grid-template-columns:34px minmax(0,1fr) auto; gap:9px; align-items:center; padding:8px 9px; border-radius:12px; background:linear-gradient(#24205f,#1b1850); box-shadow:inset 0 0 0 1.5px #342d82; text-align:left; }
-.zdupi { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; }
+/* Version 661 (owner 11/13): the Garage styled like Sky Shot's upgrades */
+.zdtabs { display:flex; gap:5px; }
+.zdtab { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; height:48px; padding:3px 2px; border:0; border-radius:12px 12px 0 0; background:var(--d); color:#fff; opacity:.62; cursor:pointer; }
+.zdtab svg { width:20px; height:20px; flex:none; }
+.zdtab b { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 .68rem var(--display); }
+.zdtab.on { background:var(--c); opacity:1; }
+.zdups { display:grid; padding:2px 10px 6px; border-radius:0 0 14px 14px; background:#f3f1fb; border-top:4px solid var(--c); color:#1d1a33; }
+.zdup { display:grid; grid-template-columns:34px minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid #e2def2; text-align:left; }
+.zdup:last-of-type { border-bottom:0; }
+.zdupi { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; box-shadow:inset 0 -3px 0 rgba(0,0,0,.14); }
 .zdupi svg { width:22px; height:22px; }
 .zdupi.zdstage { background:linear-gradient(135deg,#2b2a6e,#6b3fa0 60%,#ffb347); }
-.zdupt b { display:block; font:800 .9rem 'Bricolage Grotesque','Figtree',system-ui,sans-serif; color:#fff; }
-.zdupt small { display:block; color:#b9b6e6; font-size:.74rem; line-height:1.25; }
-.zdpips { display:flex; gap:3px; margin-top:4px; }
-.zdpips i { width:14px; height:5px; border-radius:3px; background:#3a3480; }
-.zdpips i.on { background:#ffc94a; }
-.zdbuy { display:inline-flex; align-items:center; gap:5px; padding:8px 10px; border:0; border-radius:9px; background:linear-gradient(#6fe04a,#2fb52f); color:#06280c; font:800 .82rem 'Bricolage Grotesque','Figtree',system-ui,sans-serif; white-space:nowrap; }
-.zdbuy.off { background:#4a4874; color:#c9c7e6; }
-.zdbuy.armed { background:linear-gradient(#ffd25e,#f0a020); color:#1d1a33; white-space:normal; max-width:96px; font-size:.72rem; line-height:1.15; }
-.zdbuy .zdemb, .zdbuy .zdcoin { width:12px; height:12px; }
-.zdmax, .zdon { padding:6px 9px; border-radius:9px; background:#2f6b45; color:#d7ffe5; font:800 .78rem 'Bricolage Grotesque','Figtree',system-ui,sans-serif; }
-.zdhead { display:block; margin-top:6px; width:100%; padding:5px; border-radius:8px; background:#15133f; color:#fff; border:1px solid #4c3fa6; font:700 .78rem 'Figtree',system-ui,sans-serif; }
-.zdheadno { display:block; margin-top:4px; color:#ffe0b0; font-size:.72rem; }
+.zdupt { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.zdupt strong { font:900 1rem var(--display); color:#1d1a33; }
+.zdupt small { font:700 .74rem var(--body); color:#4a4766; line-height:1.25; }
+.zdupt em { font:800 .72rem var(--body); font-style:normal; color:var(--d); line-height:1.25; }
+.zdpips { display:flex; gap:3px; margin-top:3px; }
+.zdpips i { width:9px; height:9px; border-radius:3px; background:#d6d2e8; }
+.zdpips i.on { background:var(--c); }
+.zdbuy { flex:none; min-width:92px; padding:6px 10px 7px; border:0; border-radius:12px; background:var(--c); color:#fff; box-shadow:0 4px 0 var(--d); display:flex; flex-direction:column; align-items:center; font:900 1.1rem var(--display); cursor:pointer; }
+.zdbuy small { font:800 .68rem var(--body); }
+.zdbuy span { display:flex; align-items:center; gap:4px; }
+.zdbuy .zdemb, .zdbuy .zdcoin { width:15px; height:15px; }
+.zdbuy.off, .zdbuy.max { filter:grayscale(.65); opacity:.6; box-shadow:0 4px 0 #6a6a7a; cursor:default; }
+.zdbuy.max { padding:10px 10px 11px; }
+.zdbuy.armed { background:linear-gradient(#ffd25e,#f0a020); color:#1d1a33; box-shadow:0 4px 0 #a8680c; }
+.zdbuy.armed small { max-width:84px; white-space:normal; line-height:1.1; text-align:center; }
+.zdon { padding:8px 14px; border-radius:12px; background:#fff; box-shadow:inset 0 0 0 2px var(--c); color:var(--d); font:900 .95rem var(--display); }
+.zdups .zdgarnote { margin:8px 0 2px; color:#6a6688; }
+.zdhead { display:block; margin-top:6px; width:100%; padding:5px; border-radius:8px; background:#fff; color:#1d1a33; border:1px solid #cfc9e8; font:700 .78rem var(--body); }
+.zdheadno { display:block; margin-top:4px; color:#a8590c; font-size:.72rem; }
+.zdsteps { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; margin:0 0 10px; }
+.zdsteps button { min-width:0; display:grid; justify-items:center; align-content:start; gap:2px; padding:7px 3px 8px; border:0; border-radius:12px; background:rgba(255,255,255,.06); box-shadow:inset 0 0 0 1.5px #3a3480; color:#fff; cursor:pointer; }
+.zdsteps button.on { background:rgba(255,255,255,.11); box-shadow:inset 0 0 0 2px var(--c); }
+.zdsteps i { display:grid; place-items:center; width:26px; height:26px; }
+.zdsteps i svg { width:24px; height:24px; }
+.zdsteps b { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 .74rem var(--display); }
+.zdsteps small { max-width:100%; color:#c9c4f0; font-size:.62rem; line-height:1.2; overflow-wrap:anywhere; hyphens:auto; }
 
 /* Version 657 (owner 11/13, BLO-90): pictures on Survival's unlock rows; the collection label in the unlock pop-up */
 .survrow canvas.zdthumb { width:64px; height:36px; flex:none; border-radius:8px; background:#080a26; }
@@ -2448,7 +2466,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.660.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.661.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -5402,6 +5420,11 @@ const STRINGS = {
   "Pop {n} zombies":["Revienta {n} zombis", "Éclatez {n} zombies", "Lass {n} Zombies platzen", "Estoure {n} zumbis", "ゾンビを{n}体倒す", "좀비 {n}마리 터뜨리기", "消灭 {n} 只僵尸", "Magpaputok ng {n} zombie", "Letuskan {n} zombi", "{n} zombi patlat", "Fai scoppiare {n} zombie", "{n} ज़ॉम्बी फोड़ें"],
   "Defeat a boss":["Derrota a un jefe", "Vainquez un boss", "Besiege einen Boss", "Derrote um chefão", "ボスを1体倒す", "보스 1마리 처치", "击败一个首领", "Talunin ang isang boss", "Kalahkan satu bos", "Bir boss yen", "Sconfiggi un boss", "एक बॉस को हराएँ"],
   "Defeat {n} bosses":["Derrota a {n} jefes", "Vainquez {n} boss", "Besiege {n} Bosse", "Derrote {n} chefões", "ボスを{n}体倒す", "보스 {n}마리 처치", "击败 {n} 个首领", "Talunin ang {n} boss", "Kalahkan {n} bos", "{n} boss yen", "Sconfiggi {n} boss", "{n} बॉस को हराएँ"],
+  "A tougher launcher that heals.":["Un lanzador más duro que se repara.", "Un lanceur plus solide qui se répare.", "Ein zäherer Werfer, der sich repariert.", "Um lançador mais forte que se repara.", "頑丈で回復するランチャー。", "더 튼튼하고 회복하는 발사대.", "更结实、会修复的发射器。", "Mas matibay na launcher na nag-aayos.", "Peluncur lebih kuat yang bisa pulih.", "Daha sağlam, kendini onaran fırlatıcı.", "Un lanciatore più robusto che si ripara.", "मज़बूत लॉन्चर जो ठीक होता है।"],
+  "Harder rockets, wider blasts.":["Cohetes más fuertes, explosiones más grandes.", "Fusées plus fortes, explosions plus larges.", "Stärkere Raketen, größere Explo­sionen.", "Foguetes mais fortes, explosões maiores.", "ロケットが強く、爆発が広く。", "더 센 로켓, 더 넓은 폭발.", "火箭更强，爆炸更大。", "Mas malakas na rocket, mas malapad na sabog.", "Roket lebih kuat, ledakan lebih lebar.", "Daha güçlü roketler, daha geniş patlamalar.", "Razzi più forti, esplosioni più ampie.", "तेज़ रॉकेट, बड़े धमाके।"],
+  "Friendlier pieces and rerolls.":["Piezas más fáciles y cambios de bandeja.", "Des pièces plus faciles et de nouveaux plateaux.", "Leichtere Teile und neue Ablagen.", "Peças mais fáceis e trocas de bandeja.", "やさしいピースと引き直し。", "쉬운 조각과 다시 뽑기.", "更友好的方块和重抽。", "Mas madaling piraso at bagong tray.", "Kepingan lebih mudah dan kocok ulang.", "Daha kolay parçalar ve yenileme.", "Pezzi più facili e nuovi vassoi.", "आसान टुकड़े और ट्रे बदलना।"],
+  "Better perks and a peek ahead.":["Mejores ventajas y un vistazo adelante.", "De meilleurs atouts et un coup d'œil en avance.", "Bessere Boni und ein Blick voraus.", "Vantagens melhores e uma espiada adiante.", "よりよいパークと先読み。", "더 좋은 퍽과 미리 보기.", "更好的强化，还能预览。", "Mas maga­gandang perk at silip sa susunod.", "Perk lebih baik dan intip ke depan.", "Daha iyi avantajlar ve ileriye bir bakış.", "Bonus migliori e uno sguardo avanti.", "बेहतर पर्क और आगे की झलक।"],
+  "New looks, bought with coins.":["Nuevos aspectos, comprados con monedas.", "De nouveaux looks, achetés avec des pièces.", "Neue Looks, mit Münzen gekauft.", "Novos visuais, comprados com moedas.", "コインで買える新しい見た目。", "코인으로 사는 새로운 모습.", "用金币购买新外观。", "Bagong itsura, binibili ng barya.", "Tampilan baru, dibeli dengan koin.", "Altınla alınan yeni görü­nümler.", "Nuovi look, comprati con le monete.", "नए रूप, सिक्कों से खरीदे।"],
   // Version 150 cosmetics
   "Christmas Tree":["Árbol de Navidad", "Sapin de Noël", "Weihnachtsbaum", "Árvore de Natal", "クリスマスツリー", "크리스마스 트리", "圣诞树", "Christmas Tree", "Pohon Natal", "Noel Ağacı", "Albero di Natale", 'क्रिसमस ट्री'],
   "In the big heart":["En el gran corazón", "Dans le grand cœur", "Im großen Herzen", "No grande coração", "大きなハートの中", "큰 하트 안에", "大爱心里", "Sa malaking puso", "Di hati besar", "Büyük kalbin içinde", "Nel grande cuore", 'बड़े दिल में'],
@@ -26915,6 +26938,12 @@ const ZD_UPI = (() => { const sv = d => `<svg viewBox="0 0 24 24" aria-hidden="t
     tray:sv('<path d="M4 9a8 8 0 0 1 14-3l2 2M20 15a8 8 0 0 1-14 3l-2-2"/><path d="M20 4v4h-4M4 20v-4h4"/>'), perkrr:sv('<rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2" fill="#1a1440"/><circle cx="15" cy="15" r="1.2" fill="#1a1440"/><circle cx="15" cy="9" r="1.2" fill="#1a1440"/><circle cx="9" cy="15" r="1.2" fill="#1a1440"/>'),
     scout:sv('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), lib:sv('<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 9.5h12M15 5.5v2M15 12v3.5"/>'), head:sv('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>') }; })();
 const ZD_TABS = [['hull', 'Hull'], ['power', 'Power'], ['tray', 'Tray'], ['perks', 'Perks'], ['stages', 'Stages']];
+/* owner 11/13: the Garage styled like Sky Shot's upgrades: coloured folder tabs, a light card under the chosen tab, "Next:" lines, square
+   pips and a coloured Upgrade button with a pressed-down edge */
+const ZD_TABD = { hull:'A tougher launcher that heals.', power:'Harder rockets, wider blasts.', tray:'Friendlier pieces and rerolls.', perks:'Better perks and a peek ahead.', stages:'New looks, bought with coins.' };   /* the explainer cards (owner 11/13) */
+const ZD_TABC = { hull:['#3d8bff', '#1f4fa8'], power:['#ff5a52', '#a8302a'], tray:['#2fbf71', '#1b7a47'], perks:['#9b6bff', '#5b38b0'], stages:['#f0a020', '#a8680c'] };
+const zdTabIcon = k => (k === 'stages' ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#1a1440" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
+  : ZD_UPI[{ hull:'hull', power:'hot', tray:'calm', perks:'head' }[k]]).replace(/#1a1440/g, '#fff');
 /* stage skins: coins only, never Embers, never a difficulty change (the cosmetics chat adds entries here: { key, name, blurb, coins }) */
 const ZD_STAGES = [{ key:'fiesta', name:'Midnight Fiesta', blurb:'The default stage', coins:0 }];
 const ZG = { tab:'hull', armed:null, armT:0 };
@@ -26928,12 +26957,17 @@ const zdHeadPicks = s => s.head.filter(k => zdHeadOk(s).includes(k)).slice(0, s.
 function zdNextUp() { const s = zdState(); let best = null; Object.keys(ZD_UP).forEach(k => { const lv = s.up[k] | 0, c = ZD_UP[k].cost[lv]; if (c != null && (!best || c < best.cost)) best = { k, lv:lv + 1, cost:c }; });
   if (best) best.label = t(ZD_UPN[best.k][0]) + (ZD_UP[best.k].cost.length > 1 ? ' ' + best.lv : ''); return best; }
 function zdGarageUi() { const el = $('zdGarage'); if (!el) return; const s = zdState(); $('zdGarT').textContent = t('Garage'); $('zdEmbN').textContent = s.embers.toLocaleString(); $('zdGarNote').textContent = t('Embers come only from Survival runs and are never sold.');
-  $('zdTabs').innerHTML = ZD_TABS.map(([k, nm]) => `<button type="button" data-tab="${k}" aria-pressed="${ZG.tab === k}">${zdEsc(t(nm))}</button>`).join('');
-  const box = $('zdUps'); if (ZG.tab === 'stages') { const st = s.stage || 'fiesta', own = s.stages || ['fiesta']; box.innerHTML = ZD_STAGES.map(q => `<div class="zdup"><span class="zdupi zdstage"></span><div class="zdupt"><b>${zdEsc(t(q.name))}</b><small>${zdEsc(t(q.blurb))}</small></div>${st === q.key ? `<span class="zdon">${zdEsc(t('On'))}</span>` : own.includes(q.key) || !q.coins ? `<button type="button" class="zdbuy" data-stage="${q.key}">${zdEsc(t('Use'))}</button>` : `<button type="button" class="zdbuy coin${wallet.coins < q.coins ? ' off' : ''}" data-stage="${q.key}"><i class="zdcoin"></i>${q.coins.toLocaleString()}</button>`}</div>`).join('') + `<p class="zdgarnote">${zdEsc(t('More stages are coming. Stages are bought with coins and never change difficulty.'))}</p>`; return; }
+  const tc = k => ZD_TABC[k] || ZD_TABC.hull, cs = k => `--c:${tc(k)[0]};--d:${tc(k)[1]}`;
+  $('zdTabs').innerHTML = ZD_TABS.map(([k, nm]) => `<button type="button" role="tab" class="zdtab${ZG.tab === k ? ' on' : ''}" data-tab="${k}" style="${cs(k)}" aria-selected="${ZG.tab === k}">${zdTabIcon(k)}<b>${zdEsc(t(nm))}</b></button>`).join('');
+  $('zdSteps').innerHTML = ZD_TABS.map(([k, nm]) => `<button type="button" data-tab="${k}" class="${ZG.tab === k ? 'on' : ''}" style="${cs(k)}"><i>${zdTabIcon(k).replace(/#fff/g, tc(k)[0])}</i><b>${zdEsc(t(nm))}</b><small>${zdEsc(t(ZD_TABD[k]))}</small></button>`).join('');
+  const fit = () => el.querySelectorAll('#zdTabs b, #zdSteps b').forEach(b => { b.style.fontSize = ''; const w = b.clientWidth, sw = b.scrollWidth; if (w > 0 && sw > w + 0.5) b.style.fontSize = Math.max(8, parseFloat(getComputedStyle(b).fontSize) * w / sw - 0.2).toFixed(1) + 'px'; }); fit(); requestAnimationFrame(fit);   /* a long tab name shrinks to fit (Escenarios, Puissance) */
+  const box = $('zdUps'); box.setAttribute('style', cs(ZG.tab));
+  if (ZG.tab === 'stages') { const st = s.stage || 'fiesta', own = s.stages || ['fiesta']; box.innerHTML = ZD_STAGES.map(q => `<div class="zdup"><span class="zdupi zdstage"></span><div class="zdupt"><strong>${zdEsc(t(q.name))}</strong><small>${zdEsc(t(q.blurb))}</small></div>${st === q.key ? `<span class="zdon">${zdEsc(t('On'))}</span>` : own.includes(q.key) || !q.coins ? `<button type="button" class="zdbuy" data-stage="${q.key}"><span>${zdEsc(t('Use'))}</span></button>` : `<button type="button" class="zdbuy${wallet.coins < q.coins ? ' off' : ''}" data-stage="${q.key}"><small>${zdEsc(t('Buy'))}</small><span><i class="zdcoin"></i>${q.coins.toLocaleString()}</span></button>`}</div>`).join('') + `<p class="zdgarnote">${zdEsc(t('More stages are coming. Stages are bought with coins and never change difficulty.'))}</p>`; return; }
   box.innerHTML = Object.keys(ZD_UP).filter(k => ZD_UP[k].tab === ZG.tab).map(k => { const U = ZD_UP[k], lv = s.up[k] | 0, max = U.cost.length, cost = U.cost[lv], armed = ZG.armed === k && clock - ZG.armT < 3;
     const head = k === 'head' && lv ? (() => { const ok = zdHeadOk(s); return ok.length ? Array.from({ length:lv }, (_, i) => `<select class="zdhead" data-i="${i}" aria-label="${zdEsc(t('Head Start'))} ${i + 1}"><option value="">-</option>${ok.map(p => `<option value="${p}"${s.head[i] === p ? ' selected' : ''}>${zdEsc(t(ZD_PERK_TEXT[p][0]))}</option>`).join('')}</select>`).join('') : `<small class="zdheadno">${zdEsc(t('Take a perk 5 times in runs to choose it here.'))}</small>`; })() : '';
-    return `<div class="zdup${lv >= max ? ' max' : ''}"><span class="zdupi" style="background:${ZD_UPN[k][1]}">${ZD_UPI[k]}</span><div class="zdupt"><b>${zdEsc(t(ZD_UPN[k][0]))}</b><small>${zdEsc(zdUpFx(k, lv >= max ? lv : lv + 1))}</small><span class="zdpips">${Array.from({ length:max }, (_, i) => `<i${i < lv ? ' class="on"' : ''}></i>`).join('')}</span>${head}</div>`
-      + (lv >= max ? `<span class="zdmax">${zdEsc(t('Max'))}</span>` : `<button type="button" class="zdbuy${s.embers < cost ? ' off' : ''}${armed ? ' armed' : ''}" data-k="${k}">${armed ? zdEsc(t('Tap again to buy')) : `<i class="zdemb"></i>${cost.toLocaleString()}`}</button>`) + '</div>'; }).join(''); }
+    const now = zdUpFx(k, Math.max(1, lv)), nx = lv > 0 && lv < max ? zdUpFx(k, lv + 1) : '', next = lv >= max ? t('Fully upgraded') : nx ? t('Next: {s}', { s:nx === now ? t('Level {n}', { n:lv + 1 }) : nx }) : '';
+    return `<div class="zdup${lv >= max ? ' max' : ''}"><span class="zdupi" style="background:${ZD_UPN[k][1]}">${ZD_UPI[k]}</span><div class="zdupt"><strong>${zdEsc(t(ZD_UPN[k][0]))}${lv ? ` (${lv})` : ''}</strong><small>${zdEsc(now)}</small>${next ? `<em>${zdEsc(next)}</em>` : ''}<span class="zdpips" aria-hidden="true">${Array.from({ length:max }, (_, i) => `<i${i < lv ? ' class="on"' : ''}></i>`).join('')}</span>${head}</div>`
+      + (lv >= max ? `<span class="zdbuy max"><span>${zdEsc(t('Max'))}</span></span>` : `<button type="button" class="zdbuy${s.embers < cost ? ' off' : ''}${armed ? ' armed' : ''}" data-k="${k}"><small>${zdEsc(t(armed ? 'Tap again to buy' : 'Upgrade'))}</small><span><i class="zdemb"></i>${cost.toLocaleString()}</span></button>`) + '</div>'; }).join(''); }
 function zdBuy(k) { const s = zdState(), lv = s.up[k] | 0, cost = ZD_UP[k].cost[lv]; if (cost == null) return; if (s.embers < cost) { try { sfx.wrong(); } catch (e) {} return; }
   if (ZG.armed !== k || clock - ZG.armT > 3) { ZG.armed = k; ZG.armT = clock; zdGarageUi(); setTimeout(() => { if (ZG.armed === k) { ZG.armed = null; zdGarageUi(); } }, 3100); return; }
   ZG.armed = null; s.embers -= cost; s.up[k] = lv + 1; saveAll(); track('zd_buy', { k, level:lv + 1, cost, embers:s.embers }); try { sfx.chime(988); } catch (e) {} zdGarageUi(); }
@@ -27019,8 +27053,8 @@ $('stage').addEventListener('pointermove', e => { if (!G || G.phase !== 'zd' || 
 $('survStart').onclick = zdStartTap; $('survGo').onclick = zdResume; $('zdHow').onclick = zdHowOpen;
 $('sQuit').insertAdjacentHTML('afterend', '<button type="button" class="bub" id="zdSaveExit" hidden></button><p class="note" id="zdSaveNote" hidden></p><button type="button" class="bub" id="zdEndRun" hidden></button>');
 $('zdSaveExit').onclick = zdSaveExit; $('zdEndRun').onclick = zdEndRun;
-$('survList').closest('.panel').insertAdjacentHTML('beforebegin', '<div class="panel zdgar" id="zdGarage"><div class="zdgarhd"><h3 id="zdGarT"></h3><span class="zdchip"><i class="zdemb"></i><b id="zdEmbN">0</b></span></div><p class="zdgarnote" id="zdGarNote"></p><div class="zdtabs" id="zdTabs" role="tablist"></div><div class="zdups" id="zdUps"></div></div>');
-$('zdTabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (!b) return; ZG.tab = b.dataset.tab; ZG.armed = null; zdGarageUi(); try { sfx.tick(); } catch (e2) {} };
+$('survList').closest('.panel').insertAdjacentHTML('beforebegin', '<div class="panel zdgar" id="zdGarage"><div class="zdgarhd"><h3 id="zdGarT"></h3><span class="zdchip"><i class="zdemb"></i><b id="zdEmbN">0</b></span></div><p class="zdgarnote" id="zdGarNote"></p><div class="zdsteps" id="zdSteps"></div><div class="zdtabs" id="zdTabs" role="tablist"></div><div class="zdups" id="zdUps"></div></div>');
+$('zdTabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (!b) return; ZG.tab = b.dataset.tab; ZG.armed = null; zdGarageUi(); try { sfx.tick(); } catch (e2) {} }; $('zdSteps').onclick = $('zdTabs').onclick;   /* a card picks its tab too */
 $('zdUps').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.k) zdBuy(b.dataset.k); else if (b.dataset.stage) zdStageUse(b.dataset.stage); };
 $('zdUps').onchange = e => { const sel = e.target.closest('select.zdhead'); if (!sel) return; const s = zdState(); s.head[+sel.dataset.i] = sel.value || null; saveAll(); };
 document.querySelectorAll('#zdGfx button').forEach(b => { b.onclick = () => { zdState().gfx = b.dataset.g; saveAll(); renderSurvival(); try { sfx.tick(); } catch (e) {} }; });
