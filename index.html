@@ -47,6 +47,11 @@ th { color:var(--muted); font-weight:600; }
 th:first-child, td:first-child { text-align:left; }
 .note { font-size:.84rem; color:var(--muted); margin:6px 0 0; }
 /* Top bar: recessed wells with a glowing rim, sitting on deep indigo */
+/* Version 641: no top bar while packing (campaign and Daily, Side bar rule); the buttons and the tester tag stay, over the picture */
+body.hudSlim #hud { display:block; padding:env(safe-area-inset-top,0px) 0 0; min-height:0; }
+body.hudSlim #hud .side.left, body.hudSlim #hud #pillWrap, body.hudSlim #hud .side.right > .coinbox, body.hudSlim #hud .side.right > .well { display:none; }
+body.hudSlim #hud .side.right { position:absolute; right:max(10px,env(safe-area-inset-right,0px)); top:env(safe-area-inset-top,0px); width:0; height:0; }
+body.hudSlim .pacetag { bottom:auto; top:calc(env(safe-area-inset-top,0px) + 40px); }
 .pacetag { position:absolute; left:10px; bottom:-20px; z-index:4; padding:2px 8px; border-radius:8px; background:rgba(0,0,0,.5); color:#cfd3ff; font:700 .68rem var(--body); pointer-events:none; }
 #hud { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:7px; align-items:end; position:relative; z-index:3; padding:max(6px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) 10px max(10px,env(safe-area-inset-left,0px)); background:linear-gradient(#1b1a4c,#23215c); }
 .side { display:flex; flex-direction:column; gap:6px; min-width:0; }
@@ -2404,7 +2409,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.639.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.644.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -5147,6 +5152,13 @@ const STRINGS = {
   "never fired":["sin lanzar", "pas tirée", "nicht gezündet", "não disparou", "未発射", "발사 안 됨", "未发射", "hindi pumutok", "tidak meluncur", "ateşlenmedi", "non partito", "नहीं छूटा"],
   "Never fired":["Sin lanzar", "Pas tirée", "Nicht gezündet", "Não disparou", "未発射", "발사 안 됨", "未发射", "Hindi pumutok", "Tidak meluncur", "Ateşlenmedi", "Non partito", "नहीं छूटा"],
   "Show: {p}%":["Show: {p}%", "Spectacle : {p}%", "Show: {p}%", "Show: {p}%", "ショー：{p}%", "쇼: {p}%", "表演：{p}%", "Palabas: {p}%", "Pertunjukan: {p}%", "Gösteri: %{p}", "Show: {p}%", "शो: {p}%"],
+  '{n} cells to go':['{n} casillas más', 'Encore {n} cases', 'Noch {n} Felder', 'Faltam {n} casas', 'あと{n}マス', '{n}칸 남음', '还差 {n} 格', '{n} cell pa', '{n} petak lagi', '{n} hücre kaldı', 'Ancora {n} caselle', '{n} खाने बाकी'],
+  '1 cell to go':['1 casilla más', 'Encore 1 case', 'Noch 1 Feld', 'Falta 1 casa', 'あと1マス', '1칸 남음', '还差 1 格', '1 cell pa', '1 petak lagi', '1 hücre kaldı', 'Ancora 1 casella', '1 खाना बाकी'],
+  'till it blooms':['para florecer', 'avant l’éclosion', 'bis zur Blüte', 'para florescer', '開花まで', '활짝 피기까지', '就能绽放', 'bago bumukadkad', 'sampai mekar', 'çiçeğe kadar', 'per sbocciare', 'खिलने तक'],
+  '{n} to go → 100%':['{n} más → 100%', 'Encore {n} → 100 %', 'Noch {n} → 100 %', 'Faltam {n} → 100%', 'あと{n} → 100%', '{n}칸 더 → 100%', '还差 {n} → 100%', '{n} pa → 100%', '{n} lagi → 100%', '{n} kaldı → %100', 'Ancora {n} → 100%', '{n} बाकी → 100%'],
+  '1 gap = −{p}%':['1 hueco = −{p}%', '1 trou = −{p} %', '1 Lücke = −{p} %', '1 buraco = −{p}%', '隙間1つ = −{p}%', '빈칸 1개 = −{p}%', '1 个空格 = −{p}%', '1 butas = −{p}%', '1 celah = −{p}%', '1 boşluk = −%{p}', '1 buco = −{p}%', '1 खाली = −{p}%'],
+  'LINE':['LÍNEA', 'LIGNE', 'LINIE', 'LINHA', 'ライン', '기준선', '标线', 'LINYA', 'GARIS', 'ÇİZGİ', 'LINEA', 'लाइन'],
+  'Blooming!':['¡Florece!', 'Éclosion !', 'Es blüht!', 'Floresce!', '開花！', '활짝!', '绽放了！', 'Bumubukadkad!', 'Mekar!', 'Çiçek açıyor!', 'Sboccia!', 'खिल रहा है!'],
   "{p}% bloom":["{p}% florece", "{p}% éclosion", "{p}% Blüte", "{p}% floresce", "開花 {p}%", "활짝 {p}%", "绽放 {p}%", "{p}% bukadkad", "{p}% mekar", "%{p} çiçek", "{p}% sboccia", "{p}% BLOOM"],
   "1 gap":["1 hueco", "1 trou", "1 Lücke", "1 buraco", "すき間1つ", "빈칸 1개", "1 个空格", "1 butas", "1 celah", "1 boşluk", "1 buco", "1 खाली"],
   "{n} gaps":["{n} huecos", "{n} trous", "{n} Lücken", "{n} buracos", "すき間{n}つ", "빈칸 {n}개", "{n} 个空格", "{n} butas", "{n} celah", "{n} boşluk", "{n} buchi", "{n} खाली"],
@@ -6719,7 +6731,7 @@ function partition(cells, minS, maxS) { // cuts the shell into pieces that fit t
   return out.shuffle();
 }
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
-const STRIP = 104, BTN = '#5a4bc4';
+const STRIP = 116,   /* Version 641 (owner): 12 px more picture (was 104) */ BTN = '#5a4bc4';
 // ---- How the blocks look: each look paints a whole piece once into a cached sprite, so drawing stays cheap on a phone ----
 const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16), t = f > 0 ? 255 : 0, a = Math.abs(f), m = v => Math.round(v + (t - v) * a); return `rgb(${m(n >> 16)},${m((n >> 8) & 255)},${m(n & 255)})`; };
 function glyphOn(c, g, x, y, r, col) { c.fillStyle = c.strokeStyle = col; c.lineWidth = r * 0.28; c.lineCap = 'round'; c.beginPath(); if (g === 'dot') { c.arc(x, y, r * 0.32, 0, 7); c.fill(); } else if (g === 'ring') { c.arc(x, y, r * 0.42, 0, 7); c.stroke(); } else if (g === 'bar') { c.moveTo(x - r * 0.5, y); c.lineTo(x + r * 0.5, y); c.stroke(); } else { c.moveTo(x - r * 0.45, y); c.lineTo(x + r * 0.45, y); c.moveTo(x, y - r * 0.45); c.lineTo(x, y + r * 0.45); c.stroke(); } c.lineCap = 'butt'; }
@@ -10565,7 +10577,16 @@ function declineMoreTime(how = 'decline') { const m = M; if (!G || !m || !m.offe
 const PACE = { human:2.5, guess:15, min:0.05, keep:12, cap:60, on:false, gaps:[], last:0, board:null };
 { let q = null; try { q = new URLSearchParams(location.search).get('pace'); } catch (e) {} PACE.on = q != null ? +q > 0 : window.BOB_PLAYTEST === 'ai'; if (q != null && +q > 0) PACE.human = +q; }
 function paceScale() { if (!PACE.on) return 1; if (PACE.gaps.length < 3) return Math.min(1, PACE.human / PACE.guess); const mean = PACE.gaps.reduce((a, g) => a + Math.min(g, PACE.cap), 0) / PACE.gaps.length; return clamp(PACE.human / mean, PACE.min, 1); }
-function paceMove() { const m = M; if (!PACE.on || !G || G.phase !== 'mini' || !m || m.paceT == null) return; const now = performance.now() / 1000, from = PACE.board === m ? PACE.last : m.paceT, gap = now - from; if (gap < 120) { PACE.gaps.push(Math.max(0.3, gap)); if (PACE.gaps.length > PACE.keep) PACE.gaps.shift(); } PACE.board = m; PACE.last = now; paceTagShow(); }
+function paceMove() { if (!PACE.on || !G) return; const zd = G.phase === 'zd' && G.zd ? G.zd : null, m = zd || M; if (!zd && (G.phase !== 'mini' || !m || m.paceT == null)) return; if (zd && m.paceT == null) m.paceT = performance.now() / 1000;   /* Version 642: Survival moves count too */ const now = performance.now() / 1000, from = PACE.board === m ? PACE.last : m.paceT, gap = now - from; if (gap < 120) { PACE.gaps.push(Math.max(0.3, gap)); if (PACE.gaps.length > PACE.keep) PACE.gaps.shift(); } PACE.board = m; PACE.last = now; paceTagShow(); }
+/* Version 641: no top bar while packing a campaign or Daily level under the Side bar rule */
+function hudSlim() { try { return !!G && !G.run && !G.sky && !G.tut && !G.preview && !G.zd && G.level !== TUT_ID && sideRule(); } catch (e) { return false; } }
+function levelPill() { if (!G || !document.body.classList.contains('hudSlim')) return; const tier = G.daily ? null : levelTier(G.level), name = tier && TIER_NAMES[tier], base = G.daily ? t('Daily Challenge') : ($('levelNum') && $('levelNum').textContent) || t('Level {n}', { n:levelNo(G.level) }),   /* Version 644 */ txt = base + (name ? ` · ${tierTag(tier)}` : '');
+  ctx.save(); ctx.font = "800 13px 'Figtree','Segoe UI',system-ui,sans-serif"; const w = Math.min(W - 120, ctx.measureText(txt).width + 22), x = 8, y = 8, h = 24; ctx.fillStyle = 'rgba(13,15,42,.82)'; rr(x, y, w, h, h / 2); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = name ? (tier === 'vhard' ? '#e0287e' : '#f0582a') : 'rgba(255,255,255,.35)'; ctx.stroke();
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; label(txt, x + 11, y + h / 2 + 5, 13, '#ffffff', 'left', w - 18); ctx.restore(); }   /* Version 642: on the baseline */
+/* Version 642: Survival's game time under the tester clock (1 when it is off, as in every release build) */
+/* Version 643: the tag on the Survival screen (its top bar is hidden), under the round pill */
+function zdPaceTag() { if (!PACE.on) return; const txt = `Tester clock ×${paceScale().toFixed(2)}`; ctx.save(); ctx.font = "700 11px 'Figtree','Segoe UI',system-ui,sans-serif"; const w = ctx.measureText(txt).width + 14, x = W / 2 - w / 2, y = 50; ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(x, y, w, 18, 8); ctx.fill(); ctx.fillStyle = '#cfd3ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, W / 2, y + 9.5); ctx.textBaseline = 'alphabetic'; ctx.restore(); }
+function zdPace() { return PACE.on ? paceScale() : 1; }
 function paceTagShow() { const el = $('paceTag'); if (!el) return; el.hidden = !PACE.on; if (PACE.on) el.textContent = `Tester clock ×${paceScale().toFixed(2)}`; }
 // Version 303 (playtest: the offer resolved while the player was tapping): every touch of the card holds the countdown for 0.8 s
 function moreTimeTick(m, dt) { if (clock - m.offerAt < 0.42 || !$('adSim').hidden || (m.mtTouch != null && clock - m.mtTouch < 0.8)) return; m.offerLeft -= dt * paceScale(); $('mtBar').style.transform = `scaleX(${clamp(m.offerLeft / MORE_TIME.wait)})`; mtSecsShow(m); if (m.offerLeft <= 0) declineMoreTime('timeout'); }
@@ -25116,19 +25137,20 @@ function stepFrame(now) { if (!stepFrame.spk) { stepFrame.spk = true; try { if (
   if (G && G.cd && G.cd.t0 != null && !dt) G.cd.t0 += real;
   // Version 335: in the AI test build the countdown runs on the tester clock, like the fuse (one AI move of countdown, as a person gets 3 s)
   else if (G && G.cd && G.cd.t0 != null && PACE.on) G.cd.t0 += real * (1 - paceScale());
+  { const sl = hudSlim(); if (sl !== document.body.classList.contains('hudSlim')) { document.body.classList.toggle('hudSlim', sl); resize(); } }   /* Version 641 */
   updateUnlocks(real); if (SD.on) sparkyDemoStep(real); sparkyBadges();   /* Version 527 */
   if (!$('starterSheet').hidden) updateStarterLab(real);
   if (!$('smokes').hidden && !$('custom').hidden) updateSmokeLab(real);
   if (!$('custom').hidden) updateWsHero(real); if (!$('custom').hidden && (!$('fireworks').hidden || !$('blasts').hidden)) updateFxLab(real); if (!$('custom').hidden && !$('launchers').hidden) updateLauncherLab();
   if (G) { ctx.clearRect(0, 0, W, H); updateSmoke(dt); updateParts(dt);
-    if (G.phase === 'mini' && M) { const m = M; if (G.sky && m.time <= dt) skyAimStart(); else { BLOCKS.update(m, dt); livePill(m, dt); if (G.sky) G.sky.load = m.time; drawStripAndBelt(); if (G.phase === 'mini' && M === m) { BLOCKS.draw(m); drawLevelTier(); drawSide(); if (m.offer || m.plusT != null) drawMoreTimeFx(m, dt); if (G.tut || G.tutStep) { drawCoach(); anTutWatch(); } else if (G.cd || G.rejectT != null && clock - G.rejectT < 1.6 || G.missT != null && clock - G.missT < 1.6 || G.swapT != null && clock - G.swapT < 1.8) drawCoach(); } } }
+    if (G.phase === 'mini' && M) { const m = M; if (G.sky && m.time <= dt) skyAimStart(); else { BLOCKS.update(m, dt); livePill(m, dt); if (G.sky) G.sky.load = m.time; drawStripAndBelt(); if (G.phase === 'mini' && M === m) { BLOCKS.draw(m); drawLevelTier(); drawSide(); levelPill(); if (m.offer || m.plusT != null) drawMoreTimeFx(m, dt); if (G.tut || G.tutStep) { drawCoach(); anTutWatch(); } else if (G.cd || G.rejectT != null && clock - G.rejectT < 1.6 || G.missT != null && clock - G.missT < 1.6 || G.swapT != null && clock - G.swapT < 1.8 || G.hintNote === -1 || (G.hintNote > 0 && clock - G.hintNote < 3.2) || (G.crownTipT != null && clock - G.crownTipT < 3.5) || (G.door && clock - G.door.deny < 1.6)) drawCoach(); } } }   /* Version 640: the hint, crown and door lines draw too */
     else if (G.phase === 'aim') { updateAim(dt); drawStripAndBelt(); if (G.phase === 'aim') drawAim(); }
-    else if (G.phase === 'beat') { if (G.sky) G.sky.load -= dt; drawStripAndBelt(); const sh = shellShake(); if (sh) { ctx.save(); ctx.translate(sh[0], sh[1]); } BLOCKS.draw(M); drawLevelTier(); BLOCKS.drawSave(dt); drawClear(dt); drawFailFx(dt); if (sh) ctx.restore(); drawGrade(); drawSide(); if ((G.beat -= dt) <= 0) afterLid(); }
+    else if (G.phase === 'beat') { if (G.sky) G.sky.load -= dt; drawStripAndBelt(); const sh = shellShake(); if (sh) { ctx.save(); ctx.translate(sh[0], sh[1]); } BLOCKS.draw(M); drawLevelTier(); BLOCKS.drawSave(dt); drawClear(dt); drawFailFx(dt); if (sh) ctx.restore(); drawGrade(); drawSide(); levelPill(); if ((G.beat -= dt) <= 0) afterLid(); }
     else if (G.phase === 'ready') { G.readyT += dt; drawReady(); if (G) drawSide(); }
     else if (G.phase === 'fuse') { updateFuse(dt); if (G.phase === 'fuse') drawFuse(); if (G) drawSide(); }
     else if (G.phase === 'show') { updateShow(dt); if (G && G.phase === 'show') { drawShow(); showSparky(); drawSide(); } }
     else if (G.phase === 'sky') { skbUpdate(dt); if (G.phase === 'sky') skbDraw(); }   /* Version 602 */
-    else if (G.phase === 'zd') { zdUpdate(dt); if (G && G.phase === 'zd') zdDraw(); else if (G && G.phase === 'zdres') zdResDraw(); }   /* Version 612 */
+    else if (G.phase === 'zd') { zdUpdate(dt); if (G && G.phase === 'zd') { zdDraw(); zdPaceTag(); } else if (G && G.phase === 'zdres') zdResDraw(); }   /* Version 643: the tester-clock tag */   /* Version 612 */
     else if (G.phase === 'zdres') zdResDraw();
     else if (G.phase === 'skyres') { if ($('topstrip').hidden) { $('topstrip').hidden = false; renderStamina(); } if (G.sky && G.sky.bowl) skbResDraw(); else drawSkyRes(); }
     else if (G.phase === 'result') { $('hud').hidden = true; if ($('topstrip').hidden) { $('topstrip').hidden = false; renderStamina(); } drawResult(); } if (G && G.preview) { previewBanner(); previewClose(); } }
@@ -25604,7 +25626,9 @@ function star3Cut(m) { try { if (!G || !m || !m.total || G.tut || G.run || G.sky
 function star3Hold(m) { if (!m) return null; if ((m.done || m.clearing) && m.s3k !== undefined) return m.s3k; const c = star3Cut(m); if (!m.done && !m.clearing) m.s3k = c; return m.s3k !== undefined ? m.s3k : c; }
 function star3Live(m) { const c = star3Hold(m); return c != null && c > 0 && c < 1 && clamp(m.time / m.total) > c; }
 let STAR3_PATH = null;
-function star3Notch(m, cx, cy, r, f) { const c = star3Hold(m); if (c == null || c <= 0) return; const cc = Math.min(c, 0.995), live = c < 1 && f > c, a = -Math.PI / 2 + Math.PI * 2 * (1 - cc), x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+/* Version 641: the top bar's stars are gone while packing, so the badge shakes for half a second when 3 stars are lost */
+function star3Shake(m, live) { if (m.s3live && !live && !m.done && !m.clearing) m.s3lost = clock; m.s3live = live; const u = m.s3lost == null ? 1 : (clock - m.s3lost) / 0.5; return u >= 1 || reduced ? 0 : Math.sin(u * 30) * 4 * (1 - u); }
+function star3Notch(m, cx, cy, r, f) { const c = star3Hold(m); if (c == null || c <= 0) return; const cc = Math.min(c, 0.995), live = c < 1 && f > c, a = -Math.PI / 2 + Math.PI * 2 * (1 - cc), x = cx + Math.cos(a) * r + star3Shake(m, live), y = cy + Math.sin(a) * r;
   if (!STAR3_PATH) { try { STAR3_PATH = new Path2D(STAR_PATH); } catch (e) { return; } }
   ctx.save(); const bw = 42, bh = 18; if (live) { ctx.shadowColor = 'rgba(255,210,94,.7)'; ctx.shadowBlur = 8; } ctx.fillStyle = live ? 'rgba(21,19,63,.95)' : 'rgba(40,36,70,.92)'; rr(x - bw / 2, y - bh / 2, bw, bh, bh / 2); ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 1.6; ctx.strokeStyle = live ? '#ffd25e' : 'rgba(150,140,180,.6)'; ctx.stroke();
   const k = 0.44; for (let i = -1; i <= 1; i++) { ctx.save(); ctx.translate(x + i * 11.5 - 12 * k, y - 12 * k); ctx.scale(k, k); ctx.fillStyle = live ? '#ffd25e' : '#6d6890'; ctx.fill(STAR3_PATH); ctx.restore(); } ctx.restore();   /* Version 601 (owner): a ★★★ badge, not one star */
@@ -25981,14 +26005,20 @@ function bloomHud(g, ph, m) { bloomPills(ph); if (!g || !m || !m.cells || (ph !=
   const B = bloomInfo(m), w = 10, x = g.x - 1, y0 = g.y0 + g.top - SIDE.top, h = g.h, y1 = y0 + h, ih = h - 3, tgt = B.packed / B.N; SIDE.bv = SIDE.bm === m && !reduced ? SIDE.bv + (tgt - SIDE.bv) * 0.22 : tgt; SIDE.bm = m;
   const fr = clamp(SIDE.bv), fy = y1 - 1.5 - ih * fr, ly = y1 - 1.5 - ih * B.line, rx = Math.min(x + w + 2, W - 3), tx = (q, yy, c) => { ctx.strokeText(q, rx, yy); ctx.fillStyle = c; ctx.fillText(q, rx, yy); };
   ctx.save(); ctx.fillStyle = 'rgba(8,6,24,.72)'; rr(x, y0, w, h, w / 2); ctx.fill();
-  ctx.save(); rr(x + 1.5, y0 + 1.5, w - 3, ih, (w - 3) / 2); ctx.clip(); if (fr > 0.002) { const top = Math.max(fy, ly); ctx.fillStyle = '#9d93d6'; ctx.fillRect(x, top, w, y1 - top); if (fy < ly) { ctx.fillStyle = `rgb(${SIDE_GREEN})`; ctx.fillRect(x, fy, w, ly - fy); } ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fillRect(x, fy, w, 1.4); } ctx.restore();
+  ctx.save(); rr(x + 1.5, y0 + 1.5, w - 3, ih, (w - 3) / 2); ctx.clip(); if (fr > 0.002) { const top = Math.max(fy, ly); ctx.fillStyle = '#9d93d6'; ctx.fillRect(x, top, w, y1 - top); if (fy < ly) { ctx.fillStyle = `rgb(${SIDE_GREEN})`; ctx.fillRect(x, fy, w, ly - fy); } ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fillRect(x, fy, w, 1.4); } { const Lc = Math.ceil(B.line * B.N - 1e-9); for (let k = Lc + 1; k < B.N; k++) { const yy = y1 - 1.5 - ih * (k / B.N); ctx.fillStyle = yy > fy ? 'rgba(8,6,24,.85)' : 'rgba(255,255,255,.45)'; ctx.fillRect(x, yy - 0.6, w, 1.2); } }   /* Version 640: a dash per cell above the line */ ctx.restore();
   ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,255,255,.42)'; rr(x, y0, w, h, w / 2); ctx.stroke();
   ctx.fillStyle = 'rgba(8,6,24,.9)'; ctx.fillRect(x - 5.5, ly - 2.2, w + 11, 4.4); ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 4.5, ly - 1.1, w + 9, 2.2);
   if (G.tutStep === 'side' || G.tutStep === 'luck') { ctx.strokeStyle = `rgba(255,214,110,${0.55 + 0.45 * Math.sin(clock * 5)})`; ctx.lineWidth = 3; rr(x - 2, y0 - 2, w + 4, h + 4, (w + 4) / 2); ctx.stroke(); }
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,6,24,.9)';
   ctx.font = "800 9px 'Figtree','Segoe UI',system-ui,sans-serif"; tx(t('BLOOM'), y0 - 8, 'rgb(110,232,150)'); tx(t('KABOOM'), y1 + 9, 'rgb(255,120,110)');
-  const p = Math.round(B.c * 100), full = !B.gaps && !B.wrong, l2 = boardLook() === 'A' && B.gaps > 0 ? (B.gaps === 1 ? t('1 gap') : t('{n} gaps', { n:B.gaps })) : boardLook() === 'A' && full ? t('Full!') : `${B.N - B.gaps}/${B.N}`;
-  ctx.font = "800 10px 'Figtree','Segoe UI',system-ui,sans-serif"; tx(l2, y0 - 21, '#e8e4ff'); ctx.font = "800 12px 'Figtree','Segoe UI',system-ui,sans-serif"; tx(t('{p}% bloom', { p }), y0 - 35, p > 0 ? 'rgb(110,232,150)' : 'rgb(255,138,128)');
+  /* Version 640 (owner, BLO-30 option A): cells to the line below it; the chance, cells to 100% and the price of a gap above it */
+  const p = Math.round(B.c * 100), full = !B.gaps && !B.wrong, Lc = Math.ceil(B.line * B.N - 1e-9), have = Math.floor(B.packed + 1e-9), toLine = Math.max(0, Lc - have), toFull = B.gaps + B.wrong, F10 = "800 10px 'Figtree','Segoe UI',system-ui,sans-serif", F12 = "800 12px 'Figtree','Segoe UI',system-ui,sans-serif";
+  if (full) { ctx.font = F10; tx(t('Full!'), y0 - 21, '#e8e4ff'); ctx.font = F12; tx(t('{p}% bloom', { p:100 }), y0 - 35, 'rgb(110,232,150)'); }
+  else if (p <= 0) { ctx.font = F10; tx(t('till it blooms'), y0 - 21, '#e8e4ff'); ctx.font = F12; tx(toLine === 1 ? t('1 cell to go') : t('{n} cells to go', { n:Math.max(1, toLine) }), y0 - 35, '#ffd23e'); }
+  else { ctx.font = F10; tx(t('{n} to go → 100%', { n:toFull }), y0 - 21, '#e8e4ff'); ctx.font = F12; tx(t('{p}% bloom', { p }), y0 - 35, 'rgb(110,232,150)'); ctx.font = "800 9px 'Figtree','Segoe UI',system-ui,sans-serif"; tx(t('1 gap = −{p}%', { p:Math.round(100 / Math.max(1, B.N - Lc)) }), y1 + 22, 'rgb(255,138,128)'); }
+  ctx.font = "800 9px 'Figtree','Segoe UI',system-ui,sans-serif"; ctx.textAlign = 'right'; ctx.strokeText(t('LINE'), x - 8, ly); ctx.fillStyle = '#ffffff'; ctx.fillText(t('LINE'), x - 8, ly);
+  /* the cell that crosses the line: "Blooming!" beside the bar, once a shell */
+  if (p > 0 && !full && m.bloomT == null) m.bloomT = clock; if (m.bloomT != null && clock - m.bloomT < 1.4 && !(G.lineUp && G.lineT != null && clock - G.lineT < 2.5)) { const u = clock - m.bloomT, k = reduced ? 1 : 1 + 0.3 * clamp(1 - u / 0.2); ctx.save(); ctx.globalAlpha = clamp((1.4 - u) / 0.35); ctx.translate(x - 19, fy); ctx.scale(k, k); ctx.font = "800 15px 'Bricolage Grotesque','Figtree',system-ui,sans-serif"; ctx.lineWidth = 4; ctx.strokeStyle = '#15133f'; ctx.strokeText(t('Blooming!'), 0, 0.5); ctx.fillStyle = 'rgb(110,232,150)'; ctx.fillText(t('Blooming!'), 0, 0.5); ctx.restore(); ctx.textAlign = 'right'; }
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.restore();
   /* the first time a higher line is met: "Line raised!" by the line, through Ready? and a moment after Go */
   if (B.line > BLOOM.lines[BLOOM.lines.length - 1][1] && G.i === 0) { const key = 'bl' + Math.round(B.line * 1000); if (G.lineUp == null) { G.lineUp = !seenIntro.has(key); if (G.lineUp) { seenIntro.add(key); saveAll(); } } if (G.lineUp) { if (cdActive() || G.lineT == null) G.lineT = clock; if (clock - G.lineT < 2.5) { const s = t('Line raised!'); ctx.save(); ctx.globalAlpha = clamp((2.5 - (clock - G.lineT)) / 0.4); ctx.fillStyle = '#ffd23e'; ctx.beginPath(); ctx.moveTo(x - 7, ly); ctx.lineTo(x - 15, ly - 5); ctx.lineTo(x - 15, ly + 5); ctx.closePath(); ctx.fill(); ctx.font = "800 15px 'Bricolage Grotesque','Figtree',system-ui,sans-serif"; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#15133f'; ctx.strokeText(s, x - 19, ly + 0.5); ctx.fillStyle = '#ffd23e'; ctx.fillText(s, x - 19, ly + 0.5); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.restore(); } } } }
@@ -26449,7 +26479,8 @@ function zdUpdate(dt) { const K = G.zd; if (!K) return; const R = K.R, L = zdLay
   if (K.over) { if (clock - K.over.t0 > (K.over.won ? 2.8 : 1.6)) zdFinish(K.over.won); return; }
   if (K.tip || K.perk) return;
   if (!K.tip && K.tips.length) { K.tip = K.tips.shift(); K.tip.t0 = clock; return; }
-  const n = dt > 0.055 ? 2 : 1; for (let i = 0; i < n && dt > 0 && G && G.zd === K && !K.over; i++) zdEvents(K, L, zdStep(R, dt / n, K.rnd));
+  if (K.paceT == null && PACE.on) { K.paceT = performance.now() / 1000; paceTagShow(); }   /* Version 642: the tester clock (AI test build / ?pace=) */
+  const n = dt > 0.055 ? 2 : 1, gdt = dt * zdPace(); for (let i = 0; i < n && dt > 0 && G && G.zd === K && !K.over; i++) zdEvents(K, L, zdStep(R, gdt / n, K.rnd));
   if (K.loadAt != null && clock >= K.loadAt) { K.loadAt = null; K.recoil = -1; zdWord(K, t('CHK'), L.muz.x + 44, L.muz.y - 2, 15, '#ffd23e', 0.45); zdSay(K, 'chk', 0.05, () => { nz(0.05, 0.12, { bp:2300, q:1.6, to:900 }); syn(140, 0.1, 0.16, { slide:-60 }); buzz(10); }); }
   if (K.drag && (zdBusy(K) || !R.tray[K.drag.slot] || R.tray[K.drag.slot].id !== K.drag.pc.id)) K.drag = null;
   K.hpShow += (R.hp - K.hpShow) * Math.min(1, dt * 9); if (K.recoil) K.recoil *= Math.max(0, 1 - dt * 9); if (K.shake > 0) K.shake = Math.max(0, K.shake - dt * 3.2);
