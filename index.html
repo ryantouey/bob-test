@@ -2314,6 +2314,7 @@ body.fullmap #globeIntro { top:calc(104px + env(safe-area-inset-top,0px)); }
         <label class="check"><input type="checkbox" id="tFps"> Show frame rate</label>
         <div class="tune"><label for="tIntro">Stage intro on the map <select id="tIntro"><option value="auto">First visit full, then short</option><option value="full">Always full, with camera pan</option><option value="short">Always short</option></select></label></div>
         <button class="bub gold" id="tSpeedFull">Full speed test (all but the maps)</button>
+        <button class="bub" id="tTouch">Touch test (hold your thumb still)</button>
         <button class="bub" id="tSpeed">Speed test (Starry Night)</button>
         <button class="bub" id="tSpeedPass">Speed test (Pass screen)</button>
         <button class="bub" id="tGfx">Redraw pictures (graphics reset test)</button>
@@ -2470,7 +2471,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.678.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.679.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -6639,7 +6640,7 @@ function tutFreeHint(m) { const had = wallet.hints; wallet.hints += 1; BLOCKS.hi
 /* Version 677 (owner bug video): a touch on a piece in its first 0.4 s on the board is a touchscreen echo, not a take-off */
 const TAP_GUARD_MS = 400;
 /* Version 678 (owner bug video): on Android a touch release mid-drag waits a moment, and a touch coming back nearby carries the same drag on (touchscreen contact dropouts) */
-const DROP_GRACE = { ms:(typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '')) ? 120 : 0, px:80 };
+const DROP_GRACE = { ms:(typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '')) ? 120 : 0, px:80, cancel:500 };   /* Version 679: a cancelled touch waits longer */
 const MAGNET_R = 1.75, COLOUR_LOCK_TO = 3, FIRST_LEVEL_SECS = 30;
 // Version 280 gave Stage 1's one-colour levels extra time. Version 285 (owner) put Levels 5, 8 and 10 back on their original two-colour
 // boards at the stage's 20 s until playtests say otherwise; the table stays for per-level times in Stage 1.
@@ -10474,8 +10475,9 @@ $('stage').addEventListener('pointerdown', e => { if (!G || e.target.closest('#m
       else if (G.won && !G.trap && !G.daily && tipRoute()) quit('home');   /* Version 632: once, to show what this win opened */
       else if (G.won) { const on = stageAfter(); if (openLevel(G.level + 1)) tryStart(G.level + 1); else if (on) { viewStage = stageOf(on); quit('levels'); } else quit(); } else tryStart(G.level); } else if (y > H * 0.46 + 76 && y < H * 0.46 + 130) { if (trialDue()) trialPick(() => quit()); else quit(); } } });
 $('stage').addEventListener('pointermove', e => { if (e.isPrimary === false || e.target.closest('#moreTime, #newCard')) return; const [x, y] = pt(e); ptr.x = x; ptr.y = y; if (G && G.phase === 'mini' && M) BLOCKS.move(M, x, y); });
-const release = e => { if (e && e.isPrimary === false) return; ptr.down = false; if (!G) return; if (G.phase === 'mini' && M && M.drag && e && e.pointerType === 'touch' && DROP_GRACE.ms > 0 && !ptr.pend) { const m0 = M; ptr.pend = { x:ptr.x, y:ptr.y, timer:setTimeout(() => { ptr.pend = null; if (G && G.phase === 'mini' && M === m0 && M.drag) BLOCKS.up(M); }, DROP_GRACE.ms) }; return; }   /* Version 678 */ if (G.phase === 'mini' && M) BLOCKS.up(M); if (G.phase === 'aim') G.A.hold = 0; };
+const release = e => { if (e && e.isPrimary === false) return; ptr.down = false; if (!G) return; const gms = e && e.type === 'pointercancel' ? DROP_GRACE.cancel : DROP_GRACE.ms; if (G.phase === 'mini' && M && M.drag && e && e.pointerType === 'touch' && gms > 0 && !ptr.pend) { const m0 = M; ptr.pend = { x:ptr.x, y:ptr.y, timer:setTimeout(() => { ptr.pend = null; if (G && G.phase === 'mini' && M === m0 && M.drag) BLOCKS.up(M); }, gms) }; return; }   /* Version 678 */ if (G.phase === 'mini' && M) BLOCKS.up(M); if (G.phase === 'aim') G.A.hold = 0; };
 $('stage').addEventListener('pointerup', release); $('stage').addEventListener('pointercancel', release);
+$('stage').addEventListener('contextmenu', e => e.preventDefault());   /* Version 679: no long-press menu on the stage */
 // Version 277: backups for a lift the stage never hears (it lands outside the game) and for the app losing focus mid-drag.
 window.addEventListener('pointerup', e => { if (G && G.phase === 'mini' && M && M.drag && !(e.target.closest && e.target.closest('#stage'))) release(e); }, true);
 window.addEventListener('blur', () => { if (G && G.phase === 'mini' && M && M.drag) release(); });
@@ -27151,6 +27153,25 @@ async function speedFull() { if (SPF.on || speedRun || speedBusy) return; SPF.on
   $('speedCopy').onclick = () => { const txt = $('speedOut').textContent; try { navigator.clipboard.writeText(txt).then(() => { $('speedCopy').textContent = 'Copied'; }, () => { $('speedCopy').textContent = 'Copy failed: screenshot instead'; }); } catch (e) { $('speedCopy').textContent = 'Copy failed: screenshot instead'; } };
   $('speedSheet').hidden = false; try { localStorage.setItem('bob_speedfull', JSON.stringify({ at:Date.now(), lines })); } catch (e) {} }
 $('tSpeedFull').onclick = () => speedFull();
+/* Version 679 (owner): Touch test. Logs what the phone reports while a thumb rests still, to tell touchscreen dropouts from game bugs. */
+function touchTest() {
+  const box = document.createElement('div'); box.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0d0b2e;color:#fff;font:14px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;padding:14px;gap:10px;touch-action:none;user-select:none;-webkit-user-select:none';
+  box.innerHTML = '<b style="font-size:17px">Touch test</b><div id="ttNote">Press and hold your thumb still on the box for 15 seconds. Don’t lift it.</div><div id="ttPad" style="flex:1;min-height:180px;border:2px dashed #ffd34d;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#ffd34d;touch-action:none">Hold here</div><pre id="ttOut" style="margin:0;max-height:34vh;overflow:auto;white-space:pre-wrap;font-size:12px;background:#1b1850;padding:8px;border-radius:10px"></pre><div style="display:flex;gap:8px"><button class="bub gold" id="ttCopy" style="flex:1">Copy results</button><button class="bub" id="ttClose" style="flex:1">Close</button></div>';
+  document.body.appendChild(box);
+  const pad = box.querySelector('#ttPad'), out = box.querySelector('#ttOut'), log = [], st = { t0:0, downs:0, ups:0, cancels:0, moves:0, lastUp:null, gaps:[], downAt:null, holds:[] }; let charging = 'unknown';
+  try { if (navigator.getBattery) navigator.getBattery().then(b => { charging = b.charging ? 'yes' : 'no'; show(); }); } catch (e) {}
+  const now = () => performance.now(), ms = v => Math.round(v);
+  const show = () => { const lines = [`Version ${CONFIG.analytics.appVersion} · charging: ${charging} · ${navigator.userAgent.replace(/^.*?\(([^)]*)\).*$/, '$1').slice(0, 70)}`, `Touches down ${st.downs} · lifts ${st.ups} · cancels ${st.cancels} · moves ${st.moves}`, st.gaps.length ? `Gaps between a lift/cancel and the next touch (ms): ${st.gaps.map(ms).join(', ')}` : 'No gaps yet', st.holds.length ? `Each touch lasted (ms): ${st.holds.map(ms).join(', ')}` : '', st.downs === 1 && ((st.downAt != null && now() - st.downAt > 10000) || (st.holds[0] || 0) > 10000) ? 'RESULT: one steady touch. The screen kept your thumb.' : st.downs > 1 ? 'RESULT: the phone reported your thumb lifting and landing again while you held still.' : '', '', ...log.slice(-40)].filter(x => x !== ''); out.textContent = lines.join('\n'); };
+  const ev = e => { if (!st.t0) st.t0 = now(); const t = now() - st.t0, base = `${(t / 1000).toFixed(2)}s ${e.type.replace('pointer', '')} id${e.pointerId} ${e.pointerType}${e.isPrimary ? '' : ' (2nd)'} at ${Math.round(e.clientX)},${Math.round(e.clientY)} size ${Math.round(e.width || 0)}x${Math.round(e.height || 0)}`;
+    if (e.type === 'pointerdown') { st.downs++; if (st.lastUp != null) st.gaps.push(now() - st.lastUp); st.downAt = now(); log.push(base); try { pad.setPointerCapture(e.pointerId); } catch (er) {} pad.style.background = '#2a2670'; }
+    else if (e.type === 'pointerup' || e.type === 'pointercancel') { if (e.type === 'pointerup') st.ups++; else st.cancels++; st.lastUp = now(); if (st.downAt != null) st.holds.push(now() - st.downAt); st.downAt = null; log.push(base); pad.style.background = ''; }
+    else { st.moves++; if (st.moves % 15 === 1) log.push(base); }
+    e.preventDefault(); show(); };
+  ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(k => pad.addEventListener(k, ev)); pad.addEventListener('contextmenu', e => e.preventDefault());
+  box.querySelector('#ttCopy').onclick = () => { try { navigator.clipboard.writeText(out.textContent); box.querySelector('#ttNote').textContent = 'Copied. Paste it in the chat.'; } catch (e) {} };
+  box.querySelector('#ttClose').onclick = () => box.remove(); show(); }
+$('tTouch').onclick = () => touchTest();
+
 if (/[?&]speedtest=full\b/.test(location.search)) setTimeout(() => { try { speedFull(); } catch (e) {} }, 3000);
 const FPS = { n:0, at:0, last:0, worst:0 };
 function fpsTick(now) { const cb = $('tFps'), el = $('fpsMeter'); if (!el) return; if (!cb || !cb.checked) { if (!el.hidden) el.hidden = true; FPS.at = 0; FPS.last = 0; return; } if (FPS.last) FPS.worst = Math.max(FPS.worst, now - FPS.last); FPS.last = now; FPS.n++; if (!FPS.at) { FPS.at = now; FPS.n = 0; FPS.worst = 0; return; }
