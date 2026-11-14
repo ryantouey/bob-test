@@ -2589,7 +2589,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.692.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.693.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -17468,7 +17468,7 @@ function parkShowSpots(o) { if (o._show) return o._show; const rv = o.river || [
   const pip = (x, z) => { let ins = false; for (let i = 0, j = rv.length - 2; i < rv.length; j = i, i += 2) { const xi = rv[i], zi = rv[i + 1], xj = rv[j], zj = rv[j + 1]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) ins = !ins; } return ins; };
   PK_SHOW.spots.forEach(([dx, f]) => { const x = x0 + dx; let a = null, b = null; for (let z = end; z < end + 160; z += 0.5) { const i = pip(x, z); if (i && a === null) a = z; if (!i && a !== null) { b = z; break; } } if (a !== null && b !== null) out.push([x, a + (b - a) * f]); });
   return (o._show = out); }
-function parkShow(c, o, P, camZ, time) { if (reduced) { o._flash = null; return; } const sp = parkShowSpots(o); if (!sp.length) return; const end = (walk.ids.length - 1) * WK.gap, p = clamp(camZ / end), n = Math.max(1, Math.min(sp.length, 1 + Math.floor(p * 6.99))), fast = PK_MOVE.fast;
+function parkShow(c, o, P, camZ, time) { if (reduced || walkSnapping) { o._flash = null; return; } const sp = parkShowSpots(o); if (!sp.length) return; const end = (walk.ids.length - 1) * WK.gap, p = clamp(camZ / end), n = Math.max(1, Math.min(sp.length, 1 + Math.floor(p * 6.99))), fast = PK_MOVE.fast;
   let flash = 0, fcol = null; c.save(); c.globalCompositeOperation = 'lighter';
   /* Version 593: every barge fires for the map's first seconds (a shell launched in them plays out), a welcome each time the map opens */
   for (let i = 0; i < sp.length; i++) { const [x, z] = sp[i], T = 2.7 + (i % 4) * 0.45, cyc = (time + i * 1.31) / T, b = Math.floor(cyc), age = (cyc - b) * T, hello = time - age < 6.5; if ((i >= n || (p < 0.35 && i > 0)) && !hello) continue;
@@ -18428,7 +18428,7 @@ function rioR2Init(o) { if (o.r2) return; o.r2 = true; const rx = osmLine(o.rout
 // the New Year's fireworks from the barges off the beach: each barge a dark hull with its lights on the water, two shells at a time
 // rising and bursting over the sea, their colour on the water below; one fill per shell
 const RIO_FW = ['255,96,96', '255,244,214', '120,200,255', '255,214,96', '196,130,255', '120,255,176'];
-function rioFireworks(c, o, P, camZ, time) { const cx = osmLine(o.coast), far = 30 * MAPV(); c.save();
+function rioFireworks(c, o, P, camZ, time) { if (walkSnapping) return; const cx = osmLine(o.coast), far = 30 * MAPV(); c.save();
   for (let b = 0; b < 7; b++) { const bz = Math.floor(camZ / 14) * 14 + b * 14 + 9, dp = bz - camZ; if (dp < 4 || dp > far + 30) continue; const bx = cx(bz) + 2.2 + (b % 2) * 1.4, p = P(bx, bz); if (!p) continue; const U = WK.X * p.s;
     c.globalCompositeOperation = 'source-over'; c.fillStyle = '#0a0a14'; c.fillRect(p.x - 1.6 * U, p.y - 0.14 * U, 3.2 * U, 0.16 * U); c.globalCompositeOperation = 'lighter';
     c.fillStyle = 'rgba(255,200,150,.8)'; const lw = Math.max(1, 0.07 * U); for (let i = 0; i < 4; i++) c.fillRect(p.x - 1.4 * U + i * 0.9 * U, p.y - 0.2 * U, lw, lw);
@@ -20885,7 +20885,7 @@ Object.assign(JAK_PROPS, {
 });
 // the Hogmanay fireworks over the castle: from about Level 14, one shell at first, up to five at once at the finish (the Stage 1 show's
 // palette and bursts: peonies, trailed chrysanthemums, gold willows, rings); nothing with Reduce motion
-function edShow(c, o, P, camZ, time) { if (reduced || !o.castle) return; const end = (walk.ids.length - 1) * WK.gap, p = clamp((camZ / end - 0.5) / 0.5); if (p <= 0) return; const n = 1 + Math.floor(p * 4.99); c.save(); c.globalCompositeOperation = 'lighter';
+function edShow(c, o, P, camZ, time) { if (reduced || walkSnapping || !o.castle) return; const end = (walk.ids.length - 1) * WK.gap, p = clamp((camZ / end - 0.5) / 0.5); if (p <= 0) return; const n = 1 + Math.floor(p * 4.99); c.save(); c.globalCompositeOperation = 'lighter';
   for (let i = 0; i < n; i++) { const T = 2.6 + (i % 3) * 0.5, cyc = (time + i * 1.37) / T, b = Math.floor(cyc), age = (cyc - b) * T, base = P(o.castle[0] + (i - 2) * 3.4, o.castle[1] + 3); if (!base) continue;
     const U = WK.X * base.s, R = Math.min(10 * U + 18, 44) * (0.6 + 0.4 * p), top = [base.x + (rn(b * 9 + i) - 0.5) * 36, Math.max(Math.min(base.y - 70, base.y - 40 * U), 22 + R)], col = PK_SHOW.pal[Math.floor(rn(b * 5 + i * 3) * 4)], kind = Math.floor(rn(b * 7 + i * 11) * 4);
     if (age < 0.6) { const u = age / 0.6, xx = base.x + (top[0] - base.x) * u, yy = base.y - 30 + (top[1] - base.y + 30) * u; c.strokeStyle = 'rgba(255,222,170,.7)'; c.lineWidth = 1; c.beginPath(); c.moveTo(xx, yy + 9); c.lineTo(xx, yy); c.stroke(); continue; }
@@ -21282,7 +21282,7 @@ function niBoat(c, o, P, camZ, time) { const cr = o.crest, fc = cr.reduce((a, p)
 // the mist rising from the foot, lit in the falls' colours, and fireworks over the falls
 function niMistR2(c, o, P, time) { const cr = o.crest, fc = cr.reduce((a, p) => [a[0] + p[0] / cr.length, a[1] + p[1] / cr.length], [0, 0]), p = P(fc[0], fc[1]); if (!p || p.dp < 6) return; const U = WK.X * p.s, t = reduced ? 0 : time;
   c.save(); c.globalCompositeOperation = 'lighter'; for (let k = 0; k < 9; k++) { const r = (3 + k * 0.7) * U, u = ((t * 0.04 + k / 9) % 1), x = p.x + Math.sin(t * 0.2 + k) * 2 * U + (k - 4) * 2.2 * U, y = p.y + 6 * U - u * 14 * U, a = 0.3 * Math.sin(Math.PI * u); jakGlow(c, x, y, r, niMixW(niHueAt(k / 9, time), 0.35).join(','), a); } c.restore(); }
-function niFireworks(c, o, P, time) { if (reduced) return; const cr = o.crest, fc = cr.reduce((a, p) => [a[0] + p[0] / cr.length, a[1] + p[1] / cr.length], [0, 0]), p = P(fc[0], fc[1]); if (!p || p.dp < 6) return; const U = WK.X * p.s / 6;
+function niFireworks(c, o, P, time) { if (reduced || walkSnapping) return; const cr = o.crest, fc = cr.reduce((a, p) => [a[0] + p[0] / cr.length, a[1] + p[1] / cr.length], [0, 0]), p = P(fc[0], fc[1]); if (!p || p.dp < 6) return; const U = WK.X * p.s / 6;
   for (let k = 0; k < 3; k++) { const cyc = 4.2, tt = time + k * 1.4, n = Math.floor(tt / cyc), u = (tt % cyc) / cyc; if (u > 0.7) continue; const w = u / 0.7, x = p.x + (wr(n * 3.1 + k) - 0.5) * 300 * U, y = p.y - (110 + wr(n * 5.3 + k) * 90) * U, R = (20 + 50 * Math.sqrt(w)) * U, col = NI_PAL[(n + k * 2) % 6], a = 1 - w;
     c.save(); c.globalCompositeOperation = 'lighter'; jakGlow(c, x, y, R * 1.3, col.join(','), 0.3 * a); c.fillStyle = `rgba(${niMixW(col, 0.3).join(',')},${a.toFixed(3)})`; c.beginPath(); for (let i = 0; i < 26; i++) { const an = i / 26 * 6.283 + n, d = R * (0.55 + 0.45 * wr(i * 1.7 + n)); c.rect(x + Math.cos(an) * d - 1, y + Math.sin(an) * d + w * w * 12 * U - 1, 2.2, 2.2); } c.fill(); c.restore(); } }
 function walkNiagaraMoreR2(list, c, o, P, camZ, time) { const far = 30 * MAPV(); list.push({ dp:far - 1.1, f:() => { const ga = c.globalAlpha; c.globalAlpha = 1; niCity(c, o, P); niMistR2(c, o, P, time); niFireworks(c, o, P, time); c.globalAlpha = ga; } }); }
@@ -23358,7 +23358,7 @@ function edBoat(c, P, b, o, time) { const drift = reduced ? 0 : ((time * 0.05 * 
 // bridge"): crisp stars with short trails and a small core flash instead of big soft halos, four kinds (chrysanthemum, peony, gold
 // willow, ring); small and far from the town, big over the bridge, though kept inside the sky the view shows (a burst's height and size
 // on screen are capped, so the near ones bloom low and wide instead of above the frame); their light shimmering on the water
-function edFireworks(c, o, P, camZ, time) { if (reduced) return; c.save(); c.globalCompositeOperation = 'lighter'; const hor = (P(0, camZ + 1e5) || { y:120 }).y;
+function edFireworks(c, o, P, camZ, time) { if (reduced || walkSnapping) return; c.save(); c.globalCompositeOperation = 'lighter'; const hor = (P(0, camZ + 1e5) || { y:120 }).y;
   o.launch.forEach(([x, z], i) => { const T = 3.0 + (i % 4) * 0.42, a = (time + i * 1.13) % T, base = rmPt(P, x, z, ED_W); if (!base) return; const u = base[2], H = Math.min((6.4 + (i % 3) * 1.2 - ED_W) * u, base[1] - hor + 64 + (i % 3) * 18), top = [base[0], base[1] - H];
     if (a < 0.7) { const t = a / 0.7, y = base[1] - H * t; c.strokeStyle = 'rgba(255,214,150,.75)'; c.lineWidth = Math.max(0.8, Math.min(2, u * 0.025)); c.beginPath(); c.moveTo(base[0], y + Math.min(24, 0.5 * u)); c.lineTo(base[0], y); c.stroke(); c.fillStyle = 'rgba(255,240,200,.9)'; c.beginPath(); c.arc(base[0], y, Math.max(0.8, Math.min(2.2, u * 0.03)), 0, 7); c.fill(); return; }
     const t = a - 0.7; if (t > 2.3) return; const kind = i % 4, R = Math.min((2.8 + (i % 2) * 1.1) * u, 66 + (i % 2) * 14) * (1 - Math.exp(-t * 3.6)) * (kind === 3 ? 0.8 : 1), g = 0.55 * t * t * Math.min(u, 26) * (kind === 2 ? 1.8 : 1), al = Math.max(0, 1 - t / 2.3), sz = Math.max(0.8, Math.min(2.1, R * 0.03));
@@ -27332,11 +27332,12 @@ function playMapState() { return window.__playMap || (window.__playMap = { key:'
 gfxOnReset(() => { const S2 = playMapState(); S2.key = ''; S2.ok = false; S2.bg = null; S2.bgSt = 0; });
 function playMapAt() { const n = STAGES.flatMap((g, i) => Array.from({ length:g.levels }, (_, k) => levelId(i + 1, k + 1))).find(k => openLevel(k) && !done.has(k)), st = n ? stageOf(n) : tour1Last(), g = STAGES[st - 1], ids = Array.from({ length:g.levels }, (_, i) => levelId(st, i + 1)), first = ids.find(k => openLevel(k) && !done.has(k));
   return { st, g, ids, cur:Math.max(0, first ? ids.indexOf(first) : ids.length - 1) }; }
+var walkSnapping = false;   /* Version 693: true only while the Play tab's map preview is drawn; the map shows skip their fireworks */
 function playMapSnap(m, w0, h0) { const th = WALK_THEMES[m.g.theme]; if (!th) return null; const cv = document.createElement('canvas'), keep = { walk, walkRoute, viewStage };
   try { viewStage = m.st; walkRoute = th.osm ? osmRoute(th.osm) : null; const S2 = playMapState(); let bg = (keep.walk && keep.walk.stage === m.st && keep.walk.bg) || (S2.bgSt === m.st && S2.bg);   /* the stage's backdrop is painted once and kept */
     if (!bg) { bg = document.createElement('canvas'); bg.width = 960; bg.height = 450; sceneQuiet = folkOff = true; try { paintScene(bg.getContext('2d'), m.g.theme, 3); } finally { sceneQuiet = folkOff = false; } } S2.bg = bg; S2.bgSt = m.st;
     const now = performance.now(), z = m.cur * WK.gap; walk = { stage:m.st, th, bg, ids:m.ids, props:walkProps(th, m.ids.length), camZ:z, camT:z, vel:0, cur:m.cur, mZ:z, hop:null, drag:null, hits:[], shake:null, t0:now - 4000, last:0, on:false, raf:0 };
-    walkFrame(now, { cv, width:w0, height:h0 || Math.round(w0 * 285 / 358), noCredit:!!h0 }); return cv; }   /* Version 582: h0 = the Play card's real height; no credit on Play */
+    walkSnapping = true; try { walkFrame(now, { cv, width:w0, height:h0 || Math.round(w0 * 285 / 358), noCredit:!!h0 }); } finally { walkSnapping = false; } return cv; }   /* Version 582: h0 = the Play card's real height; no credit on Play */
   finally { walk = keep.walk; walkRoute = keep.walkRoute; viewStage = keep.viewStage; } }
 function playMapRender() { const S2 = playMapState(), cv2 = $('heroHome'), cap = $('pmCap'); if (!cv2 || !cap) return; let m; try { m = playMapAt(); } catch (e) { return; }
   const lab = `${t('Stage {n}', { n:stageNo(m.st) })}: ${sceneLabel(m.g.theme)} · ${t('Level {a} of {b}', { a:m.cur + 1, b:m.ids.length })}`; cap.textContent = lab; $('playMap').setAttribute('aria-label', `${lab}. ${t('Map')}`);
