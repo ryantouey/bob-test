@@ -2471,7 +2471,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.682.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.683.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -8682,7 +8682,7 @@ function labRun(sel, dt, draw) {
 // Version 405 (Workshop review): a firework or explosion card is a still of its brightest moment, zoomed to fill the card. WS_PEAK holds
 // [frame (1/30 s), zoom, centre x, centre y] for each item, measured once by drawing every third frame and keeping the brightest; an item
 // without an entry takes a frame at 40% of its loop. A tap on an owned card plays it once (cv._live), then the still comes back.
-const WS_PEAK = {"firework":{"peony":[12,2.18,160,92],"heart":[9,2.2,159,92],"blossom":[21,2.2,160,89],"willow":[36,1.75,157,105],"crackle":[24,1.61,164,102],"trophy":[96,1.02,145,98],"smiley":[15,2.2,160,89],"palm":[27,1.44,165,118],"parol":[9,1.52,160,98],"picture":[81,1.58,165,88],"jellyfish":[42,1.48,160,107],"slipper":[75,2.2,158,94],"butterfly":[42,2.2,161,82],"wonders":[86,1,160,90],"firefly":[39,1.25,137,75],"dragons":[72,2.1,157,81],"phoenix":[84,1.23,144,95],"aurora":[87,1,162,89],"galaxy":[87,1.09,165,92],"catface":[9,2.2,158,90],"notes":[9,2.2,157,79],"balloons":[42,2.2,154,76],"blossomtree":[78,1.23,162,93],"koi":[20,1.8,175,118,1],"bats":[96,1,150,92],"constellation":[78,1.25,200,78],"whale":[60,1.35,157,54,1],"hyperspace":[105,1,160,88],"storm":[90,1,146,90],"concert":[108,1,158,90],"cranes":[27,2.2,173,79],"lotus":[21,2.2,160,83],"rose":[48,1.61,160,81],"carousel":[72,2.2,160,75],"peacock":[72,1.37,162,81],"mermaid":[72,1,160,90],"starry":[111,1.34,158,51,1],"crown":[27,2.2,159,87],"umbrella":[18,2.2,161,89],"witching":[102,1,163,87],"shooting":[36,1,160,90,1],"dandelion":[9,2.2,160,88],"lanterns":[33,1.93,152,77],"neon":[30,1.18,126,89],"rabbit":[48,1.7,160,80,1],"masks":[87,1.21,160,68],"buzzer":[138,1.21,160,68],"cupid":[108,2.2,164,84],"xmastree":[138,1.51,160,72],"contact":[135,1.52,160,108],"cake":[18,2.2,160,86],"spiro":[36,1.89,160,91],"kites":[51,2.2,164,77],"flock":[84,1.93,153,93],"skywriter":[92,1.47,158,77,1],"beams":[58,1.35,160,82,1],"skull":[21,2.16,160,93],"kamuro":[104,1.2,160,100,1],"skyjeepney":[82,1.3,170,70,1],"goodboy":[110,1.5,160,110,1],"prism":[130,1.2,160,120,1],"diwali":[110,1.3,160,105,1],"sixer":[139,1.55,160,87,1],"sarimanok":[112,1.8,152,100,1],"bigsteps":[88,1.35,150,98,1],"fieldgoal":[96,1.6,155,92,1],"golazo":[72,1.5,155,95,1]},"blast":{"classic":[14,1.73,163,118,1],"confetti":[18,1.42,158,102],"heartpop":[15,1.6,168,121],"pie":[30,2.2,151,134],"petal":[69,1.01,149,83],"pulsar":[108,1.3,162,84,1],"chest":[39,1.95,175,119],"banana":[24,2.2,160,143],"pixelcrash":[52,1.3,160,85,1],"globe":[50,1.59,159,118,1],"meteor":[93,1.33,172,117],"comic":[24,1.25,162,113],"fairyring":[126,1.06,157,97],"bakunawa":[88,1,160,90,1],"foot":[42,1.04,145,80],"blackhole":[45,1.22,160,100],"supernova":[168,1,165,90],"anvil":[36,2.2,160,124],"abduct":[45,2.2,142,101],"volcano":[123,1.11,161,74],"tornado":[138,1.82,142,107],"wrath":[113,1,160,90,1],"ghosts":[108,1,160,108],"dust":[99,1,160,86],"krakenattack":[123,1.09,160,102],"garden":[171,1,160,100],"yarn":[69,1,160,134],"pinata":[66,1.7,161,58,1],"diamond":[72,1,155,90],"midnight":[150,1,160,90,1],"countdown":[90,1.16,155,81],"hexbrew":[84,1,160,141],"walkaway":[84,1.5,160,115,1],"sentai":[70,2,155,139,1],"dunk":[93,1.27,159,115,1],"rewind":[90,1.5,160,100,1],"fossil":[80,1.76,216,112,1],"cannonball":[42,2.2,164,129],"icewizard":[128,1.12,200,80,1],"liondance":[129,0.72,160,52,1],"popupbook":[45,1.25,160,74,1],"giantcat":[138,1.4,160,72,1],"videokefail":[156,0.95,160,82,1],"halohalo":[126,0.95,160,82,1],"clawmachine":[180,1.0,160,82,1],"threewhistles":[164,1.1,160,92,1],"baraat":[172,1.25,144,115,1],"crocs":[60,1.6,160,125,1],"blurryphoto":[118,1.3,160,67,1],"referee":[84,1.38,172,115,1],"hoanotice":[104,1.9,160,100,1]}};
+const WS_PEAK = {"firework":{"peony":[12,2.18,160,92],"heart":[9,2.2,159,92],"blossom":[21,2.2,160,89],"willow":[50,1.5,160,104,1],"crackle":[34,1.6,160,90,1],"trophy":[96,1.02,145,98],"smiley":[15,2.2,160,89],"palm":[27,1.44,165,118],"parol":[9,1.52,160,98],"picture":[81,1.58,165,88],"jellyfish":[42,1.48,160,107],"slipper":[75,2.2,158,94],"butterfly":[42,2.2,161,82],"wonders":[86,1,160,90],"firefly":[46,1.4,160,78,1],"dragons":[72,2.1,157,81],"phoenix":[84,1.23,144,95],"aurora":[87,1,162,89],"galaxy":[87,1.09,165,92],"catface":[26,1.85,160,84,1],"notes":[20,1.9,160,86,1],"balloons":[44,1.5,160,64,1],"blossomtree":[78,1.23,162,93],"koi":[20,1.8,175,118,1],"bats":[72,1.4,150,92,1],"constellation":[78,1.25,200,78],"whale":[60,1.35,157,54,1],"hyperspace":[70,1,160,88,1],"storm":[90,1,146,90],"concert":[108,1,158,90],"cranes":[27,2.2,173,79],"lotus":[21,2.2,160,83],"rose":[48,1.61,160,81],"carousel":[72,2.2,160,75],"peacock":[72,1.37,162,81],"mermaid":[72,1,160,90],"starry":[111,1.34,158,51,1],"crown":[42,1.9,160,80,1],"umbrella":[18,2.2,161,89],"witching":[102,1,163,87],"shooting":[36,1,160,90,1],"dandelion":[22,1.8,160,100,1],"lanterns":[60,1.8,160,74,1],"neon":[30,1.18,126,89],"rabbit":[48,1.7,160,80,1],"masks":[87,1.21,160,68],"buzzer":[138,1.21,160,68],"cupid":[108,2.2,164,84],"xmastree":[138,1.51,160,72],"contact":[135,1.52,160,108],"cake":[18,2.2,160,86],"spiro":[36,1.89,160,91],"kites":[51,2.2,164,77],"flock":[92,1.6,160,86,1],"skywriter":[72,1.25,160,84,1],"beams":[58,1.35,160,82,1],"skull":[21,2.16,160,93],"kamuro":[104,1.2,160,100,1],"skyjeepney":[82,1.3,170,70,1],"goodboy":[110,1.5,160,110,1],"prism":[130,1.2,160,120,1],"diwali":[110,1.3,160,105,1],"sixer":[139,1.55,160,87,1],"sarimanok":[112,1.8,152,100,1],"bigsteps":[88,1.35,150,98,1],"fieldgoal":[96,1.6,155,92,1],"golazo":[72,1.5,155,95,1]},"blast":{"classic":[14,1.73,163,118,1],"confetti":[18,1.42,158,102],"heartpop":[15,1.6,168,121],"pie":[30,2.2,151,134],"petal":[69,1.01,149,83],"pulsar":[108,1.3,162,84,1],"chest":[39,1.95,175,119],"banana":[24,2.2,160,143],"pixelcrash":[52,1.3,160,85,1],"globe":[50,1.59,159,118,1],"meteor":[93,1.33,172,117],"comic":[24,1.25,162,113],"fairyring":[126,1.06,157,97],"bakunawa":[88,1,160,90,1],"foot":[42,1.04,145,80],"blackhole":[45,1.22,160,100],"supernova":[168,1,165,90],"anvil":[36,2.2,160,124],"abduct":[45,2.2,142,101],"volcano":[123,1.11,161,74],"tornado":[138,1.82,142,107],"wrath":[113,1,160,90,1],"ghosts":[108,1,160,108],"dust":[99,1,160,86],"krakenattack":[123,1.09,160,102],"garden":[171,1,160,100],"yarn":[69,1,160,134],"pinata":[66,1.7,161,58,1],"diamond":[72,1,155,90],"midnight":[150,1,160,90,1],"countdown":[90,1.16,155,81],"hexbrew":[84,1,160,141],"walkaway":[84,1.5,160,115,1],"sentai":[70,2,155,139,1],"dunk":[93,1.27,159,115,1],"rewind":[90,1.5,160,100,1],"fossil":[80,1.76,216,112,1],"cannonball":[50,1.6,140,122,1],"icewizard":[128,1.12,200,80,1],"liondance":[129,0.72,160,52,1],"popupbook":[45,1.25,160,74,1],"giantcat":[138,1.4,160,72,1],"videokefail":[156,0.95,160,82,1],"halohalo":[126,0.95,160,82,1],"clawmachine":[180,1.0,160,82,1],"threewhistles":[164,1.1,160,92,1],"baraat":[172,1.25,144,115,1],"crocs":[60,1.6,160,125,1],"blurryphoto":[118,1.3,160,67,1],"referee":[84,1.38,172,115,1],"hoanotice":[104,1.9,160,100,1]}};
 // Version 408: a hand-picked still (an entry with a fifth value) uses fixed random numbers for its item, so it always looks the same
 const wsRand = key => { let h = 2166136261; for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); let a = h >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let q = Math.imul(a ^ (a >>> 15), 1 | a); q = (q + Math.imul(q ^ (q >>> 7), 61 | q)) ^ q; return ((q ^ (q >>> 14)) >>> 0) / 4294967296; }; };
 function wsStill(cv2) { cv2._still = true; const fire = cv2.dataset.kind === 'firework', key = cv2.dataset.key, x = (fire ? FIREWORKS : BLASTS)[key]; if (!x) return;
@@ -26493,6 +26493,619 @@ function poolOrder(a, b) { const at = u => Object.keys(UNLOCK_TABLES().find(q =>
 FIREWORKS.phoenix.card = [0.7, 104]; FIREWORKS.koi.card = [0.74, 100]; BLASTS.tornado.card = 0.5; BLASTS.cannonball.card = 0.8;
 /* Version 380: Swan Lake floats 10 px higher, so the raised crowd in the top strip no longer hides its hull. Its tubes move up with it, so the rockets still leave from the cannon mouths. */
 { const SW = LAUNCHERS.swanlake, D = 10, tb = SW.tubes; SW.tubes = function (n) { return tb.call(this, n).map(q => ({ ...q, y:q.y - D })); }; ['under', 'front', 'live'].forEach(k => { const f = SW[k]; SW[k] = function (c, ...a) { c.save(); c.translate(0, -D); f.apply(this, [c, ...a]); c.restore(); }; }); }
+// ---- Version 683: Balloon Release, upgraded: a bunch that comes untied, confetti, and a balloon dog ----
+// Owner, 13 November 2026: "Build 3 more first" (Sky Writer, UFO Saucer, Balloon Release). Both testers of 6 November scored it 5, the lowest
+// left: "bigger balloons ... a slight sway as they rise, and each one popping into confetti at the top", "with visible strings".
+// It was 22 small balloons flung out of the burst that rose faster and faster and ended in a few sparks.
+// Now each shell lets go a bunch: about a dozen bigger, glossy balloons rise together with their strings gathered, then the knot comes
+// loose and they drift apart, swaying, all leaning the same way on the wind, their strings trailing. Most of them pop into paper confetti
+// that flutters down; the rest float off. With the last shell a balloon dog floats up among them and away. The show holds 4.6 s after the
+// last shell. No sound is changed. Each colour of balloon is drawn once and reused.
+const balloonSprites = new Map();
+function balloonSprite(col) { let s = balloonSprites.get(col); if (s) return s; s = document.createElement('canvas'); s.width = 72; s.height = 96; const c = s.getContext('2d'); c.translate(36, 42); c.scale(3, 3);
+  const h = c.createRadialGradient(-3.5, -5, 0.5, 0, 0, 13.5); h.addColorStop(0, '#ffffff'); h.addColorStop(0.28, shade(col, 0.18)); h.addColorStop(0.75, col); h.addColorStop(1, shade(col, -0.32)); c.fillStyle = h; c.beginPath(); c.ellipse(0, 0, 10, 12, 0, 0, 7); c.fill();
+  c.fillStyle = shade(col, -0.32); c.beginPath(); c.moveTo(-2, 12.6); c.lineTo(2, 12.6); c.lineTo(0, 10.6); c.fill(); c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.ellipse(-4.2, -6, 1.7, 3.1, 0.5, 0, 7); c.fill(); balloonSprites.set(col, s); return s; }
+/* a balloon dog, side on, in unit coordinates (about 36 wide, 30 high) */
+function balloonDogSprite(col) { const key = 'dog' + col; let s = balloonSprites.get(key); if (s) return s; s = document.createElement('canvas'); s.width = 168; s.height = 132; const c = s.getContext('2d'), dk = shade(col, -0.3); c.translate(72, 78); c.scale(3.6, 3.6);
+  const seg = (x, y, rx, ry, rot) => { c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, 7); c.fillStyle = col; c.fill(); c.strokeStyle = dk; c.lineWidth = 0.5; c.stroke(); c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.ellipse(-rx * 0.3, -ry * 0.38, rx * 0.26, ry * 0.2, 0, 0, 7); c.fill(); c.restore(); };
+  seg(-11, 6.5, 2.3, 6, 0.14); seg(-7.4, 6.5, 2.3, 6, -0.14); seg(4.6, 6.5, 2.3, 6, 0.14); seg(8.2, 6.5, 2.3, 6, -0.14);   /* legs */
+  seg(-1.5, 0, 9.4, 3.1, 0); seg(-12.2, -6, 2, 5.4, -0.4); seg(8.6, -6, 2.4, 5.6, 0.28);   /* body, tail, neck */
+  seg(8, -15.6, 1.9, 4.7, -0.28); seg(11.3, -16, 1.9, 4.7, 0.22); seg(14.6, -10.4, 5.6, 2.7, 0.1);   /* ears, head */
+  c.fillStyle = dk; c.beginPath(); c.arc(20.4, -9.8, 0.9, 0, 7); c.fill(); balloonSprites.set(key, s); return s; }
+function balloonsUp(L, x, y, g, sp0, d) { const real = L === parts, last = fxLast(L, sp0) && real, home = real && S ? S : L, sp = Math.min(sp0, 150), scale = real ? Math.max(0.6, sp / 150) : 0.82, first = home.balAt == null || clock - home.balAt > 0.6; home.balAt = clock;
+  if (home.balWind == null) home.balWind = rand(0, 1) < 0.5 ? -1 : 1; const wind = home.balWind, HOLD = 0.55, kx = x, ky = y + 30 * scale;
+  FLASH(L, x, y, sp * 0.5);
+  fxPick(g, real ? (first ? 12 : 6) : 11).forEach((q, k) => { const a = rand(0, 6.283), v = (real ? sp : 96) * rand(0.55, 1.15), ex = Math.cos(a) * v, ey = Math.sin(a) * v * 0.5, bx = rand(-13, 13) * scale, by = rand(-16, 8) * scale, ph = rand(0, 6), col = q.c === '#f4f4ff' ? '#ff9ad0' : q.c, r = rand(10, 14.5) * scale, life = rand(3, 4.2), pops = rn(k * 3.7 + ph) < 0.62, img = balloonSprite(col), rise = rand(15, 24) * scale;
+    L.push(fxBase(x, y, life, { at:pops ? life - 0.1 : life + 9,
+      then(born, p) { for (let i = 0; i < 10; i++) { const w = rand(2.4, 4.2) * scale, rot = rand(0, 6.28), spin = rand(-9, 9), fl = rand(5, 11), cc = i % 4 === 3 ? '#ffffff' : i % 2 ? col : shade(col, 0.3); born.push(fxBase(p.x, p.y, rand(1, 1.7), { vx:rand(-80, 80) * scale, vy:rand(-90, 10) * scale, g:95, drag:2.4, paint(c, q2, al) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = clamp(al * 3); c.translate(q2.x, q2.y); c.rotate(rot + spin * q2.age); c.fillStyle = cc; const hh = w * 0.6 * (reduced ? 1 : Math.abs(Math.cos(q2.age * fl))) + 0.4; c.fillRect(-w / 2, -hh / 2, w, hh); } })); }
+        born.push(fxBase(p.x, p.y, 0.22, { step() {}, paint(c, q2, al) { c.globalCompositeOperation = 'lighter'; c.translate(p.x, p.y); c.globalAlpha = al; c.fillStyle = '#ffffff'; fourStar(c, r * (0.6 + (1 - al) * 0.7)); } })); },
+      step(p) { const t = p.age, f = Math.max(0, t - HOLD), e = 1 - Math.exp(-f * 2.2); p.x = x + bx + ex * e + wind * f * 9 * scale + (reduced ? 0 : Math.sin(t * 1.7 + ph) * 6 * scale * clamp(f * 2)); p.y = y + by + ey * e - t * rise - f * f * 3.5 * scale; },
+      paint(c, p) { const t = p.age, f = Math.max(0, t - HOLD), al = clamp(t * 5) * (pops ? 1 : clamp((life - t) / 0.7)), lean = (reduced ? 0 : Math.sin(t * 1.7 + ph) * 0.12) + wind * 0.1 * clamp(f); c.globalCompositeOperation = 'source-over'; c.globalAlpha = al * 0.7; c.strokeStyle = '#ffffff'; c.lineWidth = 0.8; c.lineCap = 'round';
+        /* the string: gathered at the knot while the bunch holds, then trailing free */
+        const sx = p.x - Math.sin(lean) * r * 1.25, sy = p.y + Math.cos(lean) * r * 1.25, tie = clamp(1 - f / 0.35), fx = lerp(sx - wind * 4 * scale + Math.sin(t * 4 + ph) * 3, kx, tie), fy = lerp(sy + r * 2.4, ky - t * rise, tie); c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo(sx + Math.sin(t * 5 + ph) * 3 * (1 - tie), (sy + fy) / 2, fx, fy); c.stroke();
+        c.globalAlpha = al; c.translate(p.x, p.y); c.rotate(lean); c.drawImage(img, -r * 1.2, -r * 1.4, r * 2.4, r * 3.2); } })); });
+  /* with the last shell, a balloon dog floats up among them and away */
+  if (last && first) { const vivid = h => { const n = parseInt(h.slice(1), 16), r = n >> 16, gg = (n >> 8) & 255, b = n & 255; return Math.max(r, gg, b) - Math.min(r, gg, b); }, best = g.map(q => q.c).filter(h => /^#[0-9a-f]{6}$/i.test(h)).sort((p, q) => vivid(q) - vivid(p))[0], col = best && vivid(best) > 40 ? best : '#ff9ad0', img = balloonDogSprite(col), z = 2.1, T = 4.3, ph = rand(0, 6), x0 = clamp(x, 70, W - 70), y0 = y + 46;
+    L.push(fxBase(x0, y0, T, { wait:0.5, step() {}, paint(c, p) { const t = p.age, px = x0 + wind * t * 10 + (reduced ? 0 : Math.sin(t * 1.2 + ph) * 9), py = y0 - t * 26 - t * t * 2; c.globalCompositeOperation = 'source-over'; c.globalAlpha = clamp(t * 3) * clamp((T - t) / 0.8); c.translate(px, py); c.rotate(reduced ? 0 : Math.sin(t * 1.2 + ph) * 0.13); const k = z / 3.6; c.drawImage(img, -72 * k, -78 * k, 168 * k, 132 * k); } })); } }
+FIREWORKS.balloons.burst = function (L, x, y, g, sp, d = 1) { balloonsUp(L, x, y, g, sp, d); };
+Object.assign(FIREWORKS.balloons, { loop:4.4, hold:4.6 });
+// ---- Version 683: Bat Colony, upgraded: the bats fly across the moon, and the last of them swoop at you ----
+// Owner, 13 November 2026: "Build 3 more first", then "do these five as well please" (Light Speed, Murmuration, Dandelion Drift, Glass Slipper,
+// Bat Colony). The testers of 6 November: "make the bats bigger, black silhouettes against the moon (the classic image)" and "have a few
+// fly toward the camera". The bats circled the moon in a ring, like a wreath.
+// Now they are bigger and they fly: every bat follows its own long figure of eight that crosses the face of the moon, banking as it turns,
+// so the colony streams over the moon as black shapes and out into the dark, where a violet rim light picks them out. After the last shell,
+// before the colony scatters, five great bats swoop straight at you and past. The moon is the same. No sound is changed.
+function batsFrom2(L, x, y, g, sp, d, last) { const real = L === parts, th = fxTheme(L), s = fxScale(L), [cx, cy] = th.center, R0 = 54 * s;
+  if (!th.moon) { th.moon = true; L.push(fxBase(cx, cy, 30, { t:0, step(p, dt) { p.t += dt; if ((fxLeft(th, real) ?? 1) < -0.5) p.age = p.life; },
+    paint(c, p) { const left = fxLeft(th, real), a = Math.min(1, p.t * 1.4) * (left != null && left < 0 ? clamp(1 + left / 0.5) : 1); c.globalAlpha = a; c.globalCompositeOperation = 'lighter'; const h = c.createRadialGradient(cx, cy, R0 * 0.6, cx, cy, R0 * 2.4); h.addColorStop(0, 'rgba(255,225,160,.5)'); h.addColorStop(1, 'rgba(255,190,110,0)'); c.fillStyle = h; c.beginPath(); c.arc(cx, cy, R0 * 2.4, 0, 7); c.fill();
+      c.globalCompositeOperation = 'source-over'; const m = c.createRadialGradient(cx - R0 * 0.3, cy - R0 * 0.3, 2, cx, cy, R0); m.addColorStop(0, '#fff6d6'); m.addColorStop(1, '#e8c88a'); c.fillStyle = m; c.beginPath(); c.arc(cx, cy, R0, 0, 7); c.fill(); c.fillStyle = 'rgba(170,130,80,.35)'; [[-0.3, -0.2, 0.2], [0.35, 0.1, 0.26], [-0.1, 0.45, 0.14], [0.2, -0.5, 0.11]].forEach(([u, v, r]) => { c.beginPath(); c.arc(cx + u * R0, cy + v * R0, r * R0, 0, 7); c.fill(); }); } })); }
+  const spawn = (sx, sy, grid, wait) => fxPick(grid, real ? 16 : 10).forEach((q, k) => { const RX = R0 * rand(1.5, 2.9), RY = R0 * rand(0.35, 1.2), oy0 = rand(-0.75, 0.75) * R0, a0 = rand(0, 6.283), spin = (k % 3 === 0 ? -1 : 1) * rand(0.9, 1.6), ph = rand(0, 6), ph2 = rand(-0.5, 0.5), pull = rand(0.5, 0.9), scale = rand(1.1, 1.9) * Math.max(0.55, s), flee = [Math.cos(a0) * rand(300, 620), Math.sin(a0) * rand(300, 620)], rim = q.c && q.c !== '#f4f4ff' ? q.c : '#b58cff';
+    const at = a => [cx + Math.cos(a) * RX, cy + oy0 + Math.sin(2 * a + ph2) * RY + Math.sin(a * 3 + ph) * 6 * s];   /* a long figure of eight through the moon */
+    L.push(fxBase(sx, sy, 30, { wait, tt:0, bank:0, step(p, dt) { p.tt += dt; const left = fxLeft(th, real), a = a0 + p.tt * spin, [ox, oy] = at(a), [nx, ny] = at(a + spin * 0.05), e = clamp(p.tt / pull), f = e * e * (3 - 2 * e); let px = lerp(sx, ox, f), py = lerp(sy, oy, f);
+        p.bank = reduced ? 0 : clamp((ny - oy) / (Math.abs(nx - ox) + 4), -1, 1) * 0.5 * Math.sign(nx - ox || 1);
+        if (left != null && left < 0.7) { const u = clamp((0.7 - left) / 1); px += flee[0] * u * u * s; py += flee[1] * u * u * s; if (u >= 1) p.age = p.life; } p.x = px; p.y = py; },
+      paint(c, p) { const over = Math.hypot(p.x - cx, p.y - cy) < R0 * 0.96; c.globalCompositeOperation = 'source-over'; c.translate(p.x, p.y); c.rotate(p.bank); drawBat(c, 0, 0, scale, p.tt * 18 + ph, over ? '#2a1838' : rim); } })); });
+  if (real) spawn(x, y, g, 0); else [[-120, 40], [120, 30], [0, 70]].forEach(([sx, sy], i) => spawn(sx, sy, g, i * 0.4));
+  if (last) { th.endAt = clock + (real ? 2.9 : 3.3);
+    /* five great bats come straight at you from the moon and pass by */
+    for (let i = 0; i < 5; i++) { const dir = i % 2 ? 1 : -1, ex = dir * rand(0.5, 1.5) * (real ? 150 : 110), ey = rand(40, 150) * (real ? 1 : 0.5), sx = cx + rand(-0.4, 0.4) * R0, sy = cy + rand(-0.3, 0.3) * R0, ph = rand(0, 6), T = 0.95;
+      L.push(fxBase(sx, sy, T, { wait:(real ? 1.25 : 1.9) + i * 0.13, step() {}, paint(c, p) { const u = p.age / T, e = u * u, z = lerp(1.6, real ? 9 : 5, u ** 1.5) * Math.max(0.55, s); c.globalCompositeOperation = 'source-over'; c.globalAlpha = clamp(u * 6) * clamp((1 - u) * 6); c.translate(sx + ex * e, sy + ey * e); c.rotate(reduced ? 0 : dir * 0.25 * u); drawBat(c, 0, 0, z, p.age * 16 + ph, '#b58cff'); } })); } } }
+FIREWORKS.bats.burst = function (L, x, y, g, sp, d = 1) { batsFrom2(L, x, y, g, sp, d, fxLast(L, sp)); };
+// ---- Version 683: Boba Tea, upgraded: pearls up the straw ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". The testers of
+// 6 November liked the cup but said a launch did little to it. Its pearls hopped inside the cup and the lid rippled.
+// Now every launch shoots three pearls up out of the straw that fired; they arc over and plop back in through the lid (a ripple, a few
+// drops of tea) and sink to the pile. The face is a little bigger and it lives: its eyes go wide and follow the pearls up, it squints
+// with a big smile as they land, and it blinks while it waits. Two small plops per launch are new sounds.
+function bobaSfx(fn) { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.launcher; try { fn(); } finally { cosK = 1; } }
+/* which straw has just fired: the show's newest launch, or the Workshop card's own timing */
+function bobaStraw(n) { if (inShow() && S.fireAt) { let k = -1, at = -1e9; for (let i = 0; i < n; i++) if (S.fireAt[i] != null && S.fireAt[i] > at) { at = S.fireAt[i]; k = i; } if (k >= 0 && S.t - at < 0.3) return k; } let b = 0, bf = -1; for (let k = 0; k < n; k++) { const f = clamp(1 - ((clock + k * 0.9) % 3.6) / 0.3); if (f > bf) { bf = f; b = k; } } return b; }
+{ const live0 = LAUNCHERS.boba.live;
+  LAUNCHERS.boba.live = function (c, n, t, f) { const seen = this.kicked; live0.call(this, c, n, t, f);
+    const hw = bobaHw(n), { top, bot } = BOBA, B = BOBA_SKINS[skinNow] || BOBA_SKINS[''], show = inShow(), ts = this.tubes(n);
+    this._bb = (this._bb || []).filter(q => clock >= q.at && clock - q.at < 1.7);
+    if (this.kicked != null && this.kicked !== seen && f > 0.8) { this._bb.push({ at:clock, k:Math.min(ts.length - 1, bobaStraw(n)), seed:rand(0, 9) }); if (this._bb.length > 5) this._bb.shift(); if (show) bobaSfx(() => { CS.bloop(430, 0.022, 0.64); CS.bloop(560, 0.015, 0.78); }); }
+    /* the pearls of each launch: out of the straw, over, and back in through the lid */
+    this._bb.forEach(q => { const tu = ts[q.k], mx = tu.x + Math.sin(tu.a) * tu.len, my = tu.y - Math.cos(tu.a) * tu.len;
+      for (let j = 0; j < 3; j++) { const u = (clock - q.at - j * 0.07) / 0.6; if (u <= 0) continue; const side = (rn(q.seed + j * 1.7) < 0.5 ? -1 : 1) * (j === 1 ? -1 : 1), lx = clamp(mx + side * (9 + j * 6), -hw + 11, hw - 11), ap = show ? 46 + j * 14 : 16 + j * 2;
+        if (u < 1) { const px = lerp(mx, lx, u), py = lerp(my, top - 2, u) - 4 * u * (1 - u) * ap, r = 3.5;   /* in the air: a pale light behind it, or a dark pearl is lost against the night */
+          c.save(); c.globalAlpha = 0.5; c.drawImage(softPuff('rgba(255,232,205,1)'), px - r * 2.4, py - r * 2.4, r * 4.8, r * 4.8); c.restore(); l9Pearl(c, px, py, r, B.pearl); c.strokeStyle = 'rgba(255,226,196,.75)'; c.lineWidth = 0.9; c.beginPath(); c.arc(px, py, r - 0.4, Math.PI * 0.95, Math.PI * 1.7); c.stroke(); continue; }
+        const w = (clock - q.at - j * 0.07 - 0.6) / 0.5; if (w >= 1) continue;
+        if (w < 0.6) { const e = w / 0.6; c.strokeStyle = `rgba(255,255,255,${0.8 * (1 - e)})`; c.lineWidth = 1.1; c.beginPath(); c.ellipse(lx, top, 4 + e * 8, 1.4 + e * 2.2, 0, 0, 7); c.stroke();   /* the plop: a ring on the lid, three drops of tea */
+          c.fillStyle = B.tea[1]; c.globalAlpha = 1 - e; [-1, 0, 1].forEach(d => { c.beginPath(); c.arc(lx + d * (3 + e * 6), top - 2 - Math.sin(e * Math.PI) * (5 + (d ? 0 : 3)), 1.1, 0, 7); c.fill(); }); c.globalAlpha = 1; }
+        c.save(); c.beginPath(); bobaCup(c, hw); bobaSleeve(c, hw); c.clip('evenodd'); c.globalAlpha = clamp((1 - w) * 3); l9Pearl(c, lx * lerp(1, 0.8, w), lerp(top + 5, bot - 12, w * (2 - w)), 3.9, B.pearl); c.restore(); } });   /* it sinks to the pile, following the cup's taper */
+    /* the face: it watches its pearls fly, squints as they plop back in, and blinks while it waits */
+    const shot = this._bb.length ? this._bb[this._bb.length - 1] : null, u = shot ? clock - shot.at : 9, wide = u < 0.5, glad = u >= 0.5 && u < 1.3, blink = !wide && !glad && !reduced && (t * 0.29 + 0.1) % 1 < 0.035, look = wide ? Math.sin(Math.min(1, u / 0.3) * Math.PI / 2) : 0;
+    c.fillStyle = '#2a160e'; c.beginPath(); c.arc(0, 3.5, 7.7, 0, 7); c.fill(); c.lineCap = 'round';
+    c.fillStyle = B.blush; c.globalAlpha = glad ? 1 : 0.85; [-5.1, 5.1].forEach(ex => { c.beginPath(); c.arc(ex, 5.4, glad ? 1.7 : 1.25, 0, 7); c.fill(); }); c.globalAlpha = 1;
+    c.fillStyle = '#fff'; c.strokeStyle = '#fff'; c.lineWidth = 1;
+    [-2.9, 2.9].forEach(ex => { if (glad) { c.beginPath(); c.arc(ex, 3.1, 1.75, Math.PI * 1.12, Math.PI * 1.88); c.stroke(); } else if (blink) { c.beginPath(); c.moveTo(ex - 1.3, 2.2); c.lineTo(ex + 1.3, 2.2); c.stroke(); } else { c.beginPath(); c.arc(ex, 2.1 - look * 1.1, wide ? 1.85 : 1.3, 0, 7); c.fill(); } });
+    if (wide) { c.beginPath(); c.arc(0, 6.6, 1.25, 0, 7); c.stroke(); } else { c.beginPath(); c.arc(0, glad ? 4.6 : 4.9, glad ? 3.1 : 2.4, glad ? 0.15 : 0.3, Math.PI - (glad ? 0.15 : 0.3)); c.stroke(); } };
+}
+// ---- Version 683: Butterflies (smoke), upgraded: they rest on the cannon's rim ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". The testers of
+// 6 November could not tell they were butterflies: four ovals and a line, spinning as they rose.
+// Now each one is a real butterfly, a little bigger: two pairs of wings with a dark edge, a pale patch and an eye spot, a body and antennae.
+// It lands on the rim of the damaged cannon and rests there, fanning its wings open and shut, then lifts off and flutters away the way a
+// butterfly flies: in little hops, leaning into its turns. Fewer of them at once (they are bigger and they stay longer). No sound is changed.
+const bflySprites = new Map();
+/* one side's pair of wings, drawn once per colour: 64 x 64, the body's line along the left edge, 24 px to one wing length */
+function bflyWings(col) { let s = bflySprites.get(col); if (s) return s; s = document.createElement('canvas'); s.width = 64; s.height = 64; const c = s.getContext('2d'), dark = shade(col, -0.5), pale = shade(col, 0.5); c.translate(2, 32); c.scale(24, 24); c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(0, -0.08); c.bezierCurveTo(0.3, -1.05, 1.22, -1.18, 1.28, -0.62); c.bezierCurveTo(1.3, -0.2, 0.7, 0.08, 0, 0.06); c.closePath(); c.fillStyle = col; c.fill(); c.strokeStyle = dark; c.lineWidth = 0.1; c.stroke();
+  c.beginPath(); c.moveTo(0, 0.04); c.bezierCurveTo(0.75, 0, 1.08, 0.5, 0.78, 0.9); c.bezierCurveTo(0.5, 1.13, 0.12, 0.7, 0, 0.3); c.closePath(); c.fillStyle = shade(col, -0.14); c.fill(); c.stroke();
+  c.fillStyle = pale; c.beginPath(); c.ellipse(0.5, -0.42, 0.3, 0.19, -0.5, 0, 7); c.fill(); c.beginPath(); c.ellipse(0.42, 0.44, 0.17, 0.2, 0.3, 0, 7); c.fill();
+  c.fillStyle = dark; c.beginPath(); c.arc(1.02, -0.66, 0.16, 0, 7); c.fill(); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(1.04, -0.68, 0.07, 0, 7); c.fill(); c.beginPath(); c.arc(0.7, 0.74, 0.06, 0, 7); c.fill();
+  bflySprites.set(col, s); return s; }
+Object.assign(SMOKES.butterflies, { rate:1.1,
+  spawn(L, x, y, k) { const r = rand(8, 11.5), rest = rand(0.55, 1.1), cols = ['#ff8fc0', '#c08aff', '#6fb8ff', '#ffd25e'];
+    L.push(mark({ x, y, vx:0, vy:0, sway:0, x0:x + rand(-5, 5), y0:y - r * 0.3, rest, life:rest + rand(1.9, 2.7), r, f:rand(2.2, 3.4), dir:rand(0, 1) < 0.5 ? -1 : 1, drift:rand(5, 13), rise:rand(20, 30), wob:rand(9, 16), lean:rand(-0.35, 0.35), col:cols[Math.floor(Math.random() * cols.length)] }, this.key, k)); },
+  draw(c, s) { const r = s.r, A = s.age, fly = A - s.rest; let open, tilt;
+    if (fly < 0) { s.x = s.x0; s.y = s.y0; open = reduced ? 0.8 : 0.34 + 0.62 * (0.5 + 0.5 * Math.sin(A * 4.2 + s.seed)); tilt = s.lean; }   /* resting on the rim, fanning its wings */
+    else { const e = Math.min(1, fly * 1.5); s.x = s.x0 + s.dir * fly * s.drift + Math.sin(fly * s.f + s.seed) * s.wob * e; s.y = s.y0 - fly * s.rise - (reduced ? 0 : Math.abs(Math.sin(fly * 7.5 + s.seed)) * 2.6);
+      open = reduced ? 0.7 : 0.2 + 0.8 * Math.abs(Math.sin(fly * 15 + s.seed)); tilt = lerp(s.lean, s.dir * 0.3 + Math.cos(fly * s.f + s.seed) * 0.28, e); }   /* away in little hops, leaning into its turns */
+    const img = bflyWings(s.col), w = r * 64 / 24, pop = 0.6 + 0.4 * clamp(A / 0.2);
+    c.save(); c.translate(s.x, s.y); c.rotate(tilt); c.scale(pop, pop); c.globalAlpha = 0.96 * fadeIn(s) * clamp((s.life - A) / 0.6);
+    [1, -1].forEach(d => { c.save(); c.scale(d * open, 1); c.drawImage(img, -r / 12, -r * 32 / 24, w, w); c.restore(); });
+    c.fillStyle = '#2a1b3d'; c.beginPath(); c.ellipse(0, 0.05 * r, 0.13 * r, 0.62 * r, 0, 0, 7); c.fill(); c.beginPath(); c.arc(0, -0.66 * r, 0.17 * r, 0, 7); c.fill();
+    c.strokeStyle = '#2a1b3d'; c.lineWidth = Math.max(0.6, 0.07 * r); c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -0.75 * r); c.quadraticCurveTo(-0.2 * r, -1.2 * r, -0.42 * r, -1.25 * r); c.moveTo(0, -0.75 * r); c.quadraticCurveTo(0.2 * r, -1.2 * r, 0.42 * r, -1.25 * r); c.stroke();
+    c.restore(); } });
+// ---- Version 683: Cannonball, upgraded: the dud and the white flag ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". The testers of
+// 6 November wanted a bigger ball and more of a story after the hit. It was a small ball that vanished into the wreck.
+// Now the ball is bigger and carries a lit fuse. It whistles in under a growing shadow, smashes the launcher, bounces out of the wreck twice
+// and rolls to a stop with its fuse still fizzing. A small white flag pops up out of the wreck and waves for all it is worth; the fuse
+// burns down ... and goes out with a puff. The flag waves on, slower. Five small sounds are new (two bounces, the fizz, the flag, the puff).
+// With the whole Ghost Pirates set on, the naval battle plays exactly as before: that code is not touched.
+const CB = { hit:0.9, b1:1.5, b2:1.9, stop:2.6, out:2.85, flag:1.55 };
+{ const cue = COS_SFX['blast:cannonball']; COS_SFX['blast:cannonball'] = () => { cue(); if (typeof setMoment !== 'undefined' && setMoment && setMoment.id === 'ghost') return;
+    CS.wood(170, 0.05, CB.b1); CS.wood(210, 0.03, CB.b2); CS.bloop(440, 0.026, CB.flag + 0.05); nz(0.8, 0.009, { bp:5200, q:1.5, a:0.1, at:CB.b2 + 0.05 }); nz(0.2, 0.026, { bp:800, to:300, q:1, a:0.01, at:CB.out }); }; }
+function cannonSolo(L, x, y) { const real = L === parts, s = real ? 1 : 0.62, g0 = fxGround(L, y), gy = g0 + 22 * s, R = 13 * s, ph = rand(0, 6.283);
+  const from = [x + 250 * s, g0 - 300 * s], to = [x + 6 * s, g0 - 14 * s], p1 = [x - 62 * s, gy - R], p2 = [x - 100 * s, gy - R], p3 = [x - 132 * s, gy - R], fx = x + 22 * s, base = gy - 14 * s, TURN = [0, -2.6, -7.2, -9.6, -4 * Math.PI + 0.45];
+  /* where the ball is and how far it has turned: in, out of the wreck, a second bounce, then it rolls to a stop */
+  const ballAt = t => { if (t < CB.hit) { const u = clamp(t / CB.hit); return [lerp(from[0], to[0], u), lerp(from[1], to[1], u) - Math.sin(u * Math.PI) * 40 * s, lerp(TURN[0], TURN[1], u)]; }
+    if (t < CB.b1) { const u = (t - CB.hit) / (CB.b1 - CB.hit); return [lerp(to[0], p1[0], u), lerp(to[1], p1[1], u) - 4 * u * (1 - u) * 52 * s, lerp(TURN[1], TURN[2], u)]; }
+    if (t < CB.b2) { const u = (t - CB.b1) / (CB.b2 - CB.b1); return [lerp(p1[0], p2[0], u), p1[1] - 4 * u * (1 - u) * 15 * s, lerp(TURN[2], TURN[3], u)]; }
+    const u = clamp((t - CB.b2) / (CB.stop - CB.b2)), e = 1 - (1 - u) ** 2; return [lerp(p2[0], p3[0], e), p3[1], lerp(TURN[3], TURN[4], e)]; };
+  const burn = t => 4 + 8 * clamp(1 - t / CB.out);   /* how much fuse is left */
+  const tipAt = t => { const [bx, by, rot] = ballAt(t), r = t < CB.hit ? (9 + 4 * t / CB.hit) * s : R, d = r + (2 + burn(t)) * s; return [bx + Math.sin(rot) * d, by - Math.cos(rot) * d]; };
+  L.push(fxBase(x, g0, 3.4, { at:CB.hit, fz:0,
+    step(p, dt) { p.fz += dt; if (p.fz > (reduced ? 0.12 : 0.05) && p.age < CB.out) { p.fz = 0; const [tx, ty] = tipAt(p.age); L.push(SPARK(tx, ty, rand(-34, 34) * s, rand(-52, -8) * s, rand(0, 1) < 0.5 ? '#ffd27a' : '#ff9a3c', rand(0.16, 0.32), rand(0.9, 1.4) * s, { g:170 * s })); } },
+    then(born) { if (real) { S.flash = 0.35; S.shake = 16; sfx.blast(); } const hx = to[0], hy = to[1];
+      for (let i = 0; i < 16; i++) { const w = rand(6, 13) * s, rot = rand(0, 6.28), spin = rand(-14, 14), wood = i % 3 ? '#7a5232' : '#4a3020'; born.push(fxBase(hx + rand(-14, 14) * s, hy, rand(1, 1.6), { vx:rand(-170, 170) * s, vy:rand(-280, -120) * s, g:560 * s, drag:0.5, paint(c, q, a) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = clamp(a * 2.5); c.translate(q.x, q.y); c.rotate(rot + spin * q.age); c.fillStyle = wood; c.fillRect(-w / 2, -1.7 * s, w, 3.4 * s); } })); }
+      for (let i = 0; i < 24; i++) born.push(EMBER(hx, hy, rand(3.5, 5.9), rand(60, 240) * s, i % 3 === 2 ? '#ffb04a' : i % 2 ? '#6cff5a' : '#b8ff9c', rand(0.6, 1.2), rand(1.4, 2.4), { g:190 * s }));
+      for (let i = 0; i < 10; i++) { const r0 = rand(9, 16) * s; born.push(fxBase(hx + rand(-30, 30) * s, hy - rand(0, 20) * s, rand(1.6, 2.6), { vx:rand(-18, 18) * s, vy:rand(-50, -20) * s, g:-8, drag:1, paint(c, q, a) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = 0.6 * a * clamp(q.age * 5); const r = r0 + q.age * 14 * s; c.drawImage(softPuff('rgba(30,32,34,1)'), q.x - r, q.y - r, r * 2, r * 2); } })); } },
+    paint(c, p) { const t = p.age, [bx, by, rot] = ballAt(t), out = clamp((3.4 - t) / 0.3), r = t < CB.hit ? (9 + 4 * t / CB.hit) * s : R; c.globalCompositeOperation = 'source-over'; c.lineCap = 'round'; c.lineJoin = 'round';
+      /* the shadow: it grows under the launcher as the ball comes in, then it goes with the ball */
+      if (t < CB.hit) { const u = t / CB.hit; c.fillStyle = `rgba(0,0,0,${0.15 + u * 0.35})`; c.beginPath(); c.ellipse(to[0], gy, 46 * s * (0.3 + u * 0.7), 7 * s * (0.3 + u * 0.7), 0, 0, 7); c.fill(); }
+      else { const hgt = clamp((gy - R - by) / (52 * s)); c.fillStyle = `rgba(0,0,0,${0.42 * out * (1 - 0.55 * hgt)})`; c.beginPath(); c.ellipse(bx, gy, R * (1.15 - 0.35 * hgt), R * 0.3, 0, 0, 7); c.fill(); }
+      /* the white flag: it pops up out of the wreck and waves hard, then slower once the fuse is out */
+      if (t > CB.flag) { const v = t - CB.flag, q = Math.min(1, v / 0.3) - 1, up = 1 + 2.7 * q * q * q + 1.7 * q * q, calm = clamp((t - CB.out) / 0.4), fr = lerp(13, 5, calm), sway = reduced ? 0.07 : Math.sin(v * fr + ph) * lerp(0.2, 0.07, calm), hgt = 66 * s * up, fw = 31 * s, fh = 19 * s, amp = (reduced ? 0.6 : lerp(2.6, 1.3, calm)) * s;
+        const wy = i => (reduced ? Math.sin(i * 1.1) : Math.sin(i * 1.05 - v * fr * 1.3)) * amp * (i / 6);
+        c.save(); c.beginPath(); c.rect(fx - 70 * s, base - 100 * s, 140 * s, 100 * s); c.clip(); c.translate(fx, base); c.rotate(sway); c.globalAlpha = out;
+        c.strokeStyle = '#8a6a48'; c.lineWidth = 2.3 * s; c.beginPath(); c.moveTo(0, 8 * s); c.lineTo(0, -hgt); c.stroke();
+        c.beginPath(); for (let i = 0; i <= 6; i++) c[i ? 'lineTo' : 'moveTo'](i / 6 * fw, -hgt + 1.5 * s + wy(i)); for (let i = 6; i >= 0; i--) c.lineTo(i / 6 * fw - (i === 6 ? 3 * s : 0), -hgt + 1.5 * s + fh + wy(i) - (i === 6 ? 2 * s : 0)); c.closePath(); c.fillStyle = '#f6f6f0'; c.fill(); c.strokeStyle = 'rgba(60,60,70,.35)'; c.lineWidth = 0.8 * s; c.stroke();
+        c.strokeStyle = 'rgba(0,0,0,.12)'; c.lineWidth = 1.2 * s; [2, 4].forEach(i => { c.beginPath(); c.moveTo(i / 6 * fw, -hgt + 3 * s + wy(i)); c.lineTo(i / 6 * fw, -hgt + fh + wy(i)); c.stroke(); });
+        c.fillStyle = 'rgba(70,56,44,.8)'; c.beginPath(); c.arc(fw * 0.8, -hgt + fh * 0.82 + wy(5), 2.3 * s, 0, 7); c.fill(); c.restore(); }
+      /* the ball in flight leaves a smoke trail */
+      if (t < CB.hit) { for (let i = 6; i >= 1; i--) { const [tx, ty] = ballAt(t - i * 0.035); c.globalAlpha = 0.28 * (1 - i / 7); c.drawImage(softPuff('rgba(190,190,196,1)'), tx - 8 * s, ty - 8 * s, 16 * s, 16 * s); } }
+      /* the fuse: a nub, a cord that burns down, a spark at its tip; when it goes out, a puff */
+      const squash = [CB.hit, CB.b1, CB.b2].reduce((m, tb) => Math.max(m, t >= tb ? clamp(1 - (t - tb) / 0.09) : 0), 0) * (reduced ? 0 : 0.16), len = burn(t) * s, [tx, ty] = tipAt(t);
+      c.globalAlpha = out; c.save(); c.translate(bx, by); c.rotate(rot); c.fillStyle = '#4a4d54'; c.fillRect(-2.4 * s, -r - 2.6 * s, 4.8 * s, 4.4 * s); c.strokeStyle = '#d2bd94'; c.lineWidth = 1.6 * s; c.beginPath(); c.moveTo(0, -r - 2 * s); c.quadraticCurveTo(2.5 * s, -r - 2 * s - len * 0.55, 0, -r - 2 * s - len); c.stroke(); c.restore();
+      c.save(); c.translate(bx, by + r * squash); c.scale(1 + squash, 1 - squash); ghBall(c, 0, 0, r); c.strokeStyle = 'rgba(190,200,220,.35)'; c.lineWidth = 1 * s; c.beginPath(); c.arc(0, 0, r - 0.5 * s, Math.PI * 1.05, Math.PI * 1.6); c.stroke(); c.restore();
+      if (t < CB.out) { const fl = reduced ? 0.85 : 0.7 + 0.3 * Math.sin(t * 47) * Math.sin(t * 31), low = t > CB.stop ? lerp(1, 0.45, (t - CB.stop) / (CB.out - CB.stop)) : 1; c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55 * out * fl; c.drawImage(softPuff('rgba(255,160,60,1)'), tx - 9 * s, ty - 9 * s, 18 * s, 18 * s); c.translate(tx, ty); c.rotate(reduced ? 0 : t * 9); c.globalAlpha = out; c.fillStyle = '#ffd27a'; fourStar(c, 3.4 * s * fl * low); c.fillStyle = '#ffffff'; fourStar(c, 1.5 * s * low); c.restore(); }
+      else for (let i = 0; i < 3; i++) { const v = (t - CB.out - i * 0.09) / 0.75; if (v <= 0 || v >= 1) continue; const pr = (3.5 + v * 9) * s; c.globalAlpha = 0.5 * (1 - v) * out; c.drawImage(softPuff('rgba(200,200,206,1)'), tx + (i - 1) * 3 * s - pr + v * 5 * s, ty - v * 24 * s - pr, pr * 2, pr * 2); } } })); }
+BLASTS.cannonball.blow = function (L, x, y) { if (L === parts && setFull('ghost')) makeCannonball(L, x, y); else cannonSolo(L, x, y); };
+// ---- Version 683: Cat Face, upgraded ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". Both testers of
+// 6 November asked for green eyes that blink and a pink nose ("cats sell, so this could be a favourite"). It was a dotted outline.
+// Now the face is drawn on in warm light, its green eyes open, and a spark in the shell's own colour drifts round its head: the cat's eyes
+// follow it. It blinks, its whiskers twitch, and on the last shell it winks and gives a second, smaller mew. When the outline lets go as
+// glitter, the eyes and the smile stay a moment longer before they go out.
+function catSfx(fn) { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.firework; try { fn(); } finally { cosK = 1; } }
+function catBurst(L, x, y, g, sp, d) { const real = L === parts, last = fxLast(L, sp), home = real && S ? S : L, first = home.catAt == null || clock - home.catAt > 0.6; if (first) home.catN = (home.catN || 0) + 1; home.catAt = clock;   /* a shell's own extra bursts are kittens beside the cat */
+  const live = home.catLive = (home.catLive || []).filter(q => q.age < q.life); live.forEach(q => { if (q.grp !== home.catN && q.age < q.at - 0.1) { q.at = Math.max(q.age + 0.1, 0.8); q.quick = true; } });   /* the cats of earlier shells let go as this one arrives */
+  const U0 = sp * (last && real ? 0.8 : 0.6) * (first ? 1 : 0.58), U = real ? Math.min(U0, (W / 2 - 12) / 1.3) : U0, k = Math.max(0.45, U / 105), T0 = last && real ? 2.3 : 1.9, ph = rand(0, 6.283);
+  if (real) { x = clamp(x, U * 1.3 + 6, W - U * 1.3 - 6); y = Math.max(y, -H * 0.62 + 1.08 * U + 22); }   /* the ears stay on the screen */
+  const cols = [...new Set(g.map(q => q.c))].filter(q => q !== '#f4f4ff'), toy = cols[0] || '#ffd25e', ear = cols[1] || cols[0] || '#ff9ab8', wink = last && real && first;
+  const head = [[-0.9, 0.05], [-0.85, -0.95], [-0.35, -0.6], [0.35, -0.6], [0.85, -0.95], [0.9, 0.05]].concat(Array.from({ length:15 }, (_, i) => { const a = i / 14 * Math.PI; return [Math.cos(a) * 0.9, 0.08 + Math.sin(a) * 0.9]; }));
+  const len = head.slice(1).map((q, i) => Math.hypot(q[0] - head[i][0], q[1] - head[i][1])), total = len.reduce((a, b) => a + b, 0);
+  /* where the drifting spark is, in the face's own coordinates */
+  const toyAt = t => [1.32 * Math.cos(t * 1.9 + ph), -0.5 + 0.8 * Math.sin(t * 2.7 + ph * 2)];
+  FLASH(L, x, y, sp * 0.6); if (wink) catSfx(() => CS.meow(pen(880, 2), 0.022, 1.3));
+  const P = fxBase(x, y, T0 + 0.8, { at:T0, grp:home.catN, step() {},
+    then(born) { let dd = 0; head.forEach((q, i) => { if (i && (dd += len[i - 1]) < 0.1) return; dd = 0; born.push(SPARK(x + q[0] * U, y + q[1] * U, rand(-14, 14), rand(-8, 20), i % 3 ? '#ffa94a' : '#ffd9a0', rand(0.7, 1.2), rand(1.3, 2) * k, { g:64, drag:1.4, twk:rand(1, 6) })); }); },
+    paint(c, p) { const t = p.age, T = p.at, out = t > T ? clamp(1 - (t - T) / 0.3) : 1, stay = clamp(1 - (t - T - (p.quick ? 0 : 0.45)) / 0.25), open = clamp((t - 0.32) / 0.16), [tx, ty] = toyAt(t);
+      c.translate(x, y); c.scale(U, U); c.rotate(reduced ? 0 : 0.05 * Math.sin(t * 1.9 + ph)); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineJoin = 'round';
+      if (out > 0) { /* the head, drawn on; the ears' insides; the whiskers */
+        let left = clamp(t / 0.4) * total; c.beginPath(); c.moveTo(head[0][0], head[0][1]); for (let i = 1; i < head.length && left > 0; i++) { const u = Math.min(1, left / len[i - 1]); c.lineTo(lerp(head[i - 1][0], head[i][0], u), lerp(head[i - 1][1], head[i][1], u)); left -= len[i - 1]; }
+        c.globalAlpha = 0.28 * out; c.strokeStyle = '#ff8a2a'; c.lineWidth = 8 * k / U; c.stroke(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = out; c.strokeStyle = '#ffb45a'; c.lineWidth = 3.2 * k / U; c.stroke(); c.strokeStyle = '#ffe6c0'; c.lineWidth = 1.3 * k / U; c.stroke();
+        c.globalAlpha = 0.5 * out * open; c.fillStyle = ear; [-1, 1].forEach(s => { c.beginPath(); c.moveTo(s * 0.78, -0.78); c.lineTo(s * 0.5, -0.56); c.lineTo(s * 0.8, -0.36); c.closePath(); c.fill(); });
+        c.globalAlpha = out * open; c.strokeStyle = '#ffe6c0'; c.lineWidth = 1.5 * k / U; const tw = reduced ? 0 : Math.sin(t * 9) * 0.05 * (Math.sin(t * 2.3) > 0.2 ? 1 : 0); [-1, 1].forEach(s => [[0.18, 0.08 + tw], [0.3, 0.42 - tw]].forEach(([y0, y1]) => { c.beginPath(); c.moveTo(s * 0.45, y0); c.lineTo(s * 1.25, y1); c.stroke(); })); }
+      if (stay <= 0) return; const al = stay * open; c.globalCompositeOperation = 'source-over';
+      /* the eyes: they open, follow the spark, blink once, and on the last shell one of them winks */
+      [-1, 1].forEach(s => { const ex = s * 0.36, ey = -0.1, blink = t > 1.0 && t < 1.12, winks = wink && s > 0 && t > 1.3 && t < 1.85, ry = 0.125 * open * (blink ? 0.12 : 1);
+        if (winks) { c.globalAlpha = al; c.strokeStyle = '#9dffa8'; c.lineWidth = 2.4 * k / U; c.beginPath(); c.moveTo(ex - 0.17, ey + 0.03); c.quadraticCurveTo(ex, ey - 0.13, ex + 0.17, ey + 0.03); c.stroke(); return; }
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.35 * al; c.fillStyle = '#3cff6a'; c.beginPath(); c.ellipse(ex, ey, 0.27, ry * 1.9 + 0.03, 0, 0, 7); c.fill(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = al; c.fillStyle = '#58e878'; c.beginPath(); c.moveTo(ex - 0.19, ey); c.quadraticCurveTo(ex, ey - ry * 2, ex + 0.19, ey); c.quadraticCurveTo(ex, ey + ry * 2, ex - 0.19, ey); c.fill();
+        if (ry > 0.05) { const dx = tx - ex, dy = ty - ey, dl = Math.hypot(dx, dy) || 1; c.fillStyle = '#0c1a10'; c.beginPath(); c.ellipse(ex + dx / dl * 0.075, ey + dy / dl * 0.03, 0.04, ry * 0.82, 0, 0, 7); c.fill(); } });
+      /* nose and mouth */
+      c.globalAlpha = al; c.fillStyle = '#ff8fb0'; c.beginPath(); c.moveTo(-0.08, 0.14); c.lineTo(0.08, 0.14); c.lineTo(0, 0.24); c.closePath(); c.fill(); c.strokeStyle = '#ffe0b0'; c.lineWidth = 1.7 * k / U; c.beginPath(); c.moveTo(-0.17, 0.33); c.quadraticCurveTo(-0.08, 0.42, 0, 0.26); c.quadraticCurveTo(0.08, 0.42, 0.17, 0.33); c.stroke();
+      if (wink && t > 1.35 && t < 2.3) { const v = (t - 1.35) / 0.95; c.globalAlpha = al * clamp(v * 5) * clamp((1 - v) * 3); c.fillStyle = '#ff7aa8'; heartPath(c, 0.72 + v * 0.1, -0.2 - v * 0.42, 0.09 + v * 0.03); c.fill(); }
+      /* the spark it watches */
+      if (out > 0 && t > 0.3) { c.globalCompositeOperation = 'lighter'; const [qx, qy] = toyAt(t - 0.06); c.globalAlpha = 0.5 * out; c.strokeStyle = toy; c.lineWidth = 2 * k / U; c.beginPath(); c.moveTo(qx, qy); c.lineTo(tx, ty); c.stroke(); c.save(); c.translate(tx, ty); c.globalAlpha = out * (reduced ? 1 : 0.7 + 0.3 * Math.sin(t * 22)); c.fillStyle = toy; fourStar(c, 0.085); c.fillStyle = '#ffffff'; fourStar(c, 0.04); c.restore(); } } }); L.push(P); live.push(P); }
+FIREWORKS.catface.burst = function (L, x, y, g, sp, d = 1) { catBurst(L, x, y, g, sp, d); };
+// ---- Version 683: Crackle, upgraded ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". Both testers of
+// 6 November: "make the crackle the star". It was a plain burst whose sparks each gave one small pop. Now the burst throws out a cloud of
+// faint embers, and the crackle rolls through them from the middle outward: each one pops as a small gold star with a few sparks. It ends on
+// one last big pop in the middle, on the last click of the sound it already has (16 clicks from 0.6 s to 1.3 s). No sound is changed.
+// With Reduce flashing the pops are steady stars and the last pop has no flash.
+function crackleBurst(L, x, y, g, sp0, d) { const sp = Math.min(sp0, 170), real = L === parts, k = Math.max(0.55, sp / 140), R = sp * 1.05, n = Math.round((real ? 46 : 26) + 40 * fxFill(g, d)), cols = [...new Set(g.map(q => q.c))].filter(q => q !== '#f4f4ff');
+  const star = (b, px, py, size, life) => b.push(fxBase(px, py, life, { step() {}, paint(c, q, a) { c.translate(q.x, q.y); c.globalCompositeOperation = 'source-over'; c.globalAlpha = reduced ? clamp(a * 2) : clamp(a * 1.6); c.fillStyle = '#ffc23a'; fourStar(c, size * (reduced ? 0.8 : 0.55 + 0.45 * a)); c.globalCompositeOperation = 'lighter'; c.fillStyle = '#ffffff'; fourStar(c, size * 0.5); } }));
+  FLASH(L, x, y, sp * 0.7); g.forEach(q => L.push(SPARK(x, y, q.dx * sp * 2 * rand(0.85, 1.1), q.dy * sp * 2 * rand(0.85, 1.1), q.c, rand(0.3, 0.5), rand(1.5, 2.3), { g:30, drag:2.6, tail:0.12 })));   /* the opening burst, in the shell's colours */
+  for (let i = 0; i < n; i++) { const a = rand(0, 6.283), r = R * Math.sqrt(rand(0.03, 1)), at = 0.6 + r / R * 0.55 + rand(0, 0.1), col = cols.length && i % 3 === 0 ? cols[i % cols.length] : '#ffd25e';
+    L.push(SPARK(x, y, Math.cos(a) * r * 3.2, Math.sin(a) * r * 3.2, '#d9a53a', at + 0.12, 1.2 * k, { g:22, drag:3.2, tail:0.03, at,
+      then(b, p) { star(b, p.x, p.y, rand(7, 11) * k, 0.13); for (let j = 0; j < 5; j++) { const e = rand(0, 6.283), v = rand(40, 95) * k; b.push(SPARK(p.x, p.y, Math.cos(e) * v, Math.sin(e) * v, j % 2 ? '#fff8e0' : col, rand(0.18, 0.36), 1.2 * k, { g:30, drag:3, tail:0.06 })); } b.push(SPARK(p.x, p.y, 0, 6, '#ffd25e', rand(0.25, 0.5), 1 * k, { g:14, drag:1, twk:rand(1, 9) })); } })); }
+  /* the last pop */
+  L.push(fxBase(x, y, 1.5, { at:1.3, step() {}, paint() {}, then(b) { star(b, x, y + 8 * k, 26 * k, 0.26); if (!reduced) b.push({ x, y:y + 8 * k, vx:0, vy:0, c:'#fff4d6', life:0.14, age:0, r:sp * 0.13, g:0, drag:0, flash:true }); for (let j = 0; j < 16; j++) { const e = j / 16 * 6.283, v = rand(70, 120) * k; b.push(SPARK(x, y + 8 * k, Math.cos(e) * v, Math.sin(e) * v, j % 2 ? '#fff8e0' : '#ffd25e', rand(0.3, 0.55), 1.5 * k, { g:40, drag:2.4, tail:0.08, twk:rand(1, 9) })); } } })); }
+FIREWORKS.crackle.burst = function (L, x, y, g, sp, d = 1) { crackleBurst(L, x, y, g, sp, d); };
+// ---- Version 683: Crown, upgraded (the Royal Keep starter set's firework) ----
+// Owner, 13 November 2026: "can you please do the next 10 suggested improvements to the cosmetics? please think deeply on how to make each of
+// them feel just a little bit extra special"; asked one crown built up or a new crown each shell, he chose "New crown each shell".
+// It was a dotted outline with four jewel sparks. Now every shell draws its own gold crown, stroke by stroke, and sets its gems one at a
+// time, each with a glint: a tiara, then a coronet, and for the last shell the king's crown, the biggest. A gleam runs round the band,
+// then the crown lets go: the outline falls as gold glitter and every gem pops. The gems take the shell's own colours. No sound is changed.
+const crownArc = (x0, y0, cx, cy, x1, y1, n = 8) => Array.from({ length:n + 1 }, (_, i) => { const u = i / n, v = 1 - u; return [v * v * x0 + 2 * v * u * cx + u * u * x1, v * v * y0 + 2 * v * u * cy + u * u * y1]; });
+/* three crowns in unit coordinates (x right, y down): the strokes to draw, the stroke the gleam runs along, and the gems [x, y, r, 1 = pearl] */
+const CROWN_FORMS = [
+  { band:1, strokes:[[[-0.9, 0.5], [-1, -0.45], [-0.5, 0.02], [0, -0.78], [0.5, 0.02], [1, -0.45], [0.9, 0.5]], [[-0.9, 0.5], [0.9, 0.5], [0.88, 0.78], [-0.88, 0.78], [-0.9, 0.5]], crownArc(-1, -0.45, -0.72, -1.08, 0, -1.02), crownArc(1, -0.45, 0.72, -1.08, 0, -1.02)],
+    gems:[[0, -1.12, 0.1, 1], [0, -0.78, 0.085], [-1, -0.45, 0.085], [1, -0.45, 0.085], [0, 0.64, 0.115], [-0.55, 0.64, 0.085], [0.55, 0.64, 0.085]] },
+  { band:0, strokes:[crownArc(-0.95, 0.52, 0, 0.2, 0.95, 0.52, 12), crownArc(0.95, 0.7, 0, 0.4, -0.95, 0.7, 12), crownArc(-0.3, 0.36, 0, -1.05, 0.3, 0.36, 10), crownArc(-0.78, 0.47, -0.56, -0.5, -0.3, 0.37, 8), crownArc(0.78, 0.47, 0.56, -0.5, 0.3, 0.37, 8)],
+    gems:[[0, -0.42, 0.1], [-0.55, -0.08, 0.07], [0.55, -0.08, 0.07], [0, 0.42, 0.07, 1]] },
+  { band:1, strokes:[[[-0.9, 0.3], [-0.8, -0.25], [-0.6, 0.12], [-0.4, -0.25], [-0.2, 0.12], [0, -0.38], [0.2, 0.12], [0.4, -0.25], [0.6, 0.12], [0.8, -0.25], [0.9, 0.3]], [[-0.9, 0.3], [0.9, 0.3], [0.9, 0.62], [-0.9, 0.62], [-0.9, 0.3]]],
+    gems:[[-0.8, -0.31, 0.06, 1], [-0.4, -0.31, 0.06, 1], [0, -0.44, 0.07, 1], [0.4, -0.31, 0.06, 1], [0.8, -0.31, 0.06, 1], [-0.45, 0.46, 0.08], [0, 0.46, 0.09], [0.45, 0.46, 0.08]] } ];
+CROWN_FORMS.forEach(F => { F.len = F.strokes.map(s => s.slice(1).reduce((a, p, i) => a + Math.hypot(p[0] - s[i][0], p[1] - s[i][1]), 0)); F.total = F.len.reduce((a, b) => a + b, 0); });
+/* the point a distance along a stroke */
+function crownAt(s, dist) { for (let i = 1; i < s.length; i++) { const l = Math.hypot(s[i][0] - s[i - 1][0], s[i][1] - s[i - 1][1]); if (dist <= l || i === s.length - 1) { const u = l ? clamp(dist / l) : 0; return [lerp(s[i - 1][0], s[i][0], u), lerp(s[i - 1][1], s[i][1], u)]; } dist -= l; } return s[0]; }
+function crownBurst(L, x, y, g, sp, d) { const real = L === parts, last = fxLast(L, sp), home = real && S ? S : L;
+  const first = home.crownAt == null || clock - home.crownAt > 0.6; if (first) home.crownN = (home.crownN == null ? -1 : home.crownN) + 1; home.crownAt = clock;   /* a shell's own extra bursts wear the same crown, smaller */
+  const live = home.crownLive = (home.crownLive || []).filter(q => q.age < q.life); live.forEach(q => { if (q.grp !== home.crownN && q.age < q.at - 0.1) q.at = Math.max(q.age + 0.1, 0.8); });   /* the crowns of earlier shells let go as this one arrives */
+  const F = CROWN_FORMS[real ? (last ? 0 : 1 + home.crownN % 2) : home.crownN % 3], U0 = sp * (last && real ? 0.95 : 0.64) * (first ? 1 : 0.6), U = real ? Math.min(U0, (W / 2 - 12) / 1.08) : U0, k = Math.max(0.45, U / 110), T0 = last && real ? 2.2 : 1.9;
+  if (real) { x = clamp(x, U * 1.08 + 6, W - U * 1.08 - 6); y = Math.max(y, -H * 0.62 + 1.26 * U + 14); }   /* the whole crown stays on the screen: the sky's top edge is at -H * 0.62 */
+  const cols = [...new Set(g.map(q => q.c))].filter(q => q !== '#f4f4ff'), pal = cols.length ? cols : ['#ff4f6a', '#4f9dff', '#3ee08a'], gems = F.gems.map((q, i) => ({ x:q[0], y:q[1], r:q[2], col:q[3] ? '#ffffff' : pal[i % pal.length], at:0.55 + i * 0.11 }));
+  FLASH(L, x, y, sp * 0.7);
+  const P = fxBase(x, y, T0 + 0.5, { at:T0, grp:home.crownN, step() {},
+    then(born) { F.strokes.forEach((s, si) => { const n = Math.max(2, Math.round(F.len[si] / 0.11)); for (let i = 0; i <= n; i++) { const [px, py] = crownAt(s, F.len[si] * i / n); born.push(SPARK(x + px * U, y + py * U, rand(-14, 14), rand(-10, 22), i % 3 ? '#ffc23a' : '#ffe27a', rand(0.7, 1.3), rand(1.3, 2.1) * k, { g:70, drag:1.4, twk:rand(1, 6) })); } });
+      gems.forEach(q => { for (let j = 0; j < 8; j++) { const a = j / 8 * 6.283, v = rand(24, 44) * k; born.push(SPARK(x + q.x * U, y + q.y * U, Math.cos(a) * v, Math.sin(a) * v, q.col, rand(0.6, 1), 1.7 * k, { g:30, drag:2.4, twk:j % 2 ? rand(1, 6) : 0 })); } }); },
+    paint(c, p) { const t = p.age, T = p.at, fade = t > T ? clamp(1 - (t - T) / 0.3) : 1; if (fade <= 0) return; let left = clamp(t / 0.5) * F.total; c.translate(x, y); c.scale(U, U); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.beginPath(); F.strokes.forEach((s, si) => { if (left <= 0) return; let d2 = Math.min(left, F.len[si]); left -= d2; c.moveTo(s[0][0], s[0][1]); for (let i = 1; i < s.length && d2 > 0; i++) { const l = Math.hypot(s[i][0] - s[i - 1][0], s[i][1] - s[i - 1][1]), u = l ? Math.min(1, d2 / l) : 1; c.lineTo(lerp(s[i - 1][0], s[i][0], u), lerp(s[i - 1][1], s[i][1], u)); d2 -= l; } });
+      c.globalAlpha = 0.3 * fade; c.strokeStyle = '#ff9a1e'; c.lineWidth = 8 * k / U; c.stroke(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = fade; c.strokeStyle = '#f2b21c'; c.lineWidth = 3.4 * k / U; c.stroke(); c.strokeStyle = '#ffe27a'; c.lineWidth = 1.5 * k / U; c.stroke();   /* a glow in added light, then solid gold over it: added light alone turns gold to white on a pale sky */
+      gems.forEach(q => { const v = (t - q.at) / 0.16; if (v <= 0) return; const r = q.r * (v < 1 ? 1 + 0.6 * Math.sin(v * Math.PI) : 1); c.globalAlpha = fade; c.fillStyle = q.col; c.beginPath(); c.arc(q.x, q.y, r, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(q.x - r * 0.3, q.y - r * 0.3, r * 0.34, 0, 7); c.fill();
+        if (v < 2.2) { c.save(); c.globalCompositeOperation = 'lighter'; c.translate(q.x, q.y); c.rotate(reduced ? 0 : v * 0.5); c.globalAlpha = fade * clamp(1 - (v - 0.6) / 1.6); c.fillStyle = '#ffffff'; fourStar(c, q.r * 2.4); c.restore(); } });
+      const gl = (t - 1.1) / (last ? 0.7 : 0.5); if (gl > 0 && gl < 1) { const bs = F.strokes[F.band], [gx, gy] = crownAt(bs, F.len[F.band] * gl); c.save(); c.globalCompositeOperation = 'lighter'; c.translate(gx, gy); c.globalAlpha = fade * Math.sin(gl * Math.PI); c.fillStyle = '#ffffff'; fourStar(c, 0.2); c.restore(); } } }); L.push(P); live.push(P); }
+FIREWORKS.crown.burst = function (L, x, y, g, sp, d = 1) { crownBurst(L, x, y, g, sp, d); };
+// ---- Version 683: Dandelion Drift, upgraded: a clean head on a stem, seeds that lift away on one wind ----
+// Owner, 13 November 2026: "Build 3 more first", then "do these five as well please" (Light Speed, Murmuration, Dandelion Drift, Glass Slipper,
+// Bat Colony). Both testers of 6 November: "lose the grey blurry disc in the middle (it looks like a smudge), and let the seeds float upward
+// and sideways on a breeze, longer". The disc was a pale glow that turned to a smudge on the light part of the sky.
+// Now each head is a small warm centre on a thin green stem, so it reads as a dandelion clock at once. Its seeds let go one by one and lift
+// up and away, all on the same wind for the whole show, for about a second longer than before; one last seed hangs on, then follows. On the
+// last shell every seed ends in a twinkle. The show holds 4.2 s after the last shell. No sound is changed.
+function dandelionBurst2(L, x, y, g, sp0, d) { const sp = Math.min(sp0, 130), real = L === parts, last = fxLast(L, sp0) && real, home = real && S ? S : L, R = sp * 0.62, seeds = fxPick(g, 34), wind = sp * 0.42, r0 = Math.max(0.5, sp / 90), HEAD = 3.3;
+  if (home.danWind == null) home.danWind = rand(0, 1) < 0.5 ? 1 : -1; const drift = home.danWind;
+  FLASH(L, x, y, sp * 0.3);
+  /* the head: a small warm centre on a thin stem, where the pale disc used to be */
+  L.push(fxBase(x, y, HEAD, { step() {}, paint(c, p) { const t = p.age, a = clamp(t / 0.25) * clamp((HEAD - t) / 0.8); c.lineCap = 'round';
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 0.62 * a; c.strokeStyle = '#a9d68f'; c.lineWidth = Math.max(0.9, 1.3 * r0); c.beginPath(); c.moveTo(x, y + R * 0.1); c.quadraticCurveTo(x - drift * R * 0.12, y + R * 1.1, x + drift * R * 0.22, y + R * 2); c.stroke();
+      c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.4 * a; c.drawImage(softPuff('rgba(255,236,170,1)'), x - R * 0.3, y - R * 0.3, R * 0.6, R * 0.6);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.fillStyle = '#fff1c2'; c.beginPath(); c.arc(x, y, Math.max(1.6, R * 0.085), 0, 7); c.fill(); } }));
+  seeds.forEach((q, i) => { const a = i * 2.399, rad = R * (0.72 + rn(i + 3) * 0.28), hx = Math.cos(a) * rad, hy = Math.sin(a) * rad * 0.94, go = i ? 0.55 + rn(i + 7) * 1.3 : 2.5, T = go + rand(2.1, 3), col = q.c === '#f4f4ff' ? '#fff8e0' : shade(q.c, 0.45), sw = rn(i + 11) * 6.28, sz = (7 + rn(i + 5) * 3.4) * r0, lift = 0.13 + rn(i + 13) * 0.09;
+    /* where a seed is: on the head until it lets go, then up and away on the wind */
+    const posAt = t => { const bloomIn = clamp(t / 0.28), free = Math.max(0, t - go); return [x + hx * bloomIn + drift * (free * wind + free * free * wind * 0.2) + Math.sin(free * 2.2 + sw) * 7 * r0 * clamp(free), y + hy * bloomIn - free * sp * lift - free * free * sp * 0.03, free]; };
+    L.push(fxBase(x + hx, y + hy, T, { at:T - 0.12, step() {},
+      then(born) { if (!last) return; const [px, py] = posAt(T - 0.12), tw = rand(0, 6.283); born.push(fxBase(px, py, rand(0.9, 1.5), { step() {}, paint(c, s2, al) { c.globalCompositeOperation = 'lighter'; c.translate(px, py); c.globalAlpha = clamp(al * 3) * clamp(s2.age * 6) * (reduced ? 0.85 : 0.6 + 0.4 * Math.sin(s2.age * 9 + tw)); c.fillStyle = '#fff3c4'; fourStar(c, 3.6 * r0); } })); },
+      paint(c, p) { const t = p.age, [px, py, free] = posAt(t), ang = free > 0 ? drift * 0.5 + Math.sin(free * 2 + sw) * 0.4 : Math.atan2(hy, hx) + 1.57; c.globalCompositeOperation = 'lighter'; c.globalAlpha = clamp((T - t) / 0.6); c.translate(px, py); c.rotate(ang); c.strokeStyle = col; c.lineWidth = Math.max(0.5, 0.85 * r0); c.lineCap = 'round'; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, sz * 0.9);
+        for (let k = 0; k < 7; k++) { const b = -1.57 + (k - 3) * 0.33; c.moveTo(0, 0); c.lineTo(Math.cos(b) * sz, Math.sin(b) * sz * 0.75); } c.stroke(); /* the stalk and the seven hairs in one stroke (the old code made eight) */ c.fillStyle = col; c.beginPath(); c.ellipse(0, sz * 1, 0.9 * r0, 1.6 * r0, 0, 0, 7); c.fill(); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, 0, 0.9 * r0, 0, 7); c.fill(); } })); }); }
+FIREWORKS.dandelion.burst = function (L, x, y, g, sp, d = 1) { dandelionBurst2(L, x, y, g, sp, d); };
+Object.assign(FIREWORKS.dandelion, { loop:4.4, hold:4.2 });
+// ---- Version 683: Firefly Swarm, upgraded: a jar of fireflies ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special"; asked what the
+// fireflies should do after they burst, he chose "Jar of fireflies". They used to burst and drift, each blinking on its own, with no shape.
+// Now a glass jar hangs in the sky in faint light with its lid hovering over the mouth. Every shell's fireflies fly to the jar and slip in,
+// and it glows warmer the fuller it gets. After the last shell the lid drops on with a tink; they bump about inside for a moment; then the
+// lid pops off and they pour out of the mouth and away, the top ones first. Two small sounds are new (the tink and the pop).
+function jarSfx(fn) { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.firework; try { fn(); } finally { cosK = 1; } }
+/* the jar in unit coordinates (x right, y down; 1 wide, the mouth at -0.62, the bottom at 0.75) */
+function jarPath(c) { c.beginPath(); c.moveTo(-0.3, -0.62); c.lineTo(-0.3, -0.5); c.quadraticCurveTo(-0.5, -0.44, -0.5, -0.24); c.lineTo(-0.5, 0.6); c.quadraticCurveTo(-0.5, 0.75, -0.35, 0.75); c.lineTo(0.35, 0.75); c.quadraticCurveTo(0.5, 0.75, 0.5, 0.6); c.lineTo(0.5, -0.24); c.quadraticCurveTo(0.5, -0.44, 0.3, -0.5); c.lineTo(0.3, -0.62); }
+function drawJar(c, J, cx, cy, U) { const al = clamp((clock - J.born) / 0.35) * (J.open != null ? clamp(1 - (clock - J.open - 1.5) / 0.9) : 1) * (J.fail != null ? clamp(1 - (clock - J.fail) / 0.8) : 1); if (al <= 0) return;
+  c.translate(cx, cy); c.scale(U, U); c.lineJoin = 'round'; c.lineCap = 'round';
+  /* the light of the fireflies inside: warmer the fuller the jar */
+  c.globalCompositeOperation = 'lighter'; c.globalAlpha = al * Math.min(1, J.n / 40) * (J.open != null ? clamp(1 - (clock - J.open) / 0.9) : 1) * (0.3 + (reduced ? 0 : 0.06 * Math.sin(clock * 3))); c.drawImage(softPuff('rgba(255,200,90,1)'), -0.75, -0.6, 1.5, 1.6);
+  /* the glass, a highlight down its side, the thread of its neck */
+  c.globalAlpha = al * 0.07; c.fillStyle = '#bfe6ff'; jarPath(c); c.fill(); c.globalAlpha = al * 0.55; c.strokeStyle = '#cfeeff'; c.lineWidth = 2.2 / U; jarPath(c); c.stroke();
+  c.globalAlpha = al * 0.4; c.strokeStyle = '#ffffff'; c.lineWidth = 3 / U; c.beginPath(); c.moveTo(-0.4, -0.2); c.quadraticCurveTo(-0.43, 0.2, -0.4, 0.5); c.stroke(); c.lineWidth = 1.5 / U; c.beginPath(); c.moveTo(-0.33, -0.1); c.lineTo(-0.33, 0.25); c.stroke();
+  c.strokeStyle = '#cfeeff'; c.lineWidth = 1.4 / U; [-0.58, -0.54].forEach(yy => { c.beginPath(); c.moveTo(-0.3, yy); c.lineTo(0.3, yy); c.stroke(); });
+  /* the lid: it hovers over the mouth, drops on, then pops off and spins away */
+  let ly = -0.92 + (reduced ? 0 : Math.sin(clock * 2.2) * 0.02), rot = -0.22, la = al;
+  if (J.drop != null && clock >= J.drop) { const e = clamp((clock - J.drop) / 0.12); ly = lerp(ly, -0.69, e); rot = lerp(rot, 0, e); }
+  if (J.open != null && clock >= J.open) { const u = clock - J.open; ly = -0.69 - u * 2.6 + u * u * 1.2; rot = reduced ? 0.3 : u * 7; la = al * clamp(1 - (u - 0.5) / 0.4); c.translate(u * 0.5, 0); }
+  c.globalCompositeOperation = 'source-over'; c.translate(0, ly); c.rotate(rot); c.globalAlpha = la * 0.92; c.fillStyle = '#c9a85a'; c.beginPath(); c.roundRect(-0.35, -0.07, 0.7, 0.14, 0.03); c.fill(); c.fillStyle = '#f2dc9a'; c.fillRect(-0.33, -0.055, 0.66, 0.03); c.strokeStyle = 'rgba(90,64,20,.6)'; c.lineWidth = 1 / U; for (let i = -3; i <= 3; i++) { c.beginPath(); c.moveTo(i * 0.09, -0.02); c.lineTo(i * 0.09, 0.06); c.stroke(); } }
+function fireflyJar(L, x, y, g, sp, d, last) { const real = L === parts, th = fxTheme(L), U = real ? 150 : Math.max(46, sp * 1.05), cx = th.center[0], cy = th.center[1] + (real ? 24 : 4), cols = ['rgba(255,190,50,1)', 'rgba(255,214,70,1)', 'rgba(255,150,30,1)', 'rgba(245,230,90,1)'];
+  if (!th.jar) { const J0 = th.jar = { n:0, born:clock, drop:null, open:null, fail:null }; L.push(fxBase(cx, cy, 60, { step(p) { if (real && S && S.failT != null && J0.fail == null) J0.fail = clock; if ((J0.open != null && clock - J0.open > 2.6) || (J0.fail != null && clock - J0.fail > 0.9)) p.age = p.life; }, paint(c) { drawJar(c, J0, cx, cy, U); } })); }
+  const J = th.jar, n = Math.min(14, Math.max(8, Math.round(g.length * count(sp, d) * 0.18))), mx = cx, my = cy - 0.7 * U;
+  FLASH(L, x, y, sp * 0.4);
+  for (let i = 0; i < n && J.n < 84; i++, J.n++) { const hx = rand(-0.36, 0.36) * U, hy = rand(-0.3, 0.62) * U, ph = rand(0, 7), per = rand(1, 1.7), beat = rand(0, 1), glow = fireflyGlow(cols[(i + J.n) % 4]), big = rand(0.8, 1.2) * Math.max(0.62, U / 150), t0 = clock + i * 0.03, side = rand(-1, 1);
+    L.push(fxBase(x, y, 60, { al:1,
+      step(p) { const t = clock - t0; let px, py, al = 1;
+        if (t < 0.55) { const e = t <= 0 ? 0 : 1 - (1 - t / 0.55) ** 2; px = lerp(x, mx + side * 0.1 * U, e) + Math.sin(t * 9 + ph) * 6 * (1 - e); py = lerp(y, my - 0.1 * U, e) - Math.sin(e * Math.PI) * 0.22 * U; }   /* to the mouth of the jar */
+        else if (t < 0.9) { const e = (t - 0.55) / 0.35; px = lerp(mx + side * 0.1 * U, cx + hx, e); py = lerp(my - 0.1 * U, cy + hy, e * e); }   /* and in */
+        else { const w = t - 0.9; px = cx + clamp(hx + Math.sin(w * 1.5 + ph) * 0.09 * U, -0.42 * U, 0.42 * U); py = cy + clamp(hy + Math.cos(w * 1.9 + ph * 2) * 0.08 * U, -0.4 * U, 0.68 * U); }   /* bumping about inside */
+        if (J.open != null) { const u = clock - J.open - (hy / U + 0.3) * 0.5; if (u > 0) { const e = Math.min(1, u / 0.3), v = Math.max(0, u - 0.3); px = lerp(px, mx + side * 0.12 * U, e) + side * v * 0.9 * U * (0.4 + Math.abs(Math.sin(ph))) + Math.sin(v * 5 + ph) * 0.06 * U; py = lerp(py, my, e) - v * (1.1 + 0.5 * Math.cos(ph)) * U - v * v * 0.25 * U; al = clamp(1 - (v - 0.7) / 0.6); if (v > 1.3) p.age = p.life; } }   /* out of the mouth and away, the top ones first */
+        if (J.fail != null) { const u = clock - J.fail; al *= clamp(1 - u / 0.8); py -= u * 30; if (u > 0.8) p.age = p.life; }
+        p.x = px; p.y = py; p.al = al; },
+      paint(c, p) { if (clock < t0) return; const u = ((clock - t0) / per + beat) % 1, on = u < 0.42 ? Math.sin(u / 0.42 * Math.PI) : 0, r = big * (4.5 + on * 7); c.globalCompositeOperation = 'lighter'; c.globalAlpha = p.al * (0.12 + 0.88 * on); c.drawImage(glow, p.x - r, p.y - r, r * 2, r * 2); c.globalCompositeOperation = 'source-over'; c.globalAlpha = p.al * 0.8; c.fillStyle = '#1c1409'; c.beginPath(); c.ellipse(p.x, p.y, 0.7 * big, 1.2 * big, ph, 0, 7); c.fill(); } })); }
+  if (last && J.open == null) { J.drop = clock + 0.95; J.open = clock + 1.6; if (real) jarSfx(() => { IN.bell(2349, 0.02, 0.95, 0.5); CS.wood(620, 0.05, 1.6); nz(0.3, 0.03, { bp:1200, to:2600, q:1, a:0.05, at:1.62 }); }); } }
+FIREWORKS.firefly.burst = function (L, x, y, g, sp, d = 1) { fireflyJar(L, x, y, g, sp, d, fxLast(L, sp)); };
+Object.assign(FIREWORKS.firefly, { loop:4.6, hold:4.2 });
+// ---- Version 683: Paper Lanterns, upgraded: a lantern release ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special"; he chose Paper
+// Lanterns as the tenth. Both testers of 6 November: "rising slowly one by one ... a beautiful, calm, very cosy image", potential 8 against 5.5.
+// They used to pop out of the burst together and fade in three seconds. Now each shell lets its lanterns go one at a time; they rise
+// slowly, sway, drift the same way on the wind and grow smaller with height, their flames flickering, and they last long enough for the
+// lanterns of several shells to share the sky. The last shell is a mass release from across the lower sky. As each lantern goes out, it
+// leaves a star where it was. The show holds 4.6 s after the last shell. No sound is changed.
+// Each colour of lantern is drawn once and reused (the old code built two gradients for every lantern on every frame).
+const lanternSprites = new Map();
+function lanternSprite(base) { let s = lanternSprites.get(base); if (s) return s; s = document.createElement('canvas'); s.width = 72; s.height = 72; const c = s.getContext('2d'); c.translate(36, 36); c.scale(3, 3);
+  const g2 = c.createRadialGradient(0, 2, 1, 0, 0, 12); g2.addColorStop(0, '#fff0b8'); g2.addColorStop(0.5, shade(base, 0.25)); g2.addColorStop(1, shade(base, -0.2)); c.fillStyle = g2; c.beginPath(); c.moveTo(-5.5, -9); c.bezierCurveTo(-11, -6, -10, 7, -4, 9); c.lineTo(4, 9); c.bezierCurveTo(10, 7, 11, -6, 5.5, -9); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(90,30,10,.35)'; c.lineWidth = 0.7; [-3.5, 0, 3.5].forEach(o => { c.beginPath(); c.moveTo(o * 0.8, -9); c.quadraticCurveTo(o * 2, 0, o * 0.7, 9); c.stroke(); }); c.fillStyle = '#4a2a14'; c.fillRect(-5, -10.5, 10, 2); c.fillRect(-4, 8.5, 8, 2); lanternSprites.set(base, s); return s; }
+/* one lantern: let go after `wait`, it rises from (x0, y0) for T seconds, and leaves a star */
+function lanternRise(L, x0, y0, base, s, T, wait, wind, k) { const ph = rand(0, 6.283), rise = rand(17, 28) * k, img = lanternSprite(base), glow = softPuff('rgba(255,170,90,1)');
+  L.push(fxBase(x0, y0, T, { wait, at:T - 0.08,
+    step(p) { const t = p.age; p.x = x0 + wind * t * 13 * k + (reduced ? 0 : Math.sin(t * 1.3 + ph) * 8 * k); p.y = y0 - rise * t - t * t * 1.6 * k; },
+    then(b, p) { const tw = rand(0, 6.283), life = rand(1.3, 2); b.push(fxBase(p.x, p.y, life, { step() {}, paint(c, q, a) { c.globalCompositeOperation = 'lighter'; c.translate(q.x, q.y); c.globalAlpha = clamp(a * 3) * clamp(q.age * 6) * (reduced ? 0.85 : 0.6 + 0.4 * Math.sin(q.age * 9 + tw)); c.fillStyle = '#fff3c4'; fourStar(c, 4.6 * k); c.fillStyle = '#ffffff'; fourStar(c, 2 * k); } })); },
+    paint(c, p) { const t = p.age, a = clamp((T - t) / 0.7) * clamp(t * 3), z = s * (1 - 0.28 * t / T), fl = reduced ? 0.9 : 0.78 + 0.22 * Math.sin(t * 9 + ph) * Math.sin(t * 5.3 + ph);
+      c.translate(p.x, p.y); c.rotate(reduced ? 0 : Math.sin(t * 1.3 + ph) * 0.1); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.6 * a * fl; c.drawImage(glow, -26 * z, -26 * z, 52 * z, 52 * z);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(img, -12 * z, -12 * z, 24 * z, 24 * z);
+      c.globalCompositeOperation = 'lighter'; c.globalAlpha = a * fl; c.fillStyle = '#fff6d0'; c.beginPath(); c.ellipse(0, 3.5 * z, 2.2 * z, 3.2 * z * fl, 0, 0, 7); c.fill(); } })); }
+function lanternBurst2(L, x, y, g, sp0, d) { const sp = Math.min(sp0, 130), real = L === parts, last = fxLast(L, sp0) && real, home = real && S ? S : L, k = Math.max(0.55, sp / 95), list = fxPick(g, real ? Math.round(7 + 7 * fxFill(g, d)) : 9);
+  if (home.lanWind == null) home.lanWind = rand(0, 1) < 0.5 ? -1 : 1; const wind = home.lanWind, col = q => (q.c === '#f4f4ff' ? '#ff8a3c' : q.c);
+  FLASH(L, x, y, sp * 0.35);
+  list.forEach((q, i) => lanternRise(L, x + q.dx * sp * 1.25 + rand(-8, 8), (real ? Math.max(y, -H * 0.62 + 170) : y) + q.dy * sp * 0.5 + (real ? 34 : 12) * k, col(q), (0.8 + rn(i + 5) * 0.45) * k, real ? rand(3.6, 4.6) : rand(2.6, 3.2), i * 0.09, wind, k));
+  /* the last shell: a mass release from across the lower sky */
+  if (last) for (let i = 0; i < 22; i++) lanternRise(L, rand(0.06, 0.94) * W, -H * 0.3 + rand(0.16, 0.36) * H, col(g[i % g.length]), rand(0.75, 1.25) * k, rand(3.4, 4.3), 0.25 + rand(0, 1.1), wind, k); }
+FIREWORKS.lanterns.burst = function (L, x, y, g, sp, d = 1) { lanternBurst2(L, x, y, g, sp, d); };
+Object.assign(FIREWORKS.lanterns, { loop:3.8, hold:4.6 });
+// ---- Version 683: Light Speed, upgraded: the ship gathers speed with every shell, jumps, and arrives ----
+// Owner, 13 November 2026: "Build 3 more first", then "do these five as well please" (Light Speed, Murmuration, Dandelion Drift, Glass Slipper,
+// Bat Colony). In a show it was five seconds of still dots before the one good moment on the last shell.
+// Now you are flying from the first shell. Its stars drift outward past you; every further shell is a gear change: a ring of light pulses
+// out from the middle, the stars lurch and then run faster and leave longer streaks, and the engine glow ahead grows. The last shell is
+// the jump, as before (the streaks, the white flash). New after the jump: you arrive. The streaks slow to points again and a ringed planet
+// hangs ahead for a moment. The jump comes 2.6 s after the last shell (it was 3.1 s) and the show holds 5 s so that the arrival can be
+// seen. No sound is changed.
+function hyperPlanet(c, x, y, r, a, t) { const tilt = -0.32, ring = half => { c.save(); c.translate(x, y); c.rotate(tilt); c.scale(1, 0.3); c.strokeStyle = 'rgba(255,226,170,.9)'; c.lineWidth = r * 0.16; c.beginPath(); c.arc(0, 0, r * 1.75, half ? 0 : Math.PI, half ? Math.PI : Math.PI * 2); c.stroke(); c.strokeStyle = 'rgba(255,246,220,.55)'; c.lineWidth = r * 0.06; c.beginPath(); c.arc(0, 0, r * 2.05, half ? 0 : Math.PI, half ? Math.PI : Math.PI * 2); c.stroke(); c.restore(); };
+  c.globalAlpha = a; c.globalCompositeOperation = 'lighter'; c.drawImage(softPuff('rgba(120,170,255,1)'), x - r * 2.6, y - r * 2.6, r * 5.2, r * 5.2);
+  c.globalCompositeOperation = 'source-over'; ring(false);
+  const m = c.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.1, x, y, r); m.addColorStop(0, '#d9fff2'); m.addColorStop(0.45, '#58c7c0'); m.addColorStop(1, '#3a3f9c'); c.fillStyle = m; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
+  c.save(); c.beginPath(); c.arc(x, y, r, 0, 7); c.clip(); c.strokeStyle = 'rgba(255,255,255,.22)'; c.lineWidth = r * 0.12; [-0.35, 0.05, 0.42].forEach(v => { c.beginPath(); c.ellipse(x, y + v * r, r * 1.2, r * 0.22, tilt, 0, 7); c.stroke(); }); c.restore();
+  ring(true); c.globalAlpha = 1; }
+function hyperFrom2(L, x, y, g, sp, d, last) { const real = L === parts, th = fxTheme(L), s = fxScale(L), [cx, cy] = real ? th.center : [0, 0], spread = real ? Math.max(W, H) * 0.6 : 170, k = Math.max(0.6, s);
+  if (!th.hs) { const Q = th.hs = { lv:0, want:0, pulseAt:-9 };
+    L.push(fxBase(cx, cy, 30, { t:0, step(p, dt) { p.t += dt; Q.lv += (Q.want - Q.lv) * Math.min(1, dt * 2.5); const left = fxLeft(th, real);
+        if (left != null && left < 0) { p.age = p.life; L.push(fxBase(cx, cy, 0.5, { c:'#ffffff', r:40 * s, grow:900 * s, flash:true })); if (real) { S.flash = 1; S.shake = 12; sfx.boom(); }
+          /* the arrival: streaks that slow to points, and a planet ahead */
+          for (let i = 0; i < (real ? 70 : 30); i++) { const a = rand(0, 6.283), v = rand(240, 620) * k, r0 = rand(20, 120) * k; L.push(SPARK(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.8, Math.cos(a) * v, Math.sin(a) * v * 0.8, i % 3 ? '#ffffff' : '#a8c8ff', rand(1.2, 2.1), rand(0.9, 1.7) * k, { g:0, drag:3.4, tail:0.07, twk:rand(2, 8) })); }
+          const px = cx + (real ? 34 : 16), py = cy - (real ? 12 : 6), pr = (real ? 44 : 26), PT = 2.25; L.push(fxBase(px, py, PT, { wait:0.22, step() {}, paint(c, q) { const u = q.age, a = clamp(u / 0.5) * clamp((PT - u) / 0.6), z = 0.82 + 0.18 * (1 - Math.exp(-u * 2.2)); hyperPlanet(c, px, py, pr * z, a, u); } })); } },
+      paint(c, p) { const left = fxLeft(th, real), pu = clock - Q.pulseAt; c.globalCompositeOperation = 'lighter';
+        /* the engine glow ahead: it grows with every shell */
+        const er = (16 + 46 * Q.lv) * k * (reduced ? 1 : 1 + 0.06 * Math.sin(p.t * 9)); c.globalAlpha = Math.min(1, p.t * 2) * (0.25 + 0.4 * Q.lv); c.drawImage(softPuff('rgba(150,190,255,1)'), cx - er, cy - er, er * 2, er * 2);
+        /* a gear change: a ring of light runs out from the middle */
+        if (pu >= 0 && pu < 0.6) { const u = pu / 0.6; c.globalAlpha = 0.5 * (1 - u); c.strokeStyle = '#bcd6ff'; c.lineWidth = (3 - 2 * u) * k; c.beginPath(); c.ellipse(cx, cy, (20 + u * 230) * s, (20 + u * 230) * s * 0.8, 0, 0, 7); c.stroke(); }
+        if (left == null || left > 1.7) return; const u = clamp(1 - left / 1.7), r = (20 + u * u * 260) * s, h = c.createRadialGradient(cx, cy, 0, cx, cy, r); h.addColorStop(0, `rgba(255,255,255,${u})`); h.addColorStop(0.3, `rgba(150,200,255,${u * 0.55})`); h.addColorStop(1, 'rgba(90,120,255,0)'); c.globalAlpha = 1; c.fillStyle = h; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); } })); }
+  const Q = th.hs, stars = (sx, sy, grid, wait, per) => grid.forEach(q => { for (let j = 0; j < per; j++) { const a = rand(0, 6.283), r = (0.1 + rand(0, 1) ** 0.6 * 0.9) * spread * 0.62, dur = rand(0.5, 0.9), col = rn(j + q.dx * 40) > 0.5 ? '#ffffff' : q.c;
+      L.push(fxBase(sx, sy, 30, { wait, c:col, r:rand(0.9, 1.9) * Math.max(0.65, s), tt:0, rr:r, ax:Math.cos(a), ay:Math.sin(a) * 0.8, glow:true, tail:0.02,
+        step(p, dt) { p.tt += dt; const left = fxLeft(th, real), e = clamp(p.tt / dur);
+          if (left == null || left > 1.7) { if (e < 1) { const f = e * e * (3 - 2 * e); p.x = lerp(sx, cx + p.ax * p.rr, f); p.y = lerp(sy, cy + p.ay * p.rr, f); p.vx = 0; p.vy = 0; return; }
+            /* cruising: the star drifts outward past you, faster with every shell, and comes round again from the middle */
+            const lurch = reduced ? 0 : Math.max(0, 1 - (clock - Q.pulseAt) / 0.35), rate = 0.05 + 0.5 * Q.lv * Q.lv + lurch * 1.1, v = p.rr * rate; p.rr += v * dt; if (p.rr > spread * 0.7) { p.rr = spread * rand(0.03, 0.1); const na = rand(0, 6.283); p.ax = Math.cos(na); p.ay = Math.sin(na) * 0.8; }
+            p.x = cx + p.ax * p.rr; p.y = cy + p.ay * p.rr; p.vx = p.ax * v; p.vy = p.ay * v; p.tail = reduced ? 0 : 0.05 + 0.2 * Q.lv; p.glow = Q.lv > 0.3; return; }
+          const u = clamp(1 - left / 1.7), v = 40 + u * u * u * 1500 * Math.max(0.6, s); p.glow = true; p.tail = 0.04 + u * 0.1; p.vx = p.ax * v; p.vy = p.ay * v; p.x += p.vx * dt; p.y += p.vy * dt; if (left < 0) p.age = p.life; } })); } });
+  if (real) { th.count++; Q.want = Math.min(1, th.count / Math.max(1, th.n)); if (th.count > 1) Q.pulseAt = clock; stars(x, y, g, 0, clamp(Math.round(520 / Math.max(1, th.n * g.length)), 1, 14)); }
+  else { [[-110, -50], [120, -40], [0, 60]].forEach(([sx, sy], i) => { stars(sx, sy, g, i * 0.35, 2); L.push(fxBase(cx, cy, 0.01, { wait:i * 0.35 + 0.02, step(p) { Q.want = (i + 1) / 3; if (i) Q.pulseAt = clock; p.age = p.life; } })); }); }
+  if (last) th.endAt = clock + (real ? 2.6 : 3); }
+FIREWORKS.hyperspace.burst = function (L, x, y, g, sp, d = 1) { hyperFrom2(L, x, y, g, sp, d, fxLast(L, sp)); };
+Object.assign(FIREWORKS.hyperspace, { loop:5.6, hold:5 });
+FIREWORKS.hyperspace.icon = 66;   /* the Store icon: the streaks of the jump (it was the still stars, at step 45) */
+// ---- Version 683: Murmuration, upgraded: one great flock for the whole show, and the bird it becomes ----
+// Owner, 13 November 2026: "Build 3 more first", then "do these five as well please" (Light Speed, Murmuration, Dandelion Drift, Glass Slipper,
+// Bat Colony). The testers of 6 November: "more dots, and more contrast", "form a bird or wave shape rather than a heart". Every shell made
+// its own small flock of tiny birds that turned into a heart and burst, several at once, and it read as dust.
+// Now there is one flock for the whole show, as in a real murmuration. Every shell sends its birds into it; the birds are bigger, drawn
+// solid and bright in their shell's colour over a soft glow, and the flock pours through the sky in a long turning ribbon that swells with
+// every shell. After the last shell the whole flock gathers into one great bird, beats its wings, and flies up and away, shedding
+// sparks. The show holds 4.2 s after the last shell. No sound is changed.
+// The flock keeps its own time (F.t), counted from the steps it is given: the Store's icon steps a firework without running the clock.
+/* a point of the great bird, in unit coordinates (x right, y down): u in 0..1 runs wing tip, body, wing tip; wing is how far the wings are raised */
+function flockBird(u, wing) { if (u >= 0.44 && u < 0.56) return [0, lerp(-0.2, 0.36, (u - 0.44) / 0.12)]; const side = u < 0.44 ? -1 : 1, w = u < 0.44 ? 1 - u / 0.44 : (u - 0.56) / 0.44; return [side * (0.06 + w * 0.94 * Math.cos(wing * w * 0.9)), 0.04 - Math.sin(w * Math.PI) * 0.2 - Math.sin(wing) * w * w * 0.62]; }
+function flockFrom2(L, x, y, g, sp, d) { const real = L === parts, last = fxLast(L, sp), home = real && S ? S : L, s = real ? 1 : 0.62, cols = fwCols(g, ['#ffd25e', '#ffb07a']), cx0 = real ? W / 2 : 0, cy0 = real ? -H * 0.3 - 10 : -6, R = real ? 132 : 56;   /* the middle of the sky in a show */
+  FLASH(L, x, y, sp * 0.5);
+  if (!home.flockF || home.flockF.dead) { const F = home.flockF = { birds:[], t:0, lastAt:null, failAt:null, shed:false, dead:false, groups:{} };
+    L.push(fxBase(cx0, cy0, 60, { step(p, dt) { F.t += dt; const t = F.t, la = F.lastAt != null ? t - F.lastAt : -1; if (real && S && S.failT != null && F.failAt == null) F.failAt = t;
+        if ((la > 3.7) || (F.failAt != null && t - F.failAt > 0.9)) { F.dead = true; p.age = p.life; return; }
+        const form = la > 0.8 ? clamp((la - 0.8) / 0.5) : 0, wing = reduced ? 0.25 : Math.sin(la * 4.4) * 0.55, fly = Math.max(0, la - 2.6), up = fly * fly * 260, cxm = cx0 + Math.sin(t * 0.7) * R * 0.5, cym = cy0 + Math.cos(t * 0.9) * R * 0.22, stretch = 1 + 0.3 * Math.sin(t * 1.3);
+        if (la > 2.6 && !F.shed) { F.shed = true; for (let i = 0; i < Math.min(60, F.birds.length); i++) { const b = F.birds[Math.floor(rand(0, F.birds.length))]; L.push(EMBER(b.x, b.y, rand(0, 6.283), rand(30, 120) * s, i % 3 ? '#ffe9b0' : '#ffffff', rand(0.6, 1.1), rand(1, 1.8), { g:70, drag:1.6 })); } }
+        F.birds.forEach(b => { const age = t - b.born; let tx, ty, k = age < 0.35 ? 0 : 2.6;
+          if (form > 0) { const [hx, hy] = flockBird(b.k, wing); tx = cx0 + (hx + b.ox * 0.045) * R * 1.3; ty = cy0 + (hy + b.oy * 0.045) * R * 1.3 - up; k = 5; }
+          else { const ang = b.k * 6.283 + t * 1.6, rr = R * 0.78; tx = cxm + Math.cos(ang) * rr * stretch + b.ox * R * 0.1; ty = cym + Math.sin(2 * ang) * rr * 0.34 + Math.sin(ang * 3 + t * 2.6) * R * 0.07 + b.oy * R * 0.08; }
+          if (F.failAt != null) k = 0;
+          if (k > 0) { b.vx += ((tx - b.x) * k - b.vx) * Math.min(1, dt * 3.2); b.vy += ((ty - b.y) * k - b.vy) * Math.min(1, dt * 3.2); } else { const dr = Math.exp(-2.2 * dt); b.vx *= dr; b.vy *= dr; }
+          b.x += b.vx * dt; b.y += b.vy * dt; }); },
+      paint(c, p) { const t = F.t, la = F.lastAt != null ? t - F.lastAt : -1, form = la > 0.8 ? clamp((la - 0.8) / 0.5) : 0, a = Math.min(1, t * 4) * (la > 2.9 ? clamp(1 - (la - 2.9) / 0.7) : 1) * (F.failAt != null ? clamp(1 - (t - F.failAt) / 0.8) : 1), z = 6 * s; if (a <= 0 || !F.birds.length) return;
+        /* a soft light behind the flock, so that it reads as one body */
+        let mx = 0, my = 0; F.birds.forEach(b => { mx += b.x; my += b.y; }); mx /= F.birds.length; my /= F.birds.length; const gr = R * (1.25 + 0.5 * form); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a * (0.14 + 0.12 * form) * Math.min(1, F.birds.length / 120); c.drawImage(softPuff(form > 0.5 ? 'rgba(255,214,140,1)' : 'rgba(255,190,120,1)'), mx - gr, my - gr * 0.7, gr * 2, gr * 1.4);
+        c.globalCompositeOperation = 'source-over'; c.globalAlpha = a;
+        Object.keys(F.groups).forEach(col => { c.fillStyle = form > 0.5 ? '#fff0c4' : col; c.beginPath(); F.groups[col].forEach(b => { const h = Math.atan2(b.vy, b.vx), ch = Math.cos(h), sh = Math.sin(h), flap = reduced ? 0.6 : 0.3 + 0.7 * Math.abs(Math.sin(t * 17 + b.ph)), pt = (u, v) => [b.x + u * ch - v * sh, b.y + u * sh + v * ch], A = pt(z * 0.75, 0), B2 = pt(-z * 0.55, -z * 1.15 * flap), C = pt(-z * 0.3, 0), D = pt(-z * 0.55, z * 1.15 * flap); c.moveTo(A[0], A[1]); c.lineTo(B2[0], B2[1]); c.lineTo(C[0], C[1]); c.lineTo(D[0], D[1]); c.closePath(); }); c.fill(); }); } })); }
+  const F = home.flockF, room = (real ? 380 : 80) - F.birds.length, first = home.flockAt == null || clock - home.flockAt > 0.6; home.flockAt = clock;
+  const n = Math.max(0, Math.min(room, real ? (first ? 64 : 26) : 70)), col = shade(cols[F.birds.length ? Math.floor(rand(0, cols.length)) : 0], 0.3), grp = F.groups[col] || (F.groups[col] = []);
+  for (let i = 0; i < n; i++) { const a = rand(0, 6.283), v = sp * rand(0.8, 1.5), b = { x, y, vx:Math.cos(a) * v, vy:Math.sin(a) * v, ph:rand(0, 6.283), k:rand(0, 1), ox:rand(-1, 1), oy:rand(-1, 1), born:F.t }; F.birds.push(b); grp.push(b); }
+  if (last && F.lastAt == null) F.lastAt = F.t + (real ? 0.25 : 1.3); }
+FIREWORKS.flock.burst = function (L, x, y, g, sp, d = 1) { flockFrom2(L, x, y, g, sp, d); };
+Object.assign(FIREWORKS.flock, { loop:5.4, hold:4.2, icon:92 });   /* the Store's icon: the great bird (it was the heart, at step 66) */
+// ---- Version 683: Music Notes, upgraded: the tune you hear, written on a staff ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". The testers of
+// 6 November asked for fewer, bigger notes "as if a melody is floating up; maybe a faint staff line". It was a scatter of notes.
+// Its sound already plays a three-note phrase for every shell (NOTE_TUNE). Now a five-line staff with a clef unrolls where the shell bursts,
+// and those same three notes sit on it at their true heights: each one lands and flashes as it sounds. Then the staff lets go and its notes
+// float away with a few more in the shell's colours. No sound is changed: the picture now follows it.
+let notesWait = null;   /* the staff that has just been drawn, waiting to hear which phrase its sound plays */
+{ const cue = COS_SFX['firework:notes']; COS_SFX['firework:notes'] = i => { if (notesWait) { notesWait.idx = i; notesWait = null; } cue(i); }; }
+/* how many staff steps a note sits above the middle line (B4): one step is half the gap between two lines */
+function notesStep(m) { return (Math.floor(m / 12) - 1) * 7 + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][m % 12] - 34; }
+function notesBurst(L, x, y, g, sp0, d) { const sp = Math.min(sp0, 150), real = L === parts, last = fxLast(L, sp0) && real, home = real && S ? S : L, U0 = sp * 0.74, U = real ? Math.min(U0, (W / 2 - 10) / 1.28) : U0, k = Math.max(0.5, U / 100), ph = rand(0, 6.283), T = last ? 2.5 : 2, h = 0.12;
+  if (real) { x = clamp(x, U * 1.28 + 6, W - U * 1.28 - 6); y = Math.max(y, -H * 0.62 + 0.62 * U + 34); }
+  const first = home.notesAt == null || clock - home.notesAt > 0.6; home.notesAt = clock; if (first) home.notesN = home.notesN == null ? 0 : home.notesN + 1;   /* a shell's own extra bursts add floating notes, not another staff */
+  const st = { idx:home.notesN || 0 }, cols = g.map(q => (q.c === '#f4f4ff' ? '#ffffff' : q.c)); if (real && first) notesWait = st;
+  const live = home.notesLive = (home.notesLive || []).filter(q => q.age < q.life); if (first) live.forEach(q => { if (q.age < q.at - 0.1) q.at = Math.max(q.age + 0.1, 0.62); });   /* the staff of the shell before lets go as this one unrolls */
+  const wave = (xn, t) => (reduced ? 0 : Math.sin(xn * 2.4 + t * 2 + ph) * 0.05), tune = () => NOTE_TUNE[((st.idx % NOTE_TUNE.length) + NOTE_TUNE.length) % NOTE_TUNE.length], xAt = n => -0.42 + n * 0.5;
+  const float = (b, px, py, col, size, twin) => { const ex = rand(-30, 30) * k, f = rand(0, 6); b.push(fxBase(px, py, rand(1.6, 2.3), { step(p) { p.x = px + ex * (1 - Math.exp(-p.age * 2)) + Math.sin(p.age * 3 + f) * 10 * k; p.y = py - p.age * 30 * k; }, paint(c, p, a) { c.globalCompositeOperation = 'lighter'; noteMark(c, p.x, p.y, size, col, Math.min(1, a * 2.2), twin); } })); };
+  FLASH(L, x, y, sp * 0.5);
+  fxPick(g, real ? (first ? 6 : 4) : 5).forEach((q, i) => float(L, x + rand(-0.9, 0.9) * U, y + rand(-0.5, 0.2) * U, q.c === '#f4f4ff' ? '#ffffff' : q.c, rand(0.7, 1) * Math.max(0.6, sp / 150), i % 3 === 0));
+  if (!first) return;
+  const P = fxBase(x, y, T + 0.4, { at:T, step() {},
+    then(born) { tune().forEach((m, n) => float(born, x + xAt(n) * U, y - notesStep(m) * h / 2 * U, cols[n % cols.length] || '#ffffff', 1.25 * k, n === 1));
+      for (let i = 0; i < 18; i++) { const xn = rand(-1.2, 1.2); born.push(SPARK(x + xn * U, y + (Math.floor(rand(0, 5)) - 2) * h * U, rand(-10, 10), rand(-16, 10), '#cfe0ff', rand(0.5, 0.9), 1.2 * k, { g:24, drag:1.2, twk:rand(1, 9) })); } },
+    paint(c, p) { const t = p.age, fade = t > p.at ? clamp(1 - (t - p.at) / 0.3) : 1; if (fade <= 0) return; const un = clamp(t / 0.18);
+      c.translate(x, y); c.scale(U, U); c.lineCap = 'round'; c.lineJoin = 'round'; c.globalCompositeOperation = 'lighter';
+      /* the staff unrolls from the clef */
+      c.strokeStyle = '#cfe0ff'; c.lineWidth = 1.3 * k / U; c.globalAlpha = 0.75 * fade; c.beginPath(); for (let j = -2; j <= 2; j++) for (let i = 0; i <= 24; i++) { const xn = -1.2 + 2.4 * un * i / 24; i ? c.lineTo(xn, j * h + wave(xn, t)) : c.moveTo(xn, j * h + wave(xn, t)); } c.stroke();
+      if (un >= 1) { c.beginPath(); [1.2, last ? 1.14 : 9].forEach(xb => { if (xb < 2) { c.moveTo(xb, -2 * h + wave(xb, t)); c.lineTo(xb, 2 * h + wave(xb, t)); } }); c.stroke(); }
+      /* the clef */
+      c.save(); c.translate(-1.02, wave(-1.02, t)); c.globalAlpha = fade * clamp(t / 0.12); c.strokeStyle = '#ffffff'; c.lineWidth = 2 * k / U; c.beginPath(); c.moveTo(-0.03, 0.34); c.quadraticCurveTo(0.06, 0.36, 0.05, 0.26); c.lineTo(0.0, -0.36); c.quadraticCurveTo(0.0, -0.5, 0.07, -0.42); c.quadraticCurveTo(0.12, -0.3, -0.04, -0.14); c.quadraticCurveTo(-0.16, -0.02, -0.13, 0.1); c.quadraticCurveTo(-0.08, 0.2, 0.04, 0.17); c.quadraticCurveTo(0.13, 0.12, 0.1, 0.03); c.quadraticCurveTo(0.05, -0.05, -0.03, 0.0); c.stroke(); c.restore();
+      /* the three notes of the phrase: each lands as it sounds (0.05 s, 0.16 s, 0.27 s after the burst) */
+      tune().forEach((m, n) => { const v = (t - 0.05 - n * 0.11) / 0.2; if (v <= 0) return; const xn = xAt(n), idx = notesStep(m), yn = -idx * h / 2 + wave(xn, t), pop = v < 1 ? 1 + 0.7 * Math.sin(v * Math.PI) : 1, col = cols[n % cols.length] || '#ffffff', up = idx < 0;
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.75 * fade; c.strokeStyle = '#cfe0ff'; c.lineWidth = 1.3 * k / U; for (let l = 6; l <= idx; l += 2) { c.beginPath(); c.moveTo(xn - 0.15, -l * h / 2 + wave(xn, t)); c.lineTo(xn + 0.15, -l * h / 2 + wave(xn, t)); c.stroke(); }
+        c.save(); c.translate(xn, yn); c.scale(pop, pop); c.globalCompositeOperation = 'source-over'; c.globalAlpha = fade; c.fillStyle = col; c.strokeStyle = col; c.beginPath(); c.ellipse(0, 0, 0.088, 0.062, -0.35, 0, 7); c.fill(); c.lineWidth = 1.7 * k / U; c.beginPath(); if (up) { c.moveTo(0.08, -0.02); c.lineTo(0.08, -0.4); } else { c.moveTo(-0.08, 0.02); c.lineTo(-0.08, 0.4); } c.stroke();
+        if (v < 1.8) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = fade * clamp(1 - (v - 0.5) / 1.3); c.fillStyle = '#ffffff'; fourStar(c, 0.115); } c.restore(); });
+      /* on the last shell a glint runs along the staff */
+      if (last) { const gl = (t - 0.9) / 0.9; if (gl > 0 && gl < 1) { const xn = -1.2 + 2.4 * gl; c.save(); c.globalCompositeOperation = 'lighter'; c.translate(xn, wave(xn, t)); c.globalAlpha = fade * Math.sin(gl * Math.PI); c.fillStyle = '#ffffff'; fourStar(c, 0.13); c.restore(); } } } }); L.push(P); live.push(P); }
+FIREWORKS.notes.burst = function (L, x, y, g, sp, d = 1) { notesBurst(L, x, y, g, sp, d); };
+// ---- Version 683: Sky Writer, upgraded: a plane that really writes ----
+// Owner, 13 November 2026: "Build 3 more first" (Sky Writer, UFO Saucer, Balloon Release). Both testers of 6 November scored this Legendary 7:
+// "make the letters bigger and cleaner (at this size the dots blur together), write them stroke by stroke, and finish with a sparkle
+// underline". The message was 300 dots that flew into place, on one line however long it was.
+// Now a small plane writes it. Each shell is one pass: the plane flies in, and solid glowing letters appear behind it in that shell's
+// colour while it trails sparkle dust, then it peels away. A long message is set on two lines, so its letters are about twice as big.
+// The letters twinkle while they hang. After the last pass the plane sweeps an underline beneath the message, everything turns to gold,
+// a glint runs across it, and it falls as gold sparks. The messages, their translations and the player's choice are untouched: this
+// only changes how the chosen message is drawn. No sound is changed.
+/* a long message is set on two lines, split at the space nearest its middle */
+function skyLines(text) { if (text.length <= 9 || !text.includes(' ')) return [text]; let best = -1; for (let i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - text.length / 2) < Math.abs(best - text.length / 2))) best = i; return [text.slice(0, best), text.slice(best + 1)]; }
+/* the message drawn once, to be shown piece by piece: its lines, their widths, and a picture of it in any colour */
+function skySheet(text, maxW, capFs) { const lines = skyLines(text), K = 2, o0 = document.createElement('canvas').getContext('2d'), font = fs => `900 ${fs}px 'Bricolage Grotesque', sans-serif`; o0.font = font(capFs); const w0 = Math.max(1, ...lines.map(l => o0.measureText(l).width)), fs = Math.min(capFs, capFs * maxW / w0); o0.font = font(fs);
+  const ws = lines.map(l => o0.measureText(l).width), lh = fs * 1.04, pad = 18, w = Math.ceil(Math.max(...ws) + pad * 2), h = Math.ceil(lh * lines.length + pad * 2), tint = {};
+  const make = col => { if (tint[col]) return tint[col]; const cv = document.createElement('canvas'); cv.width = w * K; cv.height = h * K; const o = cv.getContext('2d'); o.scale(K, K); o.font = font(fs); o.textAlign = 'center'; o.textBaseline = 'middle'; o.lineJoin = 'round';
+    lines.forEach((l, i) => { const yy = pad + lh * (i + 0.5); o.shadowColor = col; o.shadowBlur = 12 * K; o.fillStyle = col; o.fillText(l, w / 2, yy); o.shadowBlur = 0; o.fillStyle = shade(col, 0.25); o.fillText(l, w / 2, yy); o.strokeStyle = 'rgba(255,255,255,.9)'; o.lineWidth = Math.max(1, fs * 0.028); o.strokeText(l, w / 2, yy); }); return (tint[col] = cv); };
+  return { lines, ws, lh, pad, w, h, fs, K, make, total:ws.reduce((a, b) => a + b, 0) }; }
+function skyPlane(c, x, y, ang, s, a, t) { c.save(); c.translate(x, y); c.rotate(ang); c.scale(s, s); c.globalAlpha = a; c.globalCompositeOperation = 'source-over'; c.lineJoin = 'round'; c.strokeStyle = 'rgba(40,50,90,.6)'; c.lineWidth = 0.8;
+  c.fillStyle = '#dfe6fa'; c.beginPath(); c.moveTo(-1, -1); c.lineTo(-5, -9); c.lineTo(1, -9); c.lineTo(5, -1); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#f6f8ff'; c.beginPath(); c.moveTo(-13, -1); c.quadraticCurveTo(-4, -4.6, 9, -2.6); c.quadraticCurveTo(13, -1, 13, 0.5); c.quadraticCurveTo(10, 3, -2, 2.7); c.quadraticCurveTo(-9, 2, -13, -1); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#ff6f7d'; c.beginPath(); c.moveTo(-13, -1); c.lineTo(-15.5, -7.5); c.lineTo(-10.5, -7); c.lineTo(-8, -2); c.closePath(); c.fill(); c.stroke(); c.fillRect(8.6, -2.5, 2, 4.4);
+  c.fillStyle = '#eef2ff'; c.beginPath(); c.moveTo(-2, 1); c.lineTo(-7, 10); c.lineTo(0, 10); c.lineTo(5, 1.6); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#6fc3ff'; c.beginPath(); c.ellipse(5, -1.7, 2.7, 1.5, -0.1, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 1; const pr = reduced ? 5 : 1.5 + 4.5 * Math.abs(Math.sin(t * 43)); c.beginPath(); c.moveTo(13.7, -pr); c.lineTo(13.7, pr); c.stroke(); c.restore(); }
+function skyWrite(L, x, y, g, sp, d, last) { const real = L === parts, th = fxTheme(L), [cx, cy] = th.center, cols = fwCols(g, ['#ffd25e', '#ff8ad0']), GOLD = '#ffd25e';
+  if (!th.sw) { const sh = skySheet(skyText(), real ? W * 0.9 : 300, real ? 112 : 86), Q = th.sw = { sh, n:real ? Math.max(1, th.n) : 3, chunks:[], tU:null, tD:null, rained:false, tinged:false, X0:cx - sh.w / 2, Y0:cy - sh.h / 2, pts:null, failAt:null }, ps = clamp(sh.fs / 62, 0.75, 1.5);
+    /* a place along the whole message (line after line): where it is in the sky */
+    const at = s0 => { let j = 0, acc = 0; while (j < sh.lines.length - 1 && s0 > acc + sh.ws[j]) { acc += sh.ws[j]; j++; } return [Q.X0 + (sh.w - sh.ws[j]) / 2 + (s0 - acc), Q.Y0 + sh.pad + sh.lh * (j + 0.5), j, acc]; };
+    /* the letters between two places along the message, in one colour */
+    const show = (c, img, a0, a1) => { let acc = 0; sh.lines.forEach((l, j) => { const ls = acc, le = acc + sh.ws[j]; acc = le; const u0 = Math.max(a0, ls), u1 = Math.min(a1, le); if (u1 <= u0) return; let sx = (sh.w - sh.ws[j]) / 2 + (u0 - ls), sw = u1 - u0; if (u0 <= ls) { sx -= sh.pad * 0.9; sw += sh.pad * 0.9; } if (u1 >= le) sw += sh.pad * 0.9; const sy = j ? sh.pad + sh.lh * j : 0, shh = (j === sh.lines.length - 1 ? sh.h : sh.pad + sh.lh * (j + 1)) - sy; c.drawImage(img, sx * sh.K, sy * sh.K, sw * sh.K, shh * sh.K, Q.X0 + sx, Q.Y0 + sy, sw, shh); }); };
+    /* the underline: from under the first letter to past the last, with a flick up at its end */
+    const span = Math.max(...sh.ws), ux0 = cx - span / 2 - 4, ux1 = cx + span / 2 + 8, uy = Q.Y0 + sh.pad + sh.lh * sh.lines.length - sh.lh * 0.5 + sh.fs * 0.5, under = u => [lerp(ux0, ux1, u), uy + Math.sin(u * Math.PI) * sh.fs * 0.07 - (u > 0.86 ? ((u - 0.86) / 0.14) ** 2 * sh.fs * 0.2 : 0)];
+    Q.at = at;
+    L.push(fxBase(cx, cy, 60, { fz:0,
+      step(p, dt) { if (real && S && S.failT != null && Q.failAt == null) { Q.failAt = clock; if (Q.tD == null || Q.tD > clock) Q.tD = clock; }
+        const now = clock; p.fz += dt; const dust = p.fz > (reduced ? 0.09 : 0.035); if (dust) p.fz = 0;
+        Q.chunks.forEach(k => { const e = (now - k.t0) / k.dur; if (e > 0 && e < 1 && dust) { const [hx, hy] = at(lerp(k.s0, k.s1, e)); L.push(SPARK(hx, hy + rand(-0.3, 0.3) * sh.fs, rand(-12, 12), rand(6, 34), rand(0, 1) < 0.4 ? '#ffffff' : k.col, rand(0.3, 0.6), rand(0.9, 1.6), { g:30, drag:1.5, twk:rand(2, 9) })); } });
+        if (Q.tU != null && now >= Q.tU && !Q.tinged) { Q.tinged = true; if (real && Q.failAt == null) { tone(1568, 0.6, 'sine', 0.03, 600); S.flash = Math.max(S.flash, 0.25); } }
+        if (Q.tD != null && now >= Q.tD && !Q.rained) { Q.rained = true; if (!Q.pts) { const o = sh.make('#ffffff').getContext('2d'), dt2 = o.getImageData(0, 0, sh.w * sh.K, sh.h * sh.K).data; Q.pts = []; for (let yy = 3; yy < sh.h * sh.K; yy += 10) for (let xx = 3; xx < sh.w * sh.K; xx += 10) if (dt2[(yy * sh.w * sh.K + xx) * 4 + 3] > 200) Q.pts.push([Q.X0 + xx / sh.K, Q.Y0 + yy / sh.K]); }
+          const m = Q.failAt != null ? 20 : real ? 90 : 36; for (let i = 0; i < m && Q.pts.length; i++) { const P2 = Q.pts[Math.floor(rand(0, Q.pts.length))]; L.push(EMBER(P2[0], P2[1], rand(0, 6.283), rand(20, 110) * (real ? 1 : 0.6), i % 2 ? '#fff4c0' : GOLD, rand(0.6, 1.2), rand(1, 1.9), { g:60, drag:1.5 })); } }
+        if (Q.tD != null && now > Q.tD + 0.8) p.age = p.life; },
+      paint(c, p) { const now = clock, fin = Q.tU != null ? clamp((now - Q.tU) / 0.4) : 0, gone = Q.tD != null ? clamp((now - Q.tD) / 0.7) : 0, a = 1 - gone; if (a <= 0) return; c.save(); c.translate(0, gone * gone * 16); c.globalCompositeOperation = 'source-over';
+        /* the letters written so far, each pass in its shell's colour; then all of it in gold */
+        Q.chunks.forEach(k => { const e = clamp((now - k.t0) / k.dur); if (e <= 0) return; c.globalAlpha = a * (1 - fin); if (fin < 1) show(c, sh.make(k.col), k.s0, lerp(k.s0, k.s1, e)); c.globalAlpha = a * fin; if (fin > 0) show(c, sh.make(GOLD), k.s0, lerp(k.s0, k.s1, e)); });
+        /* a twinkle here and there on what is written */
+        const done = Q.chunks.reduce((m, k) => Math.max(m, lerp(k.s0, k.s1, clamp((now - k.t0) / k.dur))), 0); if (done > 0 && !reduced) { c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 4; i++) { const slot = Math.floor(now * 3 + i * 0.37), ph = (now * 3 + i * 0.37) % 1, [tx, ty] = at(rn(slot * 7.1 + i * 3.3) * done); sparkleMark(c, tx, ty + (rn(slot * 3.7 + i) - 0.5) * sh.fs * 0.5, sh.fs * 0.13 * Math.sin(ph * Math.PI), '#ffffff', a * 0.9 * Math.sin(ph * Math.PI)); } c.globalCompositeOperation = 'source-over'; }
+        /* the underline, and the glint that runs across the gold */
+        if (Q.tU != null && now >= Q.tU) { const e = clamp((now - Q.tU) / 0.55); c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); for (let i = 0; i <= 24; i++) { const [ux, uy2] = under(e * i / 24); i ? c.lineTo(ux, uy2) : c.moveTo(ux, uy2); } c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.35 * a; c.strokeStyle = '#ff9a1e'; c.lineWidth = sh.fs * 0.2; c.stroke(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.strokeStyle = GOLD; c.lineWidth = sh.fs * 0.085; c.stroke(); c.strokeStyle = '#fff4c0'; c.lineWidth = sh.fs * 0.03; c.stroke();
+          if (e >= 1) { const v = (now - Q.tU - 0.55) / 0.5, [ex, ey] = under(1); if (v < 1) { c.globalCompositeOperation = 'lighter'; sparkleMark(c, ex, ey, sh.fs * 0.34 * Math.sin(v * Math.PI), '#ffffff', a * Math.sin(v * Math.PI)); } const gl = (now - Q.tU - 0.75) / 0.8; if (gl > 0 && gl < 1 && !reduced) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.75 * a * Math.sin(gl * Math.PI); const gx = gl * sh.w, img = sh.make('#ffffff'); c.drawImage(img, gx * sh.K, 0, 16 * sh.K, sh.h * sh.K, Q.X0 + gx, Q.Y0, 16, sh.h); } } }
+        /* the plane: it flies in, writes its pass, and peels away; after the last pass it sweeps the underline */
+        Q.chunks.forEach(k => { const t = now - k.t0, e = t / k.dur; if (t < -0.3 || t > k.dur + 0.45) return; let px, py, ang = 0, al = 1; const [x0, y0] = at(k.s0 + 0.01), [x1, y1] = at(k.s1);
+          if (t < 0) { const q = 1 + t / 0.3; px = x0 - 70 * (1 - q) * ps; py = y0 - 34 * (1 - q) * (1 - q) * ps; ang = 0.35 * (1 - q); al = q; }
+          else if (e <= 1) { const [hx, hy] = at(lerp(k.s0, k.s1, e)); px = hx; py = hy + (reduced ? 0 : Math.sin(e * Math.PI * (2 + (k.s1 - k.s0) / 70)) * sh.fs * 0.15); ang = reduced ? 0 : Math.cos(e * Math.PI * (2 + (k.s1 - k.s0) / 70)) * 0.22; }
+          else { const q = (t - k.dur) / 0.45; px = x1 + 80 * q * ps; py = y1 - 46 * q * q * ps; ang = -0.5 * q; al = 1 - q; }
+          skyPlane(c, px + 14 * ps, py, ang, ps, al * a, now); });
+        if (Q.tU != null && now >= Q.tU - 0.3 && now < Q.tU + 1) { const t = now - Q.tU, e = t / 0.55; let px, py, ang = 0, al = 1; if (t < 0) { const q = 1 + t / 0.3, [sx2, sy2] = under(0); px = sx2 - 70 * (1 - q) * ps; py = sy2 - 30 * (1 - q) * ps; al = q; ang = 0.3 * (1 - q); } else if (e <= 1) { [px, py] = under(e); ang = e > 0.86 ? -0.5 * (e - 0.86) / 0.14 : 0.06; } else { const q = (t - 0.55) / 0.45, [ex, ey] = under(1); px = ex + 80 * q * ps; py = ey - 60 * q * ps; ang = -0.6; al = 1 - q; } skyPlane(c, px + 14 * ps, py, ang, ps, al * a, now); }
+        c.restore(); } })); }
+  const Q = th.sw, sh = Q.sh, lay = (sx, sy, i, wait, col) => { if (i >= Q.n) return; const s0 = i / Q.n * sh.total, s1 = (i + 1) / Q.n * sh.total, prev = Q.chunks.length ? Q.chunks[Q.chunks.length - 1] : null, t0 = Math.max(clock + wait + 0.32, prev ? prev.t0 + prev.dur + 0.06 : 0), dur = clamp((s1 - s0) / 230, 0.45, 1) * (t0 - clock > 0.7 ? 0.6 : 1); Q.chunks.push({ s0, s1, t0, dur, col });   /* a pass that had to wait for the one before writes faster */
+    fxFunnel(L, sx, sy, real ? g : g.slice(0, 6), sp, d, () => { const [tx, ty] = Q.at(s0 + 0.01); return [tx, ty]; }, col, 0.35); };
+  if (real) lay(x, y, th.count++, 0, cols[th.count % cols.length]); else [0, 1, 2].forEach(i => lay(i * 100 - 100, 60, i, i * 0.45, cols[i % cols.length]));
+  if (last && Q.tU == null) { const k = Q.chunks.length ? Q.chunks[Q.chunks.length - 1] : null, end = k ? k.t0 + k.dur : clock; Q.tU = end + 0.2; Q.tD = Q.tU + 0.55 + (real ? 1.25 : 1.1); th.endAt = Q.tD + 0.7; } }
+FIREWORKS.skywriter.burst = function (L, x, y, g, sp, d = 1) { skyWrite(L, x, y, g, sp, d, fxLast(L, sp)); };
+Object.assign(FIREWORKS.skywriter, { loop:6.2, hold:5 });
+// ---- Version 683: Glass Slipper, upgraded: one slipper at a time, and the last one left on the palace steps ----
+// Owner, 13 November 2026: "Build 3 more first", then "do these five as well please" (Light Speed, Murmuration, Dandelion Drift, Glass Slipper,
+// Bat Colony). In a show the slippers of neighbouring shells piled on top of each other, the same fault the Crown had.
+// Now there is one slipper in the sky at a time: when the next shell's slipper is traced, the one before lets go and rains its gold. A
+// shell's own extra bursts are a swirl of fairy dust, not more slippers. The last shell's slipper is the biggest and it is left on the
+// palace steps: a short flight of glass stairs appears under it, as at midnight in the tale. It is kept on the screen. No sound is changed.
+// The slipper itself is drawn as before (the wand stroke, the glass, the sweep of light, the prism, the gold topline, the bow).
+function slipperFrom2(L, x, y, g, sp0, d) { const real = L === parts, last = fxLast(L, sp0) && real, home = real && S ? S : L, first = home.slipAt == null || clock - home.slipAt > 0.6; home.slipAt = clock;
+  const sp = Math.min(sp0, last && first ? 150 : 135), R = sp * 0.75, fill = fxFill(g, d), T = last && first ? 3.9 : 3.4, form = 0.62, lw = Math.max(0.8, sp / 60), flip = last ? 1 : Math.random() < 0.5 ? -1 : 1, trace = c => { c.beginPath(); SLIPPER_OUT.forEach(([u, v], i) => c[i ? 'lineTo' : 'moveTo'](u * R, v * R)); c.closePath(); };
+  FLASH(L, x, y, sp * 0.5);
+  if (!first) { for (let k = 0; k < 18; k++) L.push(EMBER(x, y, rand(0, 6.283), rand(30, 110) * sp / 100, k % 3 === 0 ? '#ffffff' : k % 3 === 1 ? '#ffe27a' : '#cfe8ff', rand(0.7, 1.3), rand(0.8, 1.6), { g:60 * sp / 100, drag:1.6 })); return; }   /* a shell's own extra bursts: fairy dust */
+  if (real) { x = last ? clamp(x, R + 12, W - R * 2.12 - 8) : clamp(x, R + 10, W - R - 10); y = Math.max(y, -H * 0.62 + R * 0.6 + 34); }   /* the last one stands to the left, so that its steps are in the picture */
+  const live = home.slipLive = (home.slipLive || []).filter(q => q.age < q.life); live.forEach(q => { if (q.age < q.end - 0.75) { q.end = q.age + 0.75; if (q.then) q.at = Math.min(q.at, q.age + 0.1); } });   /* the slipper before lets go */
+  if (real) setTimeout(() => S && (tone(2637, 0.7, 'sine', 0.03), tone(3951, 0.5, 'sine', 0.014)), 720);
+  fxPick(g, Math.round(lerp(26, 80, fill))).forEach((q, k) => { const [u, v] = SHAPE_SLIPPER(k * 2.399), tx = x + u * R * flip, ty = y + v * R, sx = x + q.dx * sp * 0.5, sy = y + q.dy * sp * 0.5, len = Math.hypot(tx - sx, ty - sy) || 1, nx = -(ty - sy) / len, ny = (tx - sx) / len, sw = (k % 2 ? 1 : -1) * len * rand(0.25, 0.45);
+    L.push(fxBase(sx, sy, form + 0.25 + rand(0, 0.3), { c:q.c, r:rand(1, 2), glow:true, tail:0.04, step(p) { const e = clamp(p.age / form), f = e * e * (3 - 2 * e), off = Math.sin(f * Math.PI) * sw, ox = p.x, oy = p.y; p.x = lerp(sx, tx, f) + nx * off; p.y = lerp(sy, ty, f) + ny * off; p.vx = (p.x - ox) * 60; p.vy = (p.y - oy) * 60; } })); });
+  const P = fxBase(x, y, T + 0.34, { at:last ? 2.3 : 1.85, end:T + 0.34, step() {}, then(born) { for (let k = 0; k < Math.round(lerp(14, 44, fill)); k++) { const [u, v] = SHAPE_SLIPPER(k * 2.4); born.push(EMBER(x + u * R * flip, y + v * R, rand(0, 6.283), rand(6, 34) * sp / 100, k % 3 === 0 ? '#ffffff' : k % 3 === 1 ? '#ffe27a' : '#cfe8ff', rand(0.9, 1.7), rand(0.8, 1.7), { g:110 * sp / 100, drag:1.4 })); } },
+    paint(c, p) { const t = p.age, a = clamp((t - 0.3) / 0.45) * clamp((p.end - t) / 0.7) * lerp(0.55, 1, fill), turn = 1 - 0.22 * Math.sin(clamp((t - 0.8) / 2.2) * Math.PI); if (t > p.end) return; c.save(); c.translate(x, y); c.globalCompositeOperation = 'lighter';
+      /* the wand stroke: a bright point runs once round the outline, trailing sparkle */
+      if (t < form + 0.2) { const e = clamp(t / form); for (let k = 0; k < 16; k++) { const ek = e - k * 0.014; if (ek < 0) break; const [u, v] = SHAPE_SLIPPER(ek * 6.283); c.globalAlpha = (1 - k / 16) * (1 - clamp((t - form) / 0.2)); c.fillStyle = k ? '#cfe8ff' : '#ffffff'; c.beginPath(); c.arc(u * R * flip, v * R, (k ? 1.1 : 2.4) * lw, 0, 7); c.fill(); } if (e < 1) { const [u, v] = SHAPE_SLIPPER(e * 6.283); sparkleMark(c, u * R * flip, v * R, 9 * sp / 110, '#ffffff', 1); } }
+      /* the palace steps under the last slipper */
+      if (last) { const sa = a * clamp((t - 0.75) / 0.5), tw = R * 0.36, rh = R * 0.2; let sx = -R * 1.02, sy = R * 0.5; c.lineJoin = 'round'; c.lineCap = 'round';
+        c.globalAlpha = sa * 0.09; c.fillStyle = '#cfe6ff'; c.fillRect(sx, sy, R * 2.06, rh); for (let i = 1; i <= 3; i++) c.fillRect(sx + R * 2.06 + (i - 1) * tw, sy + i * rh, tw, rh);
+        c.globalAlpha = sa * 0.85; c.strokeStyle = '#d7ebff'; c.lineWidth = lw * 0.8; c.beginPath(); c.moveTo(sx, sy); sx += R * 2.06; c.lineTo(sx, sy); for (let i = 0; i < 3; i++) { sy += rh; c.lineTo(sx, sy); sx += tw; c.lineTo(sx, sy); } c.stroke();
+        [[-R * 0.9, R * 0.5], [R * 1.04, R * 0.5], [R * 1.04 + tw, R * 0.5 + rh]].forEach(([u, v], i) => sparkleMark(c, u, v, (2 + 4 * Math.abs(Math.sin(t * 2.2 + i * 1.7))) * sp / 110, '#ffffff', sa * Math.abs(Math.sin(t * 2.2 + i * 1.7)))); }
+      c.scale(flip * turn, 1); c.globalAlpha = a; const gl = c.createLinearGradient(-R, -R * 0.6, R, R * 0.6); gl.addColorStop(0, 'rgba(170,215,255,.34)'); gl.addColorStop(0.5, 'rgba(240,250,255,.18)'); gl.addColorStop(1, 'rgba(190,190,255,.38)'); c.fillStyle = gl; trace(c); c.fill();
+      const sweep = lerp(-R * 1.4, R * 1.4, (t * 0.75) % 1); c.save(); trace(c); c.clip(); c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.moveTo(sweep - R * 0.12, -R); c.lineTo(sweep + R * 0.1, -R); c.lineTo(sweep - R * 0.2, R); c.lineTo(sweep - R * 0.42, R); c.fill(); c.restore();
+      c.strokeStyle = '#e8f6ff'; c.lineWidth = lw; c.lineJoin = 'round'; trace(c); c.stroke();
+      /* a prism along the arched sole, brightest as the light passes */
+      const pr = c.createLinearGradient(-R * 0.6, 0, R * 0.9, 0); ['#ff6a6a', '#ffd25e', '#7fe36a', '#4fc3ff', '#c98aff'].forEach((col, i) => pr.addColorStop(i / 4, col)); c.globalAlpha = a * (0.25 + 0.55 * clamp(1 - Math.abs(sweep) / R)); c.strokeStyle = pr; c.lineWidth = lw * 1.6; c.beginPath(); c.moveTo(-0.6 * R, -0.09 * R); c.bezierCurveTo(-0.22 * R, -0.06 * R, 0.16 * R, 0.42 * R, 0.42 * R, 0.46 * R); c.bezierCurveTo(0.66 * R, 0.49 * R, 0.9 * R, 0.46 * R, 0.9 * R, 0.36 * R); c.stroke(); c.globalAlpha = a;
+      /* the gold topline, and the insole showing through the opening */
+      c.strokeStyle = 'rgba(255,226,122,.95)'; c.lineWidth = lw * 0.85; c.beginPath(); c.moveTo(-0.66 * R, -0.46 * R); c.bezierCurveTo(-0.36 * R, -0.12 * R, 0.2 * R, 0.17 * R, 0.46 * R, 0.16 * R); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = lw * 0.55; c.beginPath(); c.moveTo(-0.62 * R, -0.36 * R); c.bezierCurveTo(-0.3 * R, -0.02 * R, 0.2 * R, 0.3 * R, 0.66 * R, 0.33 * R); c.stroke();
+      /* the bow and jewel on the vamp */
+      c.save(); c.translate(0.52 * R, 0.19 * R); c.rotate(0.3); c.fillStyle = '#ffe9a8'; [-1, 1].forEach(q3 => { c.beginPath(); c.ellipse(q3 * R * 0.065, 0, R * 0.065, R * 0.035, q3 * 0.3, 0, 7); c.fill(); }); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, 0, R * 0.026, 0, 7); c.fill(); c.restore();
+      [[-0.71, 0.46, 0], [0.9, 0.36, 1.6], [-0.66, -0.46, 3], [0.52, 0.19, 4.4]].forEach(([u, v, ph]) => sparkleMark(c, u * R, v * R, (3 + 7 * Math.abs(Math.sin(t * 2.6 + ph))) * sp / 110, '#ffffff', a * Math.abs(Math.sin(t * 2.6 + ph)))); c.restore(); } });
+  L.push(P); live.push(P); }
+FIREWORKS.slipper.burst = function (L, x, y, g, sp, d = 1) { slipperFrom2(L, x, y, g, sp, d); };
+Object.assign(FIREWORKS.slipper, { hold:4.3 });   /* so that the last slipper can stand on its steps and rain its gold (the show used to end 2.6 s after the last shell) */
+// ---- Version 683: UFO Saucer, upgraded: a sheep in the beam and a pilot you can see ----
+// Owner, 13 November 2026: "Build 3 more first" (Sky Writer, UFO Saucer, Balloon Release). The testers of 6 November scored this Epic 6:
+// "a little alien peeking out of the dome ... a cow or a crate floating up in the beam", "suck up a little cow or sheep between shots".
+// The saucer already had an alien, but it sits in the big dome behind the cannons where nobody can see it, and the beam held nothing.
+// Now a sheep floats in the tractor beam, turning slowly and paddling its legs; at every launch the beam yanks it up to the hatch, wide
+// eyed, and lets it sink back. (A sheep, not a cow, is the cosmetics chat's own call: the owner keeps cows out of the game's India
+// stage, so the saucer leaves them alone too.) A pilot sits in its own small bubble on the rim, in plain sight: it watches the sheep, looks up as a rocket goes, blinks, and
+// gives a little wave now and then. An aerial on the other rim blinks and flashes at a launch. One small sound per launch is new (a
+// springy blip as the sheep is pulled up), in a show only. The saucer is no taller than before.
+function ufoSfx(fn) { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.launcher; try { fn(); } finally { cosK = 1; } }
+function ufoSheep(c, x, y, rot, s, scared, t) { c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s); c.strokeStyle = '#2b2430'; c.lineWidth = 1.5; c.lineCap = 'round'; const sw = scared ? 2 : (reduced ? 0 : Math.sin(t * 3) * 0.7);
+  [-4, -1.5, 1.5, 4].forEach((lx, i) => { c.beginPath(); c.moveTo(lx, 3); c.lineTo(lx + (i < 2 ? -sw : sw), 7.6); c.stroke(); });
+  c.fillStyle = '#fbfbf6'; [[-4, 0, 3.6], [0, -1.4, 4.2], [4, 0, 3.6], [-1.8, 1.6, 3.4], [2, 1.6, 3.4]].forEach(([a, b, r]) => { c.beginPath(); c.arc(a, b, r, 0, 7); c.fill(); });
+  c.fillStyle = '#2b2430'; c.beginPath(); c.ellipse(7.2, -0.6, 2.7, 3.2, 0.2, 0, 7); c.fill(); c.beginPath(); c.ellipse(5.4, -3.5, 1.7, 0.8, -0.6, 0, 7); c.fill();
+  c.fillStyle = '#ffffff'; const er = scared ? 1.1 : 0.7; [[6.5, -1.3], [8.3, -1.1]].forEach(([a, b]) => { c.beginPath(); c.arc(a, b, er, 0, 7); c.fill(); }); c.restore(); }
+{ const live0 = LAUNCHERS.ufo.live;
+  LAUNCHERS.ufo.live = function (c, n, t, f) { const seen = this.kicked; live0.call(this, c, n, t, f);
+    const hw = wide(n, 18, 200, 28); if (this.kicked != null && this.kicked !== seen && f > 0.8) { this._yank = clock; if (inShow()) ufoSfx(() => CS.boing(520, 0.014, 0.04)); }
+    const u = this._yank != null && clock >= this._yank ? clock - this._yank : 9, yank = u < 0.16 ? u / 0.16 : clamp(1 - (u - 0.16) / 1.1), scared = u < 0.7;
+    /* the sheep in the beam */
+    const bob = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(t * 0.8), sy = lerp(lerp(44, 30, bob), 21, yank * yank * (3 - 2 * yank)), sx = (reduced ? 0 : Math.sin(t * 0.55) * hw * 0.16) * (1 - yank);
+    c.save(); c.globalAlpha = 0.95; ufoSheep(c, sx, sy, (reduced ? 0.15 : Math.sin(t * 0.9) * 0.4) * (1 - yank) - 0.25 * yank, 0.95, scared, t); c.restore();
+    /* the pilot's bubble on the rim: in plain sight, in front of everything */
+    const bx = hw - 13, by = -4, look = scared ? -1 : 0, blink = !scared && !reduced && (t * 0.31 + 0.4) % 1 < 0.035, wave = !scared && !reduced && (t * 0.17) % 1 < 0.16 ? Math.sin(t * 14) : null;
+    c.fillStyle = '#7fe39a'; if (wave != null) { c.save(); c.translate(bx - 5.5, by + 2); c.rotate(-0.5 + wave * 0.4); c.beginPath(); c.roundRect(-1, -8, 2, 8, 1); c.fill(); c.beginPath(); c.arc(0, -8.4, 1.5, 0, 7); c.fill(); c.restore(); }
+    c.beginPath(); c.ellipse(bx, by - 1.5, 5.6, 6.4, 0, 0, 7); c.fill();
+    c.fillStyle = '#10201c'; [-1, 1].forEach(d => { c.beginPath(); c.ellipse(bx + d * 2.4 - (look ? 0 : 0.8), by - 2.4 + look * 1.3, scared ? 1.9 : 1.6, blink ? 0.3 : scared ? 2.6 : 2.3, d * 0.3, 0, 7); c.fill(); });
+    c.fillStyle = '#ffffff'; if (!blink) [-1, 1].forEach(d => { c.beginPath(); c.arc(bx + d * 2.4 - (look ? 0.3 : 1.3), by - 3.1 + look * 1.6, 0.5, 0, 7); c.fill(); });
+    const dome = c.createRadialGradient(bx - 3, by - 6, 1, bx, by, 11); dome.addColorStop(0, 'rgba(240,252,255,.55)'); dome.addColorStop(0.6, 'rgba(140,225,215,.2)'); dome.addColorStop(1, 'rgba(70,140,180,.34)'); c.fillStyle = dome; c.strokeStyle = 'rgba(225,245,255,.9)'; c.lineWidth = 1; c.beginPath(); c.arc(bx, by + 4, 10.5, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 1; c.beginPath(); c.arc(bx, by + 4, 8, Math.PI * 1.12, Math.PI * 1.38); c.stroke();
+    /* an aerial on the other rim */
+    const ax = -(hw - 12), on = u < 0.5 || (!reduced && Math.sin(t * 4) > 0.55); c.strokeStyle = '#c9d4ea'; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(ax, 2); c.lineTo(ax - 2, -15); c.stroke();
+    if (on) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = u < 0.5 ? 1 : 0.7; c.drawImage(softPuff('rgba(255,110,170,1)'), ax - 2 - 7, -15 - 7, 14, 14); c.restore(); } c.fillStyle = on ? '#ffd0e4' : '#b04a78'; c.beginPath(); c.arc(ax - 2, -15, 2.1, 0, 7); c.fill(); };
+}
+// ---- Version 683: Golden Willow, upgraded ----
+// Owner, 13 November 2026: "do the next 10 suggested improvements ... make each of them feel just a little bit extra special". Both testers of
+// 6 November: "make it all gold (a true golden willow), with longer, slower trails that hang almost to the bottom". It was sparks in the
+// shell's colours that only turned gold as they died. Now it is gold from the start: long strands arc out and droop, each one leaving its
+// whole trail hanging in the air, and the hanging strands sway together like a willow in a breeze while glitter drips from their tips.
+// The shell's own colours stay as a small heart in the middle. The last shell opens a second, larger crown over the first. The show holds
+// 4 s after the last shell so that the strands can hang. No sound is changed.
+function willowCrown(L, x, y, n, v0, life, wait, k) { const D = 1.5, G = 60, ph = rand(0, 6.283), st = Array.from({ length:n }, (_, i) => { const a = (i + rand(-0.4, 0.4)) / n * 6.283, v = v0 * rand(0.5, 1); return { vx:Math.cos(a) * v, vy:Math.sin(a) * v * 0.9 - v0 * 0.14, tw:rand(0, 6.283) }; });
+  /* where a strand is t seconds after the burst; the lower it hangs, the more the breeze moves it */
+  const at = (q, t, now) => { const e = 1 - Math.exp(-D * t), py = (q.vy - G / D) / D * e + G / D * t; return [x + q.vx / D * e + (reduced ? 0 : Math.sin(now * 1.25 + ph) * 0.07 * Math.max(0, py)), y + py]; };
+  L.push(fxBase(x, y, life, { wait, drip:0,
+    step(p, dt) { p.drip += dt; if (p.drip > 0.07 && p.age > 1.1 && p.age < life - 0.7) { p.drip = 0; const [hx, hy] = at(st[Math.floor(rand(0, n))], p.age, p.age); L.push(SPARK(hx, hy, rand(-6, 6), rand(4, 16), '#ffd04a', rand(0.4, 0.8), rand(0.8, 1.3) * k, { g:20, drag:1, twk:rand(1, 9) })); } },
+    paint(c, p) { const t = p.age, fade = clamp((life - t) / 1.2) * clamp(t * 8), T = Math.min(t, 1.6), N = 9; c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineJoin = 'round';
+      /* each strand's trail, in three bands: the oldest part faintest */
+      [[0, 3, 0.3, '#d98a12', 1.5], [3, 6, 0.6, '#f5ad1e', 1.8], [6, 9, 0.95, '#ffd04a', 2.1]].forEach(([i0, i1, al, col, lw]) => { c.globalCompositeOperation = 'source-over'; c.globalAlpha = al * fade; c.strokeStyle = col; c.lineWidth = lw * k; c.beginPath(); st.forEach(q => { for (let i = i0; i <= i1; i++) { const [px, py] = at(q, t - T * (1 - i / N), t); i === i0 ? c.moveTo(px, py) : c.lineTo(px, py); } }); c.stroke(); });
+      c.globalCompositeOperation = 'lighter'; c.fillStyle = '#ffe9a0'; st.forEach(q => { const [px, py] = at(q, t, t); c.globalAlpha = fade * (reduced ? 0.9 : 0.55 + 0.45 * Math.sin(t * 19 + q.tw)); c.beginPath(); c.arc(px, py, 1.5 * k, 0, 7); c.fill(); }); } })); }
+function willowBurst(L, x, y, g, sp, d) { const real = L === parts, last = fxLast(L, sp) && real, k = Math.max(0.6, sp / 150), n = Math.min(real ? 60 : 32, Math.max(20, Math.round(g.length * count(sp, d) * 0.4)));
+  FLASH(L, x, y, sp); g.forEach(q => L.push(SPARK(x, y, q.dx * sp * 0.6 * rand(0.8, 1.1), q.dy * sp * 0.6 * rand(0.8, 1.1), q.c, rand(0.55, 0.85), rand(1.4, 2), { g:20, drag:2.4, tail:0.1 })));   /* the heart: the shell's own colours */
+  willowCrown(L, x, y, n, sp * 1.75, real ? 3.6 : 3.1, 0, k); if (last) willowCrown(L, x, y - sp * 0.12, n + 16, sp * 2.25, 4.2, 0.3, k * 1.1); }
+FIREWORKS.willow.burst = function (L, x, y, g, sp, d = 1) { willowBurst(L, x, y, g, sp, d); };
+Object.assign(FIREWORKS.willow, { loop:3.6, hold:4 });
 const RARITY_ORDER = { common:0, rare:1, epic:2, legendary:3 }, unlockOrder = (x, i) => (x.collect ? 2.2e6 + x.collect : x.buzz ? 5e6 : x.finish ? 4e6 : x.event ? 3.5e6 : x.coins ? 3e6 : x.race ? 2.5e6 + x.race : x.surv ? 2e6 + x.surv : isStarterX(x) ? 1 + slotOf(x, i) / 100 : x.lv ? (stageOf(x.lv) === 1 ? x.lv : STAGE.open + stageOf(x.lv) - 2 + levelNo(x.lv) / 100) : slotOf(x, i)), workshopOrder = table => Object.entries(table).map(([k, x], i) => ({ k, x, i })).filter(q => (!q.x.cand && !q.x.retired) || devMode()).sort((p, q) => !!p.x.signature - !!q.x.signature || RARITY_ORDER[rarityOf(p.x, p.i)] - RARITY_ORDER[rarityOf(q.x, q.i)] || unlockOrder(p.x, p.i) - unlockOrder(q.x, q.i) || t(p.x.name).localeCompare(t(q.x.name), pick.language));
 // Version 318 (owner): a locked cosmetic is shown in full colour (its card is the preview) with a lock in the top right; a tap plays its
 // sound and says how to get it
