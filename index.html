@@ -2471,7 +2471,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.681.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.682.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -10478,6 +10478,31 @@ $('stage').addEventListener('pointermove', e => { if (e.isPrimary === false || e
 const release = e => { if (e && e.isPrimary === false) return; ptr.down = false; if (!G) return; const gms = e && e.type === 'pointercancel' ? DROP_GRACE.cancel : DROP_GRACE.ms; if (G.phase === 'mini' && M && M.drag && e && e.pointerType === 'touch' && gms > 0 && !ptr.pend) { const m0 = M; ptr.pend = { x:ptr.x, y:ptr.y, timer:setTimeout(() => { ptr.pend = null; if (G && G.phase === 'mini' && M === m0 && M.drag) BLOCKS.up(M); }, gms) }; return; }   /* Version 678 */ if (G.phase === 'mini' && M) BLOCKS.up(M); if (G.phase === 'aim') G.A.hold = 0; };
 $('stage').addEventListener('pointerup', release); $('stage').addEventListener('pointercancel', release);
 $('stage').addEventListener('contextmenu', e => e.preventDefault());   /* Version 679: no long-press menu on the stage */
+/* Version 682 (owner): phantom-tap filter for Android puzzles. Charging noise makes ~50 ms ghost taps; the game follows one finger,
+   a new touch counts after 90 ms (or 8 px of movement), and a quick touch that lifts while another is down is dropped as a ghost. */
+const PHANTOM = { on:(typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '')), ms:90, px:8 }, PH = { id:null, pend:new Map(), other:new Map() };
+const phShim = e => ({ type:e.type, pointerType:'touch', isPrimary:true });
+function phStart(p) { if (!G || G.phase !== 'mini' || !M) return false; ptr.down = true; ptr.x = p.x0; ptr.y = p.y0;
+  if (ptr.pend) { const q = ptr.pend; clearTimeout(q.timer); ptr.pend = null; if (M.drag) { if (Math.hypot(p.x0 - q.x, p.y0 - q.y) < DROP_GRACE.px) { ptr.x = p.x; ptr.y = p.y; BLOCKS.move(M, p.x, p.y); return true; } BLOCKS.up(M); } }
+  if (sideTap(p.x0, p.y0)) { ptr.down = false; openOdds(); return false; }
+  BLOCKS.down(M, p.x0, p.y0); if (p.x !== p.x0 || p.y !== p.y0) { ptr.x = p.x; ptr.y = p.y; BLOCKS.move(M, p.x, p.y); } return true; }
+function phCommit(id) { const p = PH.pend.get(id); if (!p || PH.id != null) return; PH.pend.forEach((q, k) => { clearTimeout(q.timer); if (k !== id) PH.other.set(k, performance.now()); }); PH.pend.clear(); PH.id = id; if (!phStart(p)) PH.id = null; }
+const phOn = e => PHANTOM.on && e.pointerType === 'touch' && !!G && G.phase === 'mini' && !!M && !cdActive() && !G.preview && !(e.target && e.target.closest && e.target.closest('#moreTime, #newCard'));
+$('stage').addEventListener('pointerdown', e => { if (!phOn(e)) return; e.preventDefault(); e.stopImmediatePropagation(); try { $('stage').setPointerCapture(e.pointerId); } catch (er) {}
+  const [x, y] = pt(e), id = e.pointerId; if (PH.id != null && !ptr.down && !(M && M.drag)) PH.id = null;   /* a gesture that ended elsewhere (blur, lost lift) */
+  if (PH.id != null) { PH.other.set(id, performance.now()); return; }
+  const p = { x0:x, y0:y, x, y, t:performance.now() }; PH.pend.set(id, p); if (ptr.pend) { phCommit(id); return; } p.timer = setTimeout(() => phCommit(id), PHANTOM.ms); }, true);
+$('stage').addEventListener('pointermove', e => { if (!phOn(e)) return; const id = e.pointerId; if (id !== PH.id && !PH.pend.has(id) && !PH.other.has(id)) return; e.stopImmediatePropagation(); const [x, y] = pt(e);
+  if (id === PH.id) { ptr.x = x; ptr.y = y; BLOCKS.move(M, x, y); return; } const p = PH.pend.get(id); if (!p) return; p.x = x; p.y = y; if (Math.hypot(x - p.x0, y - p.y0) >= PHANTOM.px) phCommit(id); }, true);
+const phUp = e => { if (!PHANTOM.on || e.pointerType !== 'touch') return; const id = e.pointerId;
+  if (PH.other.has(id)) { PH.other.delete(id); e.stopImmediatePropagation(); return; }
+  if (id === PH.id) { PH.id = null; e.stopImmediatePropagation(); release(phShim(e)); return; }
+  const p = PH.pend.get(id); if (!p) return; e.stopImmediatePropagation(); clearTimeout(p.timer); PH.pend.delete(id);
+  if (PH.pend.size || [...PH.other.values()].some(t => performance.now() - t < 2000) || PH.id != null || e.type === 'pointercancel') return;   /* a ghost beside a real touch */
+  if (!G || G.phase !== 'mini' || !M) return; const k = Math.floor((p.x0 - M.ox) / M.cell) + ',' + Math.floor((p.y0 - M.oy) / M.cell); if (M.filled.get(k)) return;   /* a quick tap never takes a piece off */
+  PH.id = id; const ok = phStart(p); PH.id = null; if (ok) release(phShim(e)); };
+$('stage').addEventListener('pointerup', phUp, true); $('stage').addEventListener('pointercancel', phUp, true);
+
 // Version 277: backups for a lift the stage never hears (it lands outside the game) and for the app losing focus mid-drag.
 window.addEventListener('pointerup', e => { if (G && G.phase === 'mini' && M && M.drag && !(e.target.closest && e.target.closest('#stage'))) release(e); }, true);
 window.addEventListener('blur', () => { if (G && G.phase === 'mini' && M && M.drag) release(); });
