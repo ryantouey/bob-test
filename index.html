@@ -1321,6 +1321,64 @@ body.nopaint .paintchip:not([data-sky]) { display:none !important; }
 .pcrate.got .cbx::after, .gcr.got .cbx::after { content:'✓'; position:absolute; right:-8px; top:-6px; width:20px; height:20px; border-radius:50%; background:linear-gradient(#7fe86a,#22b03a); box-shadow:0 0 0 2px #10123a; color:#0d3a18; font:900 .7rem/20px var(--body); text-align:center; }
 .prw { display:flex; align-items:center; justify-content:center; gap:2px; color:#ffe7a0; font:800 .62rem var(--body); white-space:nowrap; }
 .prw svg { display:block; flex:none; width:12px; height:12px; }
+/* Version 689 (owner): Missions Daily and Weekly fit one screen, no scrolling */
+#missions { gap:12px; }
+.misshead .scrtitle { flex:1; }
+.missq { flex:none; width:40px; height:40px; padding:0; border-radius:50%; font:900 1.05rem var(--body); }
+.misshead .bub[hidden] { display:none; }
+#missDaily, #missWeekly { gap:10px; }
+.pfame { padding:10px 12px; text-align:left; }
+.pfame .phd { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.pfame h3, .wfame h3 { font-size:1.15rem; }
+.pfame .phd p { margin:0; font-size:.74rem; white-space:nowrap; }
+.pfame .famebar { height:8px; margin:8px 4px 2px; }
+.pfame .pcrates { gap:6px; margin:8px 0 0; }
+.pfame .pcrate { flex:1; width:auto; min-width:0; padding:6px 2px 7px; border-radius:14px; background:rgba(14,12,46,.55); box-shadow:inset 0 0 0 2px #3b3790; }
+.pfame .pcrate.got { box-shadow:inset 0 0 0 2px #7cf0a0; }
+.pfame .pcrate.rdy { box-shadow:inset 0 0 0 2px #ffd25e, 0 0 12px rgba(255,210,94,.35); }
+.pfame .pcrate .chest { width:50px; height:42px; }
+#missDaily .acts, #missWeekly .acts { gap:8px; }
+.actc.cmp { min-height:58px; box-sizing:border-box; padding:6px 10px; }
+.actc.cmp .actic { width:44px; height:44px; }
+.actc.cmp .actb > b { font-size:.86rem; }
+.actc.cmp .missbar { height:7px; }
+.actb > small.actsub { display:flex; align-items:center; gap:4px; color:#b9b5e6; font:700 .7rem var(--body); letter-spacing:0; text-transform:none; }
+.actsub svg { display:block; flex:none; width:12px; height:12px; }
+.actsub .fhelp { position:static; width:16px; height:16px; font-size:.6rem; }
+.actc.cmp .actgo { min-width:68px; padding:8px 10px; }
+.wfame { display:flex; align-items:center; gap:10px; padding:10px 12px; text-align:left; }
+.wfame .wl { flex:1; min-width:0; display:grid; gap:6px; }
+.wfame .wst { display:flex; gap:4px; }
+.wfame .wst svg { display:block; width:26px; height:26px; }
+.wfame .wst svg.on { filter:drop-shadow(0 0 6px #ffb02e); }
+.wfame .wst svg.rd { filter:drop-shadow(0 0 5px #fff); }
+.wfame p { margin:0; font-size:.74rem; line-height:1.3; }
+.wfame .gcr { flex:none; width:84px; }
+.wdone { display:flex; align-items:center; gap:8px; width:100%; min-height:40px; padding:0 12px; border:0; border-radius:14px; background:linear-gradient(#24205f,#1b1850); box-shadow:inset 0 0 0 2px #342d82; color:#7cf0a0; font:800 .8rem var(--body); text-align:left; cursor:pointer; }
+.wdone svg { flex:none; width:18px; height:18px; }
+.wdone span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wdone em { flex:none; color:#c9c4f0; font-style:normal; }
+.pstreak { display:flex; align-items:center; justify-content:center; gap:6px; margin:0; color:#c9c4f0; font:700 .74rem var(--body); }
+.pstreak svg { display:block; width:16px; height:16px; }
+/* Version 689b: claimed rows are one line; Missions ends just above the tab bar; titles stay on one line */
+#missions { padding-bottom:calc(86px + env(safe-area-inset-bottom,0px)); }
+.actc.cmp.got { min-height:44px; padding-block:4px; }
+.actc.cmp.got .missbar, .actc.cmp.got .actsub { display:none; }
+.actc.cmp.got .actic { width:36px; height:36px; }
+.actc.cmp.got .actic svg { width:20px; height:20px; }
+.pfame h3, .wfame h3 { white-space:nowrap; }
+@media (max-width:380px) { .pfame h3, .wfame h3 { font-size:1rem; } .wfame p { font-size:.68rem; } .wfame .gcr { width:74px; } }
+@media (max-height:700px) { .actc.cmp:not(.got) { min-height:44px; padding-block:3px; } .actc.cmp .actic { width:34px; height:34px; } .actc.cmp .actb { gap:3px; } #missDaily .acts, #missWeekly .acts { gap:5px; } .wfame { padding-block:8px; } .wfame .wl { gap:4px; } .wfame .gcr .chest { width:52px; height:44px; } .misstabs { min-height:36px; } .misstabs button { padding-block:7px; } }
+@media (max-height:700px) {
+  #missions { gap:8px; }
+  #missDaily, #missWeekly { gap:8px; }
+  .pfame .pcrate .chest { width:40px; height:34px; }
+  .actc.cmp { min-height:50px; padding:4px 10px; }
+  .actc.cmp .actic { width:38px; height:38px; }
+  .actc.cmp .actic svg { width:22px; height:22px; }
+  #missDaily .acts, #missWeekly .acts { gap:6px; }
+  .wfame .wst svg { width:22px; height:22px; }
+}
 @media (prefers-reduced-motion: reduce) { .pcrate.rdy .chest, .gcr.rdy .chest { animation:none; } }
 /* Version 405 (Workshop review): bright still cards, the Your show label, the sets strip and plain owned label, the source pill and gold-ringed
    lock on unowned cards, and a card colour per rarity (darker when locked; the selected card keeps its own look) */
@@ -2252,7 +2310,7 @@ body.fullmap #globeIntro { top:calc(104px + env(safe-area-inset-top,0px)); }
     <div class="rr-wrap" id="raceBody"></div>
   </section>
   <section id="missions" class="screen" hidden>
-    <div class="misshead"><h2 class="scrtitle" data-t="Missions">Missions</h2><button class="bub misscollect" id="missAll" data-t="Collect all">Collect all</button></div>
+    <div class="misshead"><h2 class="scrtitle" data-t="Missions">Missions</h2><button type="button" class="bub missq" id="missHelp" aria-label="How it works">?</button><button class="bub misscollect" id="missAll" data-t="Collect all">Collect all</button></div>
     <nav class="misstabs" id="missTabs"></nav>
     <div class="missview" id="missDaily"></div>
     <div class="missview" id="missWeekly" hidden></div>
@@ -2480,7 +2538,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.688.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.689.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -16218,7 +16276,7 @@ const PROG_POOL = [
   [['win', 4, 'Beat {n} levels', 'trophy'], ['shell', 15, 'Pack {n} perfect shells', 'star'], ['clean', 1, 'Beat a level with no help', 'shield']],
   [['plevel', 1, 'Beat a level with every shell perfect', 'star'], ['buzz', 1, 'Get a Buzzer Beater', 'clock'], ['surv', 3, 'Survive {n} Survival rounds', 'bolt'], ['row', 3, 'Beat {n} levels in a row', 'flame']]];
 const ACT_NAMES = ['Act I', 'Act II', 'Act III'], ACT_COL = ['linear-gradient(#ffd25e,#f0a020)', 'linear-gradient(#7fbcff,#2f6fd0)', 'linear-gradient(#c88aff,#8a3fe0)'], HEAD_COL = ['linear-gradient(#ffd25e,#f0a020)', 'linear-gradient(#7ff6ff,#2a9ac0)', 'linear-gradient(#c88aff,#8a3fe0)', 'linear-gradient(#ffe066,#e0a020)', 'linear-gradient(#ff9a6a,#c23a20)'];
-let missTab = 'daily';
+let missTab = 'daily', festFold = false;   /* Version 689: festFold shows the lit stars' rows */
 const progWeekNo = () => Math.floor((localDayNo() + 3) / 7);
 // Version 285 (owner): a Program or Festival goal is only picked when its feature is open; Survival's falls back to playing levels.
 function goalOpen(k) { return k === 'surv' ? featureOpen('survival') : k === 'hard' ? stageReached(2) : true; }
@@ -16245,10 +16303,11 @@ function openFinale() { progSync(); if (!finReady()) return; dayProg.fin = 1; da
 function openGrand() { progSync(); if (!grandReady()) return; weekFest.grand = 1; const pool = STORE_ROTATION.filter(u => u.tier === 'rare' && !u.x.retired && !bought.has(u.x.storeId)), u = pool.length ? pool[Math.floor(rn(weekFest.week * 5.3 + 2) * pool.length) % pool.length] : null; if (u) bought.add(u.x.storeId); else progPay(PROG.grandCoins, 'festival_finale'); track('festival_finale', { item:u ? u.x.storeId : null }); saveAll(); renderStamina(); updateMissionBadge();
   progShow(8, t('Grand finale'), () => { if (u) { buildPickers(); buildSmokeLab(); renderStore(); showUnlocks([u]); } else showToast(t('Grand finale! +{n} coins', { n:PROG.grandCoins })); if (!$('missions').hidden) renderMissions(); }); }
 function progGo(k) { if (k === 'surv') $('toSurvival').click(); else if (k === 'prog') { missTab = 'daily'; renderMissions(); } else $('toCampaign').click(); }
-function goalCard(a, i, src, kind) {
+function goalCard(a, i, src, kind) {   /* Version 689: one compact row; the fuse and star notes moved into the ? sheet */
   const have = Math.min(src.have[a[0]] || 0, a[1]), got = !!src.got[i], ready = !got && have >= a[1], act = kind === 'act';
   const btn = got ? '<span class="actdn">✓</span>' : ready ? `<button class="bub gold actgo" data-claim="${i}">${t('Claim')}</button>` : `<button class="bub actgo" data-go="${a[0]}">${t('Go')} ›</button>`;
-  return `<div class="actc${ready ? ' rdy' : got ? ' got' : ''}"><span class="actic" style="background:${act ? ACT_COL[i] : HEAD_COL[i % HEAD_COL.length]}">${FAME_SVG[a[0] === 'prog' ? 'ticket' : a[3]] || ''}</span><span class="actb"><small>${act ? t(ACT_NAMES[i]) : t('Star {n}', { n:i + 1 })}</small><b><span>${t(a[2], { n:a[1] })}</span><em>${have}/${a[1]}</em></b><span class="missbar"><span style="width:${(got ? 100 : have / a[1] * 100).toFixed(1)}%"></span></span><span class="actchips"><i>${TOPCOIN_SVG}${act ? PROG.acts[i] : PROG.head}</i><i>${act ? t('+⅓ fuse') : `★ ${t('Lights a star')}`}</i></span>${a[0] === 'buzz' ? `<small class="acthelp">${t(BUZZ_HELP)}</small>` : ''}</span>${btn}</div>`;
+  const sub = `${act ? t(ACT_NAMES[i]) : t('Star {n}', { n:i + 1 })} · ${TOPCOIN_SVG}${act ? PROG.acts[i] : PROG.head}${a[0] === 'buzz' ? '<i class="fhelp" data-help="buzz" role="button" aria-label="?">?</i>' : ''}`;
+  return `<div class="actc cmp${ready ? ' rdy' : got ? ' got' : ''}"><span class="actic" style="background:${act ? ACT_COL[i] : HEAD_COL[i % HEAD_COL.length]}">${FAME_SVG[a[0] === 'prog' ? 'ticket' : a[3]] || ''}</span><span class="actb"><b><span>${t(a[2], { n:a[1] })}</span><em>${have}/${a[1]}</em></b><span class="missbar"><span style="width:${(got ? 100 : have / a[1] * 100).toFixed(1)}%"></span></span><small class="actsub">${sub}</small></span>${btn}</div>`;
 }
 // Version 403 (Missions review): the crates are drawn chests, coloured by act, closed until claimed and open after, each with its reward
 const CHEST_COL = [['#ffe27a', '#d08a14'], ['#9fd0ff', '#2a5cc0'], ['#d6a8ff', '#7a34cc'], ['#ffb3dc', '#b8286a']];
@@ -16263,8 +16322,8 @@ function renderProgram() {
   const box = $('missDaily'); if (!tutDone) { box.innerHTML = `<p class="note">${t('Finish the tutorial to start your first program.')}</p>`; return; }
   const left = toMidnight(), n = dayProg.got.filter(Boolean).length, pct = (n / 3 * 100).toFixed(1), live = dayProg.streak && dayProg.lastFin >= dayProg.day - 1;
   const crate = (i, cls, extra = '') => `<button type="button" class="pcrate ${cls}" style="--c:${ACT_COL[i]}" data-chest="${i}"${extra}><span class="cbx">${chestSvg(i, cls === 'got')}</span><span class="plab">${i === 2 && finReady() ? t('Open!') : i === 2 ? `${t('Act III')} · ${t('Finale')}` : t(ACT_NAMES[i])}</span><small class="prw">${CHEST_PRIZE(i)}</small></button>`;
-  box.innerHTML = `<div class="fame"><h3>${t("Today's Program")}</h3><p>${t('New program in {h}h {m}m', { h:Math.floor(left / 3600), m:Math.floor(left % 3600 / 60) })}${live ? ` · ${t('Program streak: {n}', { n:dayProg.streak })}` : ''}</p><p class="progtip">${t('Each act you claim burns a third of the fuse and opens the next crate.')}</p><div class="famebar${+pct >= 99.9 ? ' fin' : ''}"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div><div class="pcrates">${crate(0, n >= 1 ? 'got' : 'lk')}${crate(1, n >= 2 ? 'got' : 'lk')}${crate(2, dayProg.fin ? 'got' : finReady() ? 'rdy' : 'lk', ' data-open="fin"')}</div></div><div class="acts">${dayProg.acts.map((a, i) => goalCard(a, i, dayProg, 'act')).join('')}</div>`;
-  box.onclick = e => { const c = e.target.closest('[data-claim]'), g = e.target.closest('[data-go]'), o = e.target.closest('[data-open]'); if (c) claimAct(+c.dataset.claim); else if (g) progGo(g.dataset.go); else if (o && finReady()) openFinale(); else { const k = e.target.closest('[data-chest]'); if (k) chestInfo(+k.dataset.chest); } };
+  box.innerHTML = `<div class="fame pfame"><div class="phd"><h3>${t("Today's Program")}</h3><p>${t('New program in {h}h {m}m', { h:Math.floor(left / 3600), m:Math.floor(left % 3600 / 60) })}</p></div><div class="famebar${+pct >= 99.9 ? ' fin' : ''}"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div><div class="pcrates">${crate(0, n >= 1 ? 'got' : 'lk')}${crate(1, n >= 2 ? 'got' : 'lk')}${crate(2, dayProg.fin ? 'got' : finReady() ? 'rdy' : 'lk', ' data-open="fin"')}</div></div><div class="acts">${dayProg.acts.map((a, i) => goalCard(a, i, dayProg, 'act')).join('')}</div>${live ? `<p class="pstreak">${FAME_SVG.flame}${t('Program streak: {n}', { n:dayProg.streak })}</p>` : ''}`;
+  box.onclick = e => { if (e.target.closest('[data-help]')) { showToast(t(BUZZ_HELP)); return; } const c = e.target.closest('[data-claim]'), g = e.target.closest('[data-go]'), o = e.target.closest('[data-open]'); if (c) claimAct(+c.dataset.claim); else if (g) progGo(g.dataset.go); else if (o && finReady()) openFinale(); else { const k = e.target.closest('[data-chest]'); if (k) chestInfo(+k.dataset.chest); } };
 }
 // Version 425 (owner): a tap on a chest says what's inside and when it opens. 0-2 are Today's Program, 3 the Festival Week finale.
 const CHEST_NAMES = ['Act I chest', 'Act II chest', 'Finale chest', 'Grand finale'], CHEST_HOW = ['Opens when you claim your first act today.', 'Opens when you claim your second act today.', 'Opens when all three acts are claimed. Tap it then to open it.', 'Opens when all 5 stars are lit.'];
@@ -16276,8 +16335,10 @@ function renderFest() {
   const box = $('missWeekly'); if (!tutDone) { box.innerHTML = `<p class="note">${t('Finish the tutorial to start your first program.')}</p>`; return; }
   const lit = weekFest.got.filter(Boolean).length, gr = grandReady(), d = 6 - (localDayNo() + 3) % 7, h = Math.floor(toMidnight() / 3600);
   const star = j => { const got = weekFest.got[j], rd = headReady(j); return `<svg class="${got ? 'on' : rd ? 'rd' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 7 7 .6-5.3 4.7 1.6 7.2L12 17.8 5.7 21.5l1.6-7.2L2 9.6 9 9z" fill="${got ? '#ffd25e' : rd ? '#fff3c0' : '#2a2470'}" stroke="${got ? '#1d1a33' : rd ? '#ffb02e' : '#5a54a8'}" stroke-width="1.6"/></svg>`; };
-  box.innerHTML = `<div class="fame"><h3>${t('Festival Week')}</h3><p>${t('{n} of 5 stars lit', { n:lit })} · ${t('Grand finale in {t}', { t:dhmText((d * 86400 + toMidnight()) * 1000) })}</p><div class="fstars"><span class="fu"><i style="width:${(lit / 5 * 100).toFixed(1)}%"></i></span>${weekFest.list.map((_, j) => star(j)).join('')}<button type="button" class="gcr${weekFest.grand ? ' got' : gr ? ' rdy' : ''}" data-open="grand"><span class="cbx">${chestSvg(3, !!weekFest.grand)}</span><span class="plab">${gr ? t('Open!') : t('Grand finale')}</span><small class="prw">${t('Rare cosmetic')}</small></button></div></div><div class="acts">${weekFest.list.map((a, j) => goalCard(a, j, weekFest, 'head')).join('')}</div>`;
-  box.onclick = e => { const c = e.target.closest('[data-claim]'), g = e.target.closest('[data-go]'), o = e.target.closest('[data-open]'); if (c) claimHead(+c.dataset.claim); else if (g) progGo(g.dataset.go); else if (o && grandReady()) openGrand(); else if (o) chestInfo(3); };
+  const ix = weekFest.list.map((_, j) => j), lt = ix.filter(j => weekFest.got[j]), rows = festFold || !lt.length ? ix : ix.filter(j => !weekFest.got[j]);   /* Version 689 */
+  const fold = lt.length ? `<button type="button" class="wdone" data-fold="1" aria-expanded="${festFold}"><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#3fbf6a"/><path d="m5 9 3 3 5-6" fill="none" stroke="#fff" stroke-width="2"/></svg><span>${lt.map(j => t(weekFest.list[j][2], { n:weekFest.list[j][1] })).join(', ')}</span><em>${festFold ? '▴' : '▾'}</em></button>` : '';
+  box.innerHTML = `<div class="fame wfame"><div class="wl"><h3>${t('Festival Week')}</h3><div class="wst">${weekFest.list.map((_, j) => star(j)).join('')}</div><p>${t('{n} of 5 stars lit', { n:lit })} · ${t('Grand finale in {t}', { t:dhmText((d * 86400 + toMidnight()) * 1000) })}</p></div><button type="button" class="gcr${weekFest.grand ? ' got' : gr ? ' rdy' : ''}" data-open="grand"><span class="cbx">${chestSvg(3, !!weekFest.grand)}</span><span class="plab">${gr ? t('Open!') : t('Grand finale')}</span><small class="prw">${t('Rare cosmetic')}</small></button></div>${fold}<div class="acts">${rows.map(j => goalCard(weekFest.list[j], j, weekFest, 'head')).join('')}</div>`;
+  box.onclick = e => { if (e.target.closest('[data-fold]')) { festFold = !festFold; renderFest(); return; } if (e.target.closest('[data-help]')) { showToast(t(BUZZ_HELP)); return; } const c = e.target.closest('[data-claim]'), g = e.target.closest('[data-go]'), o = e.target.closest('[data-open]'); if (c) claimHead(+c.dataset.claim); else if (g) progGo(g.dataset.go); else if (o && grandReady()) openGrand(); else if (o) chestInfo(3); };
 }
 function renderMissions() {
   progSync();
@@ -16286,6 +16347,7 @@ function renderMissions() {
   $('missTabs').innerHTML = [['daily', 'Daily'], ['weekly', 'Weekly'], ['fame', 'Achievements']].map(([k, n]) => k === 'weekly' && !wk ? `<button type="button" data-mt="${k}" class="flocked"><span class="flockmark">${LOCK}</span>${t(n)}</button>` : `<button type="button" data-mt="${k}"${k === missTab ? ' class="on"' : ''}>${t(n)}${counts[k] && dotsOn() ? `<i>${counts[k]}</i>` : ''}</button>`).join('');
   $('missTabs').querySelectorAll('button').forEach(b => { b.onclick = () => { if (b.classList.contains('flocked')) { lockTip('weekly'); return; } missTab = b.dataset.mt; renderMissions(); }; });
   $('missDaily').hidden = missTab !== 'daily'; $('missWeekly').hidden = missTab !== 'weekly'; $('missFame').hidden = missTab !== 'fame';
+  const qh = $('missHelp'); qh.hidden = missTab === 'fame' || !tutDone; qh.onclick = () => { $('infoBody').hidden = true; openInfo('How it works', missTab === 'daily' ? `${t('Each act you claim burns a third of the fuse and opens the next crate.')} ${t(BUZZ_HELP)}` : `${t('Five headliners a week.')} ${t('Grand finale')}: ${t('Rare cosmetic')}. ${t(CHEST_HOW[3])}`); };   /* Version 689 */
   if (missTab === 'daily') renderProgram(); else if (missTab === 'weekly') renderFest(); else renderFame();
   const nAll = counts.fame, any = nAll > 0, all = $('missAll'); all.hidden = missTab !== 'fame'; /* Version 425 (owner): Collect all is on Achievements only */ all.disabled = !any; all.classList.toggle('gold', any); all.textContent = any ? `${t('Collect all')} (${nAll})` : t('Collect all'); all.onclick = collectAllMissions; } /* Version 403: Collect all shows its count */
 // Stacked cards, Stage 1 on top. Each shows its own theme. Only Stage 1 opens for now.
