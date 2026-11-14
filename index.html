@@ -2313,6 +2313,7 @@ body.fullmap #globeIntro { top:calc(104px + env(safe-area-inset-top,0px)); }
         <label class="check"><input type="checkbox" id="tSpins"> Unlimited wheel spins</label>
         <label class="check"><input type="checkbox" id="tFps"> Show frame rate</label>
         <div class="tune"><label for="tIntro">Stage intro on the map <select id="tIntro"><option value="auto">First visit full, then short</option><option value="full">Always full, with camera pan</option><option value="short">Always short</option></select></label></div>
+        <button class="bub gold" id="tSpeedFull">Full speed test (all but the maps)</button>
         <button class="bub" id="tSpeed">Speed test (Starry Night)</button>
         <button class="bub" id="tSpeedPass">Speed test (Pass screen)</button>
         <button class="bub" id="tGfx">Redraw pictures (graphics reset test)</button>
@@ -2366,7 +2367,7 @@ body.fullmap #globeIntro { top:calc(104px + env(safe-area-inset-top,0px)); }
   <div class="locktip" id="lockTip" hidden role="status" aria-live="polite"></div>
   <div id="fpsMeter" hidden aria-hidden="true"></div>
   <div id="speedPill" hidden aria-hidden="true"></div>
-  <div id="speedSheet" hidden role="dialog" aria-labelledby="speedTitle"><div class="card"><h2 id="speedTitle">Speed test</h2><div id="speedHost"></div><pre id="speedOut"></pre><button class="bub gold" id="speedOk">Close</button></div></div>
+  <div id="speedSheet" hidden role="dialog" aria-labelledby="speedTitle"><div class="card"><h2 id="speedTitle">Speed test</h2><div id="speedHost"></div><pre id="speedOut"></pre><button class="bub" id="speedCopy" hidden>Copy results</button><button class="bub gold" id="speedOk">Close</button></div></div>
   <div id="limitNotice" hidden role="dialog" aria-labelledby="limitNoticeTitle"><div class="card"><h2 id="limitNoticeTitle" data-t="Thanks! Your items are in your account.">Thanks! Your items are in your account.</h2><p data-t="A weekly spending limit is in Settings if you ever need it. We want you to stick around.">A weekly spending limit is in Settings if you ever need it. We want you to stick around.</p><button class="bub gold" id="limitNoticeOk" data-t="Got it">Got it</button><button class="bub" id="limitNoticeGo" data-t="Set a limit">Set a limit</button></div></div>
   <div id="starterSheet" hidden role="dialog" aria-labelledby="starterTitle"><div class="card" id="starterCard">
     <h2 id="starterTitle" data-t="Pick your style">Pick your style</h2>
@@ -2469,7 +2470,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.671.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.672.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -26928,6 +26929,73 @@ async function speedPass() { if (speedBusy || speedRun || G) return; speedBusy =
     lines.push('Done. Please send a screenshot of this.'); }
   catch (e) { lines.push(`Stopped: ${e && e.message}`); }
   css.remove(); hero._skip = false; pill.hidden = true; speedBusy = false; $('speedHost').innerHTML = ''; $('speedOut').textContent = lines.join('\n'); $('speedOk').disabled = false; $('speedSheet').hidden = false; }
+/* Version 672 (owner): the full speed test. It plays every part of the game except the walking maps by itself, measuring real frames,
+   with saving and analytics switched off; Close reloads the page so nothing it did is kept. */
+const SPF = { on:false };
+const sfFrames = n => new Promise(r => { let k = 0; const f = () => { if (++k >= n) r(); else requestAnimationFrame(f); }; requestAnimationFrame(f); });
+const sfWait = ms => new Promise(r => setTimeout(r, ms));
+function sfMeasure(ms, each) { return new Promise(done => { const orig = stepFrame; let js = 0, jn = 0; stepFrame = now => { const a = performance.now(); try { orig(now); } finally { js += performance.now() - a; jn++; } };
+  const gaps = []; let t0 = 0, last = 0;
+  const step = now => { if (!t0) { t0 = last = now; requestAnimationFrame(step); return; } gaps.push(now - last); last = now; try { if (each) each(now - t0); } catch (e) {}
+    if (now - t0 < ms) { requestAnimationFrame(step); return; } stepFrame = orig; const g = gaps.slice(2), s2 = g.slice().sort((a, b) => a - b), n = s2.length || 1, avg = s2.reduce((a, b) => a + b, 0) / n, p99 = s2[Math.min(s2.length - 1, Math.floor(s2.length * 0.99))] || avg;
+    done(s2.length < 5 ? { few:true, n:s2.length } : { fps:1000 / avg, low:1000 / p99, worst:s2[s2.length - 1] || 0, js:jn ? js / jn : 0, hitch:g.filter(x => x > 50).length }); };
+  requestAnimationFrame(step); }); }
+function sfPoint(type, x, y, el) { const r = cv.getBoundingClientRect(); (el || cv).dispatchEvent(new PointerEvent(type, { bubbles:true, cancelable:true, clientX:r.left + x * r.width / W, clientY:r.top + y * r.height / H, pointerId:7, isPrimary:true, pointerType:'touch', button:0, buttons:type === 'pointerup' ? 0 : 1 })); }
+function sfClear() { document.querySelectorAll('#unlockSheet,#presentSheet,#welcomeGift,#infoSheet,#sheet,#starterSheet,#intro,#help,#leave,#noStam,#relaxOffer,#newCard,#login,#tour,#flagSheet,#trialSheet').forEach(e => { if (e && !e.hidden) e.hidden = true; }); }
+/* campaign: drags each solution piece home with real pointer events, then lights the show */
+function sfPacker() { let st = null; return () => { sfClear(); if (!G) return; if (G.cd && G.cd.hold) { G.cd.hold = false; try { cdSkip(); } catch (e) {} } if (G.phase === 'ready') { try { readyGo(); } catch (e) {} return; }
+  const m = M; if (G.phase !== 'mini' || !m || m.done || (G.cd && cdActive())) { st = null; return; }
+  if (!st) { const pc = m.solution.find(p => p.onBench && p.mine); if (!pc) return; if (pc.solved) Object.assign(pc, pc.solved); const sp = BLOCKS.slotPos(m, pc.slot); sfPoint('pointerdown', sp.x, sp.y); st = { pc, sp, k:0 }; return; }
+  if (st.k === 0) { const d = m.drag; st.ox = d ? d.ox || 0 : 0; st.oy = d ? d.oy || 0 : 0; st.tx = m.ox + (st.pc.home[0] + st.pc.w / 2) * m.cell; st.ty = m.oy + (st.pc.home[1] + st.pc.h / 2) * m.cell; }
+  st.k++; const u = Math.min(1, st.k / 9); sfPoint('pointermove', st.sp.x + (st.tx - st.ox - st.sp.x) * u, st.sp.y + (st.ty - st.oy - st.sp.y) * u);
+  if (st.k >= 11) { sfPoint('pointerup', st.tx - st.ox, st.ty - st.oy); if (!m.placed.find(q => q.pc === st.pc) && !m.done) { st.pc.onBench = false; m.placed.push({ pc:st.pc, gx:st.pc.home[0], gy:st.pc.home[1], pop:0 }); BLOCKS.rebuild(m); if (!BLOCKS.flaws(m).gaps) BLOCKS.finish(m); } st = null; } }; }
+async function sfUntil(test, ms, each) { const t0 = performance.now(); while (performance.now() - t0 < ms) { try { if (test()) return true; if (each) each(); } catch (e) {} await sfFrames(1); } return false; }
+async function sfLevel(name, setup, rows, only) { if (G) quit('home'); await sfFrames(3); setup(); stam.n = 10; stats.boardLock = {}; startGame(levelId(3, 4)); await sfFrames(4); sfClear(); const pack = sfPacker();
+  if (!only) rows.push([`${name}: packing`, await sfMeasure(2500, pack)]);
+  await sfUntil(() => G && (G.phase === 'show' || G.phase === 'result'), 20000, pack);
+  rows.push([`${name}: show`, await sfMeasure(3000, sfClear)]);
+  if (!only) { await sfUntil(() => G && G.phase === 'result', 12000, sfClear); rows.push([`${name}: result screen`, await sfMeasure(1500, sfClear)]); } }
+/* Zombie Night: a small bot (the simulator's, simplified) places the best piece every 0.7 s and takes perks and tips */
+function sfZdMove(R) { let best = null; R.tray.forEach((pc, slot) => { if (!pc) return; for (let y = 0; y <= 6 - pc.h; y++) for (let x = 0; x <= 6 - pc.w; x++) { if (!zdFits(R.board, pc, x, y)) continue; const b = R.board.slice(); pc.cells.forEach(([a, c]) => { b[(y + c) * 6 + x + a] = { c:pc.c, el:pc.el }; }); const sc = zdFindSets(b).length * 30 - b.filter(Boolean).length + Math.random(); if (!best || sc > best.sc) best = { sc, slot, x, y }; } }); return best; }
+function sfZdBot() { let next = 0; return t => { sfClear(); if (!G || !G.zd) return; const K = G.zd, R = K.R; if (!$('sheet').hidden) $('sheet').hidden = true;
+  if (K.perk) { const c = zdPerkCards(K)[0]; if (c) { sfPoint('pointerdown', c.x + 40, c.y + 30, $('stage')); sfPoint('pointerup', c.x + 40, c.y + 30, $('stage')); } return; }
+  if (K.tip) { sfPoint('pointerdown', 195, 150, $('stage')); sfPoint('pointerup', 195, 150, $('stage')); return; }
+  if (K.over || R.jamT > 0 || t < next) return; next = t + 700; const mv = sfZdMove(R); if (!mv) return; const L = zdLay(), pc = R.tray[mv.slot], sz = L.cell, lift = pc.h * sz / 2 + 34;
+  K.drag = { slot:mv.slot, pc, x:L.bx + mv.x * sz + pc.w * sz / 2, y:L.by + mv.y * sz + pc.h * sz / 2 + lift, x0:0, y0:0, moved:99, t0:clock - 1, spot:null, lift }; zdUp(); }; }
+const SF_HEAVY = [['Baraat + Starry Night + Ice Wizard', 'baraat', 'starry', 'icewizard'], ['Kaiju + Sarimanok + Crocodile Invasion', 'kaiju', 'sarimanok', 'crocs'], ['Lion Dance + Golazo + Flag on the Play', 'liondance', 'golazo', 'referee'], ['Diwali Diyas + Blurry Photo', 'diwali', 'diwali', 'blurryphoto']];
+function sfEquip(keys) { const tables = [['launcher', LAUNCHERS], ['firework', FIREWORKS], ['blast', BLASTS]]; keys.forEach(k => tables.forEach(([slot, tb]) => { if (tb && tb[k]) pick[slot] = k; })); }
+async function speedFull() { if (SPF.on || speedRun || speedBusy) return; SPF.on = true; const pill = $('speedPill'), rows = [], keep = { saveAll, track, featureOpen }; saveAll = () => {}; track = () => {}; featureOpen = () => true;
+  $('soundOn').checked = false; $('musicOn').checked = false; ['sparkyHi', 'coachFreeze', 'starRule', 'coachSide', 'coachLuck', 'sparkyDemo', 'trayCard', 'trayGo', 'paceLine', 'luckGift', 'crownTip', 'coachSkip', 'coachJam', 'coachFix', 'rdy1', 'rdy2', 'rdy3', 'zdHow', 'tipSurvival', 'zdTurn', 'zdFlame', 'zdElec', 'zdBoss', 'zdFrost'].forEach(x => seenIntro.add(x)); tutDone = true;
+  const steps = 21; let k = 0; const say = name => { k++; pill.hidden = false; pill.textContent = `Full speed test ${k}/${steps}: ${name}`; };
+  const ua = navigator.userAgent, dev = (ua.match(/Android [0-9.]+;[^)]*|iPhone|iPad|Mac OS X [0-9_]+|Windows NT [0-9.]+/) || ['device'])[0];
+  const head = [`Full speed test · game ${CONFIG.analytics.appVersion || ''} · ${dev}`, `screen ${innerWidth}x${innerHeight} @ ${+devicePixelRatio.toFixed(2)}x · ${navigator.hardwareConcurrency || '?'} cores · ${navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'memory ?'} · 3D boards ${stats.b3d !== false ? 'on' : 'off'}`];
+  const look0 = stats.lookForce, b3d0 = stats.b3d, pick0 = { ...pick };
+  try {
+    if (G) quit('home');
+    for (const [name, scr] of [['Play tab', 'home'], ['Shop', 'shop'], ['Missions', 'missions']]) { say(name); show(scr); await sfWait(500); rows.push([name, await sfMeasure(2000)]); }
+    say('Pass (scrolling)'); show('pass'); await sfWait(500); { const el = $('pass'); rows.push(['Pass (scrolling)', await sfMeasure(2500, t => { el.scrollTop = (el.scrollHeight - el.clientHeight) * (0.5 - 0.5 * Math.cos(t / 2500 * Math.PI * 2)); })]); }
+    show('custom'); await sfWait(300);
+    for (const [name, tab] of [['Workshop: Launchers', 'tabL'], ['Workshop: Fireworks', 'tabF'], ['Workshop: Explosions', 'tabB'], ['Workshop: Smoke', 'tabS']]) { say(`${name} (fast flicks)`); $(tab).click(); await sfWait(400); const el = $('custom'); rows.push([`${name} (fast flicks)`, await sfMeasure(3000, t => { el.scrollTop = (el.scrollHeight - el.clientHeight) * (0.5 - 0.5 * Math.cos(t / 1500 * Math.PI * 2)); el.dispatchEvent(new Event('scroll')); })]); await sfWait(300); rows.push([`${name} (resting)`, await sfMeasure(1500)]); }
+    say('Workshop: Matching Sets'); $('tabSets').click(); $('custom').scrollTop = 0; await sfWait(400); rows.push(['Workshop: Matching Sets', await sfMeasure(2000)]);
+    for (const [name, look, b3] of [['Campaign, Jelly 3D', 'jelly', true], ['Campaign, Neon 3D', 'neon', true], ['Campaign, Jewel 3D', 'jewel', true], ['Campaign, flat board', 'jelly', false]]) { say(name); await sfLevel(name, () => { stats.lookForce = look; stats.b3d = b3; Object.assign(pick, pick0); }, rows); }
+    stats.lookForce = look0; stats.b3d = b3d0;
+    for (const [name, la, fw, bl] of SF_HEAVY) { say(`Heavy show: ${name}`); await sfLevel(`Heavy show: ${name}`, () => { Object.assign(pick, pick0); sfEquip([la, fw, bl]); }, rows, true); }
+    Object.assign(pick, pick0);
+    say('Zombie Night, Round 1'); if (G) quit('home'); await sfFrames(3); stam.n = 10; zdState().gfx = 'auto'; $('zdTestN').value = 1; zdStart(); await sfWait(600); rows.push(['Zombie Night, Round 1 (bot)', await sfMeasure(6000, sfZdBot())]);
+    say('Zombie Night, Round 12'); if (G) quit('home'); await sfFrames(3); stam.n = 10; const dev0 = $('devOn').checked; $('devOn').checked = true; $('zdTestN').value = 12; zdStart(); $('devOn').checked = dev0; await sfWait(600); { const bot = sfZdBot(); await sfUntil(() => G && G.zd && G.zd.R.zombies.length >= 6, 8000, () => bot(performance.now())); rows.push(['Zombie Night, Round 12 (crowd)', await sfMeasure(6000, bot)]); }
+    say('Sky Bowling'); if (G) quit('home'); await sfFrames(3); startGame(1, { sky:true, seed:'sky|speedtest', offset:3 }); skbBegin(); await sfWait(600); { let shots = 0, nextT = 300; rows.push(['Sky Bowling (3 throws)', await sfMeasure(7000, t => { sfClear(); const K = G && G.sky; if (K && K.mode === 'aim' && t > nextT && shots < 3) { skbFire(); shots++; nextT = t + 2200; } })]); }
+    say('Shell Drop'); if (G) quit('home'); await sfFrames(3); try { shdOpen(); await sfWait(700); rows.push(['Shell Drop board', await sfMeasure(2500)]); shdClose(); } catch (e) { rows.push(['Shell Drop board', null]); }
+    if (G) quit('home');
+  } catch (e) { rows.push([`Stopped: ${e && e.message}`, null]); }
+  saveAll = keep.saveAll; track = keep.track; featureOpen = keep.featureOpen; stats.lookForce = look0; stats.b3d = b3d0; Object.assign(pick, pick0); pill.hidden = true; SPF.on = false;
+  const mark = r => !r ? 'skipped' : r.fps >= 55 ? 'OK' : r.fps >= 40 ? 'SLOW' : 'BAD', fmt = ([n, r]) => !r ? `${n}: skipped` : r.few ? `BAD  ${n}: too few frames (${r.n}) - the screen nearly froze` : `${mark(r)}  ${n}: ${Math.round(r.fps)} fps · 1% low ${Math.round(r.low)} · slowest ${Math.round(r.worst)} ms · script ${r.js.toFixed(1)} ms${r.hitch ? ` · ${r.hitch} hitch${r.hitch > 1 ? 'es' : ''}` : ''}`;
+  const measured = rows.filter(r => r[1] && !r[1].few), worst = measured.slice().sort((a, b) => a[1].fps - b[1].fps).slice(0, 3);
+  const lines = [...head, `Slowest: ${worst.map(([n, r]) => `${n} (${Math.round(r.fps)} fps)`).join('; ')}`, '', ...rows.map(fmt), '', 'OK = 55+ fps, SLOW = 40-54, BAD = under 40. Copy and send this, or a screenshot.'];
+  $('speedOut').textContent = lines.join('\n'); $('speedHost').innerHTML = ''; $('speedOk').disabled = false; $('speedOk').textContent = 'Close (reloads)'; $('speedOk').onclick = () => location.reload(); $('speedCopy').hidden = false;
+  $('speedCopy').onclick = () => { const txt = $('speedOut').textContent; try { navigator.clipboard.writeText(txt).then(() => { $('speedCopy').textContent = 'Copied'; }, () => { $('speedCopy').textContent = 'Copy failed: screenshot instead'; }); } catch (e) { $('speedCopy').textContent = 'Copy failed: screenshot instead'; } };
+  $('speedSheet').hidden = false; try { localStorage.setItem('bob_speedfull', JSON.stringify({ at:Date.now(), lines })); } catch (e) {} }
+$('tSpeedFull').onclick = () => speedFull();
+if (/[?&]speedtest=full\b/.test(location.search)) setTimeout(() => { try { speedFull(); } catch (e) {} }, 3000);
 const FPS = { n:0, at:0, last:0, worst:0 };
 function fpsTick(now) { const cb = $('tFps'), el = $('fpsMeter'); if (!el) return; if (!cb || !cb.checked) { if (!el.hidden) el.hidden = true; FPS.at = 0; FPS.last = 0; return; } if (FPS.last) FPS.worst = Math.max(FPS.worst, now - FPS.last); FPS.last = now; FPS.n++; if (!FPS.at) { FPS.at = now; FPS.n = 0; FPS.worst = 0; return; }
   if (now - FPS.at >= 500) { el.textContent = `${Math.round(FPS.n * 1000 / (now - FPS.at))} fps · slowest ${Math.round(FPS.worst)} ms`; el.hidden = false; FPS.at = now; FPS.n = 0; FPS.worst = 0; } }
