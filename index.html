@@ -1985,7 +1985,7 @@ input, textarea, select, [contenteditable="true"] { -webkit-user-select:text; us
 #fameHead .famenext { margin:4px 2px 0; font-size:.7rem; font-weight:700; color:#9fe8a8; }
 
 /* Version 576: Share a moment */
-.shareMoment { position:fixed; left:12px; top:calc(62px + env(safe-area-inset-top,0px)); z-index:7; display:flex; align-items:center; gap:6px; padding:8px 14px 8px 11px; border-radius:999px; font-size:.9rem; background:linear-gradient(#9a5cf0,#6a2fc8); box-shadow:0 0 0 2px #d6b8ff, 0 4px 0 #3a1580; color:#fff; }
+.shareMoment { position:fixed; right:12px; bottom:calc(18px + env(safe-area-inset-bottom,0px)); z-index:7; display:flex; align-items:center; gap:6px; padding:8px 14px 8px 11px; border-radius:999px; font-size:.9rem; background:linear-gradient(#7f70e6,#5a4bc4); box-shadow:0 4px 0 #2f2680; color:#fff; }   /* Version 734 (owner): bottom right, standard purple */
 .shareMoment svg { width:18px; height:18px; }
 .shareMoment[hidden] { display:none; }
 
@@ -2716,7 +2716,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.733.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.734.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
