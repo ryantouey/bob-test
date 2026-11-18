@@ -2719,7 +2719,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.775.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.776.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -7004,6 +7004,63 @@ function hintPlan(m, pc0) { try {
   const wrong = m.placed.filter(q => q.pc.mine && q.pc.home && (q.gx !== q.pc.home[0] || q.gy !== q.pc.home[1]));
   for (const q of wrong) { const occ2 = new Set([...occ].filter(k => m.filled.get(k) !== q.pc)), r = solve(occ2, pool.concat([q.pc])); if (r) { const me = r.find(x => x.p === q.pc); return { pc:q.pc, home:me ? [me.gx, me.gy] : null }; } }
   return null; } catch (e) { return null; } }
+/* G-00 (owner 11/17/26, Priority 1): the heavenly beam. A picked-up piece lights the cells it fills in a legal, completion-safe spot
+   (pbPlan: its own home when that still leads to a full shell, else a full completion of the board as it stands, checked with the snap rules),
+   with a soft beam from above, behind the held piece. Tutorial + Stage 1 Level 1 strong on every pickup, Levels 2-3 light on every pickup,
+   Levels 4-5 conditional (held PB_CFG.holdS s, or the next pickup after a rejected drag; cooldown PB_CFG.coolS), off everywhere else.
+   OFF by default: CONFIG.beam = true, or ?beam=1 (?beam=0 forces it off). */
+CONFIG.beam = false;
+const PB_CFG = { holdS:2.5, coolS:8, briefS:2.4, rejectPx:40, fadeIn:0.2, cap:20000 };
+const PB_URL = (() => { try { const v = new URLSearchParams(location.search).get('beam'); return v == null ? null : v === '1'; } catch (e) { return null; } })();
+const PB = { m:null, d:null, tgt:null, t0:0, fs:0, show:0, next:false, cool:-99, geo:null };
+function pbOn() { return PB_URL != null ? PB_URL : !!CONFIG.beam; }
+function pbTier() { try { if (!pbOn() || !G || G.run || G.daily || G.zd || G.sky || G.preview) return 'off'; if (G.tut || G.level === TUT_ID) return 'strong';
+  if (typeof G.level !== 'number' || stageOf(G.level) !== 1) return 'off'; const n = levelNo(G.level); return n === 1 ? 'strong' : n <= 3 ? 'light' : n <= 5 ? 'conditional' : 'off'; } catch (e) { return 'off'; } }
+function pbPlan(m, pc) { try {
+  if (!m || !m.solution || !m.cells || !pc || !pc.mine || !pc.home) return null;
+  const home = p => p.solved ? p.solved.cells : p.cells, sig = q => q.map(a => a.join(',')).sort().join(';');
+  if (sig(pc.cells) !== sig(home(pc))) return null;   /* turned away from its solved shape: no reliable footprint */
+  const need = new Set(m.cells.filter(k => !m.sealed.has(k))), at = (p, gx, gy) => home(p).map(([a, b]) => (gx + a) + ',' + (gy + b));
+  const fits = (p, gx, gy, occ) => at(p, gx, gy).every(k => need.has(k) && !occ.has(k) && m.target.get(k) === p.c);
+  const legal = (gx, gy) => BLOCKS.inside(m, pc, gx, gy) && !BLOCKS.overlaps(m, pc, gx, gy).length && BLOCKS.colourOk(m, pc, gx, gy) && doorFree(m, pc, gx, gy);
+  let steps = 0;
+  const solve = (occ, pool) => { let first = null; for (const k of m.cells) if (need.has(k) && !occ.has(k)) { first = k; break; } if (!first) return [];
+    if (++steps > PB_CFG.cap) throw new Error('beam cap'); const [fx, fy] = first.split(',').map(Number), seen = new Set();
+    for (let i = 0; i < pool.length; i++) { const p = pool[i], s = p.c + '|' + sig(home(p)); if (seen.has(s)) continue; seen.add(s);
+      for (const [a, b] of home(p)) { const gx = fx - a, gy = fy - b; if (!fits(p, gx, gy, occ)) continue; const add = at(p, gx, gy); add.forEach(k => occ.add(k));
+        const r = solve(occ, pool.slice(0, i).concat(pool.slice(i + 1))); add.forEach(k => occ.delete(k)); if (r) return [{ p, gx, gy }].concat(r); } }
+    return null; };
+  const occ = new Set(m.filled.keys()), pool = m.bench.filter(p => p !== pc && p.onBench && p.mine && p.home), [hx, hy] = pc.home;
+  if (fits(pc, hx, hy, occ) && legal(hx, hy)) { const add = at(pc, hx, hy); add.forEach(k => occ.add(k)); const r = solve(occ, pool); add.forEach(k => occ.delete(k)); if (r) return [hx, hy]; }
+  const r = solve(occ, pool.concat([pc])), me = r && r.find(x => x.p === pc); return me && legal(me.gx, me.gy) ? [me.gx, me.gy] : null;
+  } catch (e) { return null; } }
+function pbStart(reason, tier) { const P = PB; if (!P.tgt) return; P.show = clock; if (tier === 'conditional') { P.cool = clock; P.next = false; } try { track('pickup_hint_shown', { tier, level:G.level, reason }); } catch (e) {} }
+/* once a frame from the board draw: notices pickups and releases from m.drag itself, so the touch code is unchanged */
+function pbFrame(m) { const P = PB; if (P.m !== m) { P.m = m; P.d = null; P.tgt = null; P.show = 0; P.next = false; P.cool = -99; P.geo = null; }
+  const d = m.drag;
+  if (P.d && d !== P.d) { const pd = P.d, inPlace = m.placed.some(r => r.pc === pd.pc); if (inPlace) P.next = false; else if ((pd.moved || 0) >= PB_CFG.rejectPx) { const c = BLOCKS.centre(pd); if (BLOCKS.overBoard(m, c.x, c.y)) P.next = true; }
+    P.d = null; P.tgt = null; P.show = 0; P.geo = null; }
+  if (!d) return; const tier = pbTier(); if (tier === 'off') return;
+  if (d !== P.d) { P.d = d; P.t0 = clock; P.fs = m.filled.size; P.show = 0; P.geo = null; P.tgt = pbPlan(m, d.pc);
+    if (tier !== 'conditional') pbStart('pickup', tier); else if (P.next && clock - P.cool >= PB_CFG.coolS) pbStart('after_reject', tier); }
+  else if (m.filled.size !== P.fs) { P.fs = m.filled.size; P.tgt = pbPlan(m, d.pc); P.geo = null; }
+  if (tier === 'conditional' && !P.show && clock - P.t0 >= PB_CFG.holdS && clock - P.cool >= PB_CFG.coolS) pbStart('hesitation', tier);
+  if (P.show && P.tgt) pbDraw(m, d.pc, tier, clock - P.show); }
+function pbDraw(m, pc, tier, age) { const P = PB, s = m.cell, gx = P.tgt[0], gy = P.tgt[1]; let g = P.geo;
+  if (!g || g.ox !== m.ox || g.oy !== m.oy || g.s !== s) { const cs = pc.cells.map(([a, b]) => [m.ox + (gx + a) * s, m.oy + (gy + b) * s]); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; cs.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + s); y1 = Math.max(y1, y + s); });
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, top = Math.max(0, y0 - 260), R = Math.max(x1 - x0, y1 - y0) * 0.5 + s * 0.9, sh = ctx.createLinearGradient(0, top, 0, y1), ha = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    sh.addColorStop(0, 'rgba(255,246,214,0)'); sh.addColorStop(0.72, 'rgba(255,240,190,.26)'); sh.addColorStop(1, 'rgba(255,236,170,.42)'); ha.addColorStop(0, 'rgba(255,240,190,.42)'); ha.addColorStop(1, 'rgba(255,220,140,0)');
+    g = P.geo = { ox:m.ox, oy:m.oy, s, cs, x0, y0, x1, y1, cx, cy, top, R, sh, ha }; }
+  const strong = tier === 'strong', calm = reduced, life = tier === 'conditional' ? clamp((PB_CFG.briefS - age) / 0.6) : 1, k = clamp(age / PB_CFG.fadeIn) * life * (strong ? 1 : 0.55) * (calm ? 0.8 : 1); if (k <= 0.01) return;
+  const pul = calm ? 1 : 0.84 + 0.16 * Math.sin(clock * 4.2), w = g.x1 - g.x0;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = k * pul * (strong ? 1 : 0.6); ctx.fillStyle = g.sh; ctx.beginPath(); ctx.moveTo(g.cx - w * 0.28, g.top); ctx.lineTo(g.cx + w * 0.28, g.top); ctx.lineTo(g.x1 + s * 0.12, g.y1); ctx.lineTo(g.x0 - s * 0.12, g.y1); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = k * pul; ctx.fillStyle = g.ha; ctx.fillRect(g.cx - g.R, g.cy - g.R, g.R * 2, g.R * 2);
+  ctx.fillStyle = 'rgba(255,244,205,.34)'; g.cs.forEach(([x, y]) => { rr(x + 2, y + 2, s - 4, s - 4, 8); ctx.fill(); });
+  if (strong && !calm) { ctx.fillStyle = '#fff6d8'; const hh = g.y1 - g.top; for (let i = 0; i < 7; i++) { const u = (clock * 0.55 + i * 0.137) % 1, x = g.cx + ((i * 0.618) % 1 - 0.5) * w * (0.5 + 0.5 * u); ctx.globalAlpha = k * 0.8 * Math.sin(Math.PI * u); ctx.fillRect(x - 1, g.top + u * hh - 1, 2.2, 2.2); } }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = k * (strong ? 0.42 : 0.26); drawPiece(pc, m.ox + gx * s, m.oy + gy * s, s);
+  ctx.globalAlpha = k * (0.75 + 0.25 * pul); ctx.setLineDash([]); ctx.strokeStyle = '#fff2c4'; ctx.lineWidth = strong ? 2.5 : 1.8; g.cs.forEach(([x, y]) => { rr(x + 3, y + 3, s - 6, s - 6, 8); ctx.stroke(); });
+  ctx.restore(); }
 /* Placement lock feel (owner 11/13/26): the pop eases up to +10% over 80 ms, then back to 1.0 over 120 ms (q.pop counts down from LOCK_POP.t) */
 const LOCK_POP = { t:0.2, up:0.08, peak:0.10, flash:0.15 };
 function lockPop(p) { const el = LOCK_POP.t - p; if (el <= 0) return 0; if (el < LOCK_POP.up) { const u = el / LOCK_POP.up; return LOCK_POP.peak * (1 - (1 - u) * (1 - u)); } const v = Math.min(1, (el - LOCK_POP.up) / (LOCK_POP.t - LOCK_POP.up)); return LOCK_POP.peak * (1 - v * v * (3 - 2 * v)); }
@@ -8249,6 +8306,7 @@ const BLOCKS = {
     const hideTray = trayHidden();
     if (m.hint && !hideTray) { const pc = m.hint; ctx.strokeStyle = COL.gold; ctx.lineWidth = 3; (pc.solved ? pc.solved.cells : pc.cells).forEach(([a, n]) => { const px = m.ox + (pc.home[0] + a) * m.cell, py = m.oy + (pc.home[1] + n) * m.cell; ctx.globalAlpha = 0.3 + 0.2 * pulse; ctx.fillStyle = COL.gold; rr(px + 3, py + 3, m.cell - 6, m.cell - 6, 8); ctx.fill(); ctx.globalAlpha = pulse; ctx.stroke(); }); ctx.globalAlpha = 1; }
     if (G.zapFx && clock - G.zapFx.t0 < LOCK_POP.flash) { const z = G.zapFx, u = (clock - z.t0) / LOCK_POP.flash; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (1 - u) * 0.55; ctx.fillStyle = '#ffffff'; z.cells.forEach(([x, y]) => { rr(m.ox + x * m.cell + 2, m.oy + y * m.cell + 2, m.cell - 4, m.cell - 4, 8); ctx.fill(); }); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#a8f7ff'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; z.arcs.forEach(a => { ctx.beginPath(); ctx.moveTo(a[0][0], a[0][1]); for (let i = 1; i < a.length; i++) ctx.lineTo(a[i][0], a[i][1]); ctx.stroke(); }); ctx.restore(); }   /* Version 568: the lock flash, under 120 ms, on the covered cells only */
+    pbFrame(m);   /* G-00: the heavenly beam, behind the magnet ghost and the held piece */
     if (m.drag) { const d = m.drag, c = this.centre(d), spot = this.snap(m, d.pc, c.x, c.y - b3Lf(d)); m.magnet = spot ? { gx:spot[0], gy:spot[1] } : null; if (spot && b3dOn()) b3Preview(m, d, spot); else if (spot) { const pu = 0.55 + 0.45 * Math.sin(clock * 18); ctx.save(); ctx.globalAlpha = 0.32; drawPiece(d.pc, m.ox + spot[0] * m.cell, m.oy + spot[1] * m.cell, m.cell); ctx.globalAlpha = 1; ctx.strokeStyle = `rgba(140,240,255,${0.45 + 0.4 * pu})`; ctx.lineWidth = 2; if (!reduced) { ctx.shadowColor = '#8ff4ff'; ctx.shadowBlur = 10; } d.pc.cells.forEach(([a, b]) => { rr(m.ox + (spot[0] + a) * m.cell + 3, m.oy + (spot[1] + b) * m.cell + 3, m.cell - 6, m.cell - 6, 8); ctx.stroke(); }); ctx.restore(); } } else m.magnet = null;   /* Version 568 (owner): the magnet target glows */
     if (!hideTray && G.trayNote) { G.trayNote = false; seenIntro.add('trayGo'); saveAll(); }   /* the first-time note has been read: the pieces are in */
     if (hideTray && m.bench.length) m.bench.forEach(pc => { const p = this.slotPos(m, pc.slot); lookTray(p.x - m.slotW / 2 + 2, p.y - trayH() / 2, m.slotW - 4, trayH()); ctx.save(); ctx.font = "800 34px 'Bricolage Grotesque','Figtree',system-ui,sans-serif"; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(13,15,42,.8)'; ctx.strokeText('?', p.x, p.y + 12); ctx.fillStyle = 'rgba(244,242,251,.62)'; ctx.fillText('?', p.x, p.y + 12); ctx.restore(); });
