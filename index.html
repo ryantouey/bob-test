@@ -2743,7 +2743,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.781.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.782.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -11097,7 +11097,7 @@ function fwDrawRiseCue(c) {
   /* Version 781 (owner): colour only once the launcher is barely on screen, for 0.5-1 s. Was: end = Math.min(FW_CUE.end, f.dur - 0.13), shown from FW_CUE.start */
   const f = fwFirstRocket(); if (!f) return;
   if (S.fwCueAt == null) { if ((H - 104 - 56) + S.cam < H - 18) return; S.fwCueAt = f.t; }
-  const cue0 = S.fwCueAt, end = Math.min(cue0 + 0.8, f.dur - 0.1); if (end - cue0 < 0.25 || f.t < cue0 || f.t > end) return;
+  const cue0 = S.fwCueAt, end = Math.min(cue0 + 0.3, f.dur - 0.05); if (end - cue0 < 0.18 || f.t < cue0 || f.t > end) return;   /* Version 782: a 0.3 s flash (was cue0 + 0.8, at least 0.25 s) */
   const rarity = fwTier(G.showFw), color = FW_TIER_COL[rarity] || FW_TIER_COL.common, rgb = FW_TIER_RGB[rarity] || FW_TIER_RGB.common, fresh = !!(G.fwPull && G.fwPull.isNew);
   const x = clamp(f.x, 45, W - 45), y = f.y + S.cam; if (y < 24 || y > H - 32) return;
   const fade = clamp((f.t - cue0) / 0.08) * clamp((end - f.t) / 0.15); if (fade <= 0) return;
@@ -11115,11 +11115,14 @@ function fwDrawRiseCue(c) {
   //   c.fillStyle = '#ffffff'; c.beginPath(); c.arc(x, y, fresh ? 4.3 : 3.3, 0, Math.PI * 2); c.fill();
   //   if (fresh) { c.strokeStyle = '#ffffff'; c.lineWidth = 1.7; c.beginPath(); c.moveTo(x - 7, y); c.lineTo(x + 7, y); c.moveTo(x, y - 7); c.lineTo(x, y + 7); c.stroke(); }
   */
-  const low = reduced ? 0.58 : 1, len = fresh ? 46 : 34, n = reduced ? 4 : (fresh ? 9 : 6);
-  c.save(); c.globalCompositeOperation = 'lighter';
-  const st = c.createLinearGradient(x, y + 3, x, y + len); st.addColorStop(0, `rgba(${rgb},${0.85 * fade * low})`); st.addColorStop(1, `rgba(${rgb},0)`);
-  c.strokeStyle = st; c.lineWidth = fresh ? 3.6 : 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y + 3); c.lineTo(x, y + len); c.stroke();
-  for (let i = 0; i < n; i++) { const q = (i + 0.5) / n, jx = Math.sin(i * 7.3 + f.t * 9) * (3 + q * 8), jy = 6 + q * len + ((f.t * 60 + i * 11) % 8); sparkleMark(c, x + jx, y + jy, (fresh ? 4.4 : 3.4) * (1 - q * 0.45), i % 3 === 0 ? '#ffffff' : color, fade * low * (1 - q * 0.6)); }
+  /* Version 782 (owner): a small flash of colour at the rocket's tail - a short streak and a little star of spark lines popping outward, once */
+  const low = reduced ? 0.58 : 1, u = clamp((f.t - cue0) / Math.max(0.01, end - cue0)), pop = (u < 0.15 ? u / 0.15 : Math.pow(1 - (u - 0.15) / 0.85, 1.6)) * low, len = fresh ? 28 : 22, n = reduced ? 6 : (fresh ? 10 : 8), ty = y + 6;
+  c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+  const st = c.createLinearGradient(x, y + 3, x, y + len); st.addColorStop(0, `rgba(${rgb},${0.95 * pop})`); st.addColorStop(1, `rgba(${rgb},0)`);
+  c.strokeStyle = st; c.lineWidth = fresh ? 3.4 : 2.8; c.beginPath(); c.moveTo(x, y + 3); c.lineTo(x, y + len); c.stroke();
+  c.strokeStyle = `rgba(${rgb},${pop})`; c.lineWidth = fresh ? 2 : 1.7;
+  for (let i = 0; i < n; i++) { const a = i * 2 * Math.PI / n + 0.3, r1 = 3 + u * (fresh ? 24 : 18), r2 = r1 + (fresh ? 7 : 5) * (1 - u * 0.6); c.beginPath(); c.moveTo(x + Math.cos(a) * r1, ty + Math.sin(a) * r1); c.lineTo(x + Math.cos(a) * r2, ty + Math.sin(a) * r2); c.stroke(); }
+  for (let i = 0; i < 3; i++) { const a = i * 2.1 + 1, r = 6 + u * (fresh ? 20 : 15); sparkleMark(c, x + Math.cos(a) * r, ty + Math.sin(a) * r, fresh ? 3.6 : 3, i ? color : '#ffffff', pop); }
   c.globalAlpha = 1;
   c.restore(); }
 function fwDrawLuckyStarCue(c) {   /* the tutorial's Lucky Star shape and chime, for a Legendary's first rocket; drawLuckyStar() is untouched */
