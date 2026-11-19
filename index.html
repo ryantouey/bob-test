@@ -2778,7 +2778,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.790.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.791.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -7107,12 +7107,13 @@ function pbFrame(m) { const P = PB; if (P.m !== m) { P.m = m; P.d = null; P.tgt 
   if (P.show && P.tgt) pbDraw(m, d.pc, tier, clock - P.show); }
 function pbDraw(m, pc, tier, age) { const P = PB, s = m.cell, gx = P.tgt[0], gy = P.tgt[1]; let g = P.geo;
   if (!g || g.ox !== m.ox || g.oy !== m.oy || g.s !== s) { const cs = pc.cells.map(([a, b]) => [m.ox + (gx + a) * s, m.oy + (gy + b) * s]); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; cs.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + s); y1 = Math.max(y1, y + s); });
-    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, top = Math.max(0, y0 - 260), R = Math.max(x1 - x0, y1 - y0) * 0.5 + s * 0.9, sh = ctx.createLinearGradient(0, top, 0, y1), ha = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, top = Math.max(0, y0 - 260, m.oy + m.size * m.cell * (0.5 - (m.ring || 0.75))), R = Math.max(x1 - x0, y1 - y0) * 0.5 + s * 0.9, sh = ctx.createLinearGradient(0, top, 0, y1)   /* Version 791: the shaft starts at the board's top edge */, ha = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
     sh.addColorStop(0, 'rgba(255,246,214,0)'); sh.addColorStop(0.72, 'rgba(255,240,190,.26)'); sh.addColorStop(1, 'rgba(255,236,170,.42)'); ha.addColorStop(0, 'rgba(255,240,190,.42)'); ha.addColorStop(1, 'rgba(255,220,140,0)');
     g = P.geo = { ox:m.ox, oy:m.oy, s, cs, x0, y0, x1, y1, cx, cy, top, R, sh, ha }; }
   const strong = tier === 'strong', calm = reduced, life = tier === 'conditional' ? clamp((PB_CFG.briefS - age) / 0.6) : 1, k = clamp(age / PB_CFG.fadeIn) * life * (strong ? 1 : 0.55) * (calm ? 0.8 : 1); if (k <= 0.01) return;
   const pul = calm ? 1 : 0.84 + 0.16 * Math.sin(clock * 4.2), w = g.x1 - g.x0;
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.save(); ctx.beginPath(); ctx.arc(W / 2, m.oy + m.size * m.cell / 2, m.size * m.cell * (m.ring || 0.75), 0, Math.PI * 2); ctx.clip();   /* Version 791 (owner): the light stays on the board */
+  ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = k * pul * (strong ? 1 : 0.6); ctx.fillStyle = g.sh; ctx.beginPath(); ctx.moveTo(g.cx - w * 0.28, g.top); ctx.lineTo(g.cx + w * 0.28, g.top); ctx.lineTo(g.x1 + s * 0.12, g.y1); ctx.lineTo(g.x0 - s * 0.12, g.y1); ctx.closePath(); ctx.fill();
   ctx.globalAlpha = k * pul; ctx.fillStyle = g.ha; ctx.fillRect(g.cx - g.R, g.cy - g.R, g.R * 2, g.R * 2);
   ctx.fillStyle = 'rgba(255,244,205,.34)'; g.cs.forEach(([x, y]) => { rr(x + 2, y + 2, s - 4, s - 4, 8); ctx.fill(); });
