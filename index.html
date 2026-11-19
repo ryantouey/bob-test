@@ -2354,8 +2354,13 @@ html, body { overscroll-behavior:none; }   /* Version 738: no page bounce or pul
 .fwt .fwtag { position:absolute; left:3px; top:3px; z-index:1; background:#15123d; border-radius:99px; font:800 .5rem var(--body); letter-spacing:.05em; padding:1px 5px; color:var(--c); }
 .fwmore { grid-column:1 / -1; margin-top:2px; padding:6px; border:0; background:none; color:#ffd25e; font:800 .78rem var(--display); cursor:pointer; }
 .fwselh { height:14px; }
-#fwZone.fwgalmode #fireworks { grid-template-columns:1fr; }
-#fwZone.fwgalmode #fireworks > .opt:not([aria-pressed="true"]) { display:none; }
+#fwZone.fwgalmode:not(.fwfav) #fireworks { grid-template-columns:1fr; }
+#fwZone.fwgalmode:not(.fwfav) #fireworks > .opt:not([aria-pressed="true"]) { display:none; }
+/* Version 796 (owner): Favorites lists the owned fireworks as cards, the selected one first at full width, the rest two per row */
+#fwZone.fwfav #fireworks > .opt.locked, #fwZone.fwfav #fireworks > .opt.fwnotmine { display:none; }
+#fwZone.fwfav #fireworks > .opt[aria-pressed="true"] { grid-column:1 / -1; order:-1; }
+.fwheart { position:absolute; left:6px; top:6px; z-index:3; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:#15123d; border:2px solid #ff7ab8; color:#ff7ab8; font:900 16px/1 system-ui, sans-serif; font-style:normal; cursor:pointer; }
+.fwheart.on { background:#ff7ab8; color:#fff; }
 .fwt:focus-visible, .fwseg button:focus-visible, .fwmore:focus-visible { outline:3px solid #ffe17c; outline-offset:2px; }
 #fwZone { min-width:0; }
 #fwShowControls { margin:0 12px 12px; padding:12px; background:#211b55; border:1.5px solid #6052a4; border-radius:14px; color:#f5f0ff; }
@@ -2778,7 +2783,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.795.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.796.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -9197,8 +9202,8 @@ function updateFxLab(dt) {
   fxGrid(); fxLab.starts = 0;   /* Version 670: one new loop a frame */ { const vis = LAB.last && LAB.last['.fsw']; if (vis) { const keep = new Set(vis.map(c => c.dataset.kind + c.dataset.key)); Object.keys(fxLab.lists).forEach(id => { if (!keep.has(id)) { delete fxLab.lists[id]; delete fxLab.wait[id]; } }); } }   /* Version 670: only on-screen cards keep their particles */
   labRun('.fsw', dt, (cv2, dt) => { /* Version 451 (owner): the full animation again, not a still */ const id = cv2.dataset.kind + cv2.dataset.key, L = fxLab.lists[id] || (fxLab.lists[id] = []), c = cv2.getContext('2d'), fire = cv2.dataset.kind === 'firework'; fxLab.wait[id] = (fxLab.wait[id] == null ? 0 : fxLab.wait[id]) - dt;
     if (fxLab.wait[id] <= 0 && fxLab.starts++ >= 1) { fxLab.wait[id] = 0; return; }   /* Version 670 */
-    if (fxLab.wait[id] <= 0) { fxLab.wait[id] = fire ? FIREWORKS[cv2.dataset.key].loop || 2.9 : BLASTS[cv2.dataset.key].loop || 3.3; L.length = 0; if (fire) { FIREWORKS[cv2.dataset.key].burst(L, 0, 0, fxLab.grid, 60, 0.45); if (L.th && L.th.whale) L.th.whale.target = 1; } else BLASTS[cv2.dataset.key].blow(L, 0, -22); }
-    stepSparks(L, dt); c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#080a26'; c.fillRect(0, 0, 320, 180);
+    if (fxLab.wait[id] <= 0) { fxLab.wait[id] = fire ? FIREWORKS[cv2.dataset.key].loop || 2.9 : BLASTS[cv2.dataset.key].loop || 3.3; L.length = 0; if (fire) { FIREWORKS[cv2.dataset.key].burst(L, 0, 0, fxLab.grid, 60, 0.45); if (L.th && L.th.whale) L.th.whale.target = 1; (fxLab.n0 || (fxLab.n0 = {}))[id] = L.length; } else BLASTS[cv2.dataset.key].blow(L, 0, -22); }
+    stepSparks(L, dt); if (fire && !FIREWORKS[cv2.dataset.key].themed && L.length <= Math.max(2, ((fxLab.n0 || {})[id] || 0) * 0.3) && fxLab.wait[id] > 0.15) fxLab.wait[id] = 0.15;   /* Version 796: replay once most sparks have faded (cards sat dark between loops); themed fireworks keep their loop */ c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#080a26'; c.fillRect(0, 0, 320, 180);
     if (fire) { const cf = FIREWORKS[cv2.dataset.key].card || [0.84, 88]; c.setTransform(cf[0], 0, 0, cf[0], 160, cf[1]); } else { c.fillStyle = '#16142f'; c.fillRect(0, 150, 320, 30); const bf = BLASTS[cv2.dataset.key].card || 0.62; c.setTransform(bf, 0, 0, bf, 160, 150); if (fxLab.wait[id] < 0.9) paintLauncher(c, pick.launcher, 4, { rocket:k => previewColours[k % 4], cracked:() => false, flash:() => 0 }); }
     drawSparks(c, L); if (!fire && cv2.dataset.key === 'blackhole') drawHoleFolk(c, PREVIEW_FOLK, 0, -76, BLASTS.blackhole.loop - fxLab.wait[id]); c.setTransform(1, 0, 0, 1, 0, 0); });
 }
@@ -32211,7 +32216,7 @@ function fwRenderWorkshop() { const box = $('fwShowControls'), zone = $('fwZone'
   let ch = false; FW_WISH_TIERS.forEach(r => { const w = fwDisc.wishlist[r]; if (w && !fwWishChoices(r).includes(w)) { fwDisc.wishlist[r] = ''; ch = true; } }); if (ch) saveAll();
   const names = { surprise:t('Surprise'), favorites:t('Favorites'), set:t('Matching set'), equipped:n < FW_EQUIPPED_AT ? `🔒 ${n}/${FW_EQUIPPED_AT}` : t('Equipped') };
   const seg = `<div class="fwseg" role="group" aria-label="${t('My show')}">` + ['surprise', 'favorites', 'equipped'].map(k => `<button type="button" data-mode="${k}" aria-pressed="${fwDisc.mode === k}"${shut(k) ? ' disabled' : ''}${k === 'equipped' && n < FW_EQUIPPED_AT ? ` aria-label="${t('Equipped')}: ${n} / ${FW_EQUIPPED_AT}"` : ''}>${names[k]}</button>`).join('') + '</div>';
-  const hint = fwDisc.mode === 'favorites' ? 'Tap your fireworks to add or remove a <b>heart</b>. Shows pick from your favorites.'
+  const hint = fwDisc.mode === 'favorites' ? `Tap the <b>♥</b> on a firework to add or remove it (<b>${fwDisc.favorites.filter(fwHas).length}</b> chosen). Shows pick from your favorites.`
     : `Tap a <b>?</b> to make it your wish (one per rarity, ${Math.round(FW_WISH_CHANCE * 100)}% when that rarity comes up). Tap your own fireworks to pick the Workshop one.`;
   const tile = k => { const x = FIREWORKS[k], r = fwTier(k), has = fwHas(k), wish = !has && fwDisc.wishlist[r] === k, fav = has && fwDisc.favorites.includes(k), sel = has && pick.firework === k, inPool = pool.includes(k);
     const tag = has || inPool ? '' : `<span class="fwtag">${x.storeId && PASS_ITEMS.has(x.storeId) ? 'PASS' : 'PRIZE'}</span>`;
@@ -32219,7 +32224,7 @@ function fwRenderWorkshop() { const box = $('fwShowControls'), zone = $('fwZone'
     const nm = fwEsc(t(x.name)), state = has ? (sel ? ', selected' : '') + (fav ? ', favorite' : '') : wish ? ', your wish' : inPool ? ', not found yet' : (x.storeId && PASS_ITEMS.has(x.storeId) ? ', season pass' : ', collection prize');
     return `<button type="button" class="fwt${has ? '' : ' no'}${wish ? ' wished' : ''}${sel ? ' sel' : ''}" data-fw="${fwEsc(k)}" style="--c:${TIERS[r].col}" title="${has ? nm : ''}" aria-label="${nm}${state}">${tag}${badge}<img alt="" data-icon="${fwEsc(k)}"></button>`; };
   const cat = fwCatalog().filter(k => fwDisc.mode !== 'favorites' || fwHas(k)), order = workshopOrder(FIREWORKS).map(o => o.k);   /* Version 795 (owner): Favorites shows owned fireworks only */
-  const secs = ['legendary', 'epic', 'rare', 'common'].map(r => { const list = cat.filter(k => fwTier(k) === r).sort((a, b) => (fwHas(b) - fwHas(a)) || ((fwDisc.wishlist[r] === b) - (fwDisc.wishlist[r] === a)) || (order.indexOf(a) - order.indexOf(b))); if (!list.length) return '';
+  const secs = fwDisc.mode === 'favorites' ? '' : ['legendary', 'epic', 'rare', 'common'].map(r => { const list = cat.filter(k => fwTier(k) === r).sort((a, b) => (fwHas(b) - fwHas(a)) || ((fwDisc.wishlist[r] === b) - (fwDisc.wishlist[r] === a)) || (order.indexOf(a) - order.indexOf(b))); if (!list.length) return '';
     const got = list.filter(fwHas).length, open = fwGalOpen.has(r) || list.length <= FW_GAL_SHOW, shown = open ? list : list.slice(0, FW_GAL_SHOW);
     return `<div class="fwgh" style="--c:${TIERS[r].col}">${t(TIERS[r].name)} <small>${fwDisc.mode === 'favorites' ? `♥ ${list.filter(k => fwDisc.favorites.includes(k)).length}` : `${got}/${list.length}`}</small></div><div class="fwgal">${shown.map(tile).join('')}${list.length > FW_GAL_SHOW ? `<button type="button" class="fwmore" data-more="${r}">${open ? 'Show less' : `Show all ${list.length}`}</button>` : ''}</div>`; }).join('');
   const selOwned = fwHas(pick.firework);
@@ -32232,7 +32237,15 @@ function fwRenderWorkshop() { const box = $('fwShowControls'), zone = $('fwZone'
     if (fwHas(k)) { if (fwDisc.mode === 'favorites') { fwDisc.favorites = fwDisc.favorites.includes(k) ? fwDisc.favorites.filter(q => q !== k) : [...new Set([...fwDisc.favorites, k])]; saveAll(); fwRenderWorkshop(); return; }
       if (card) card.click(); else { pick.firework = k; saveAll(); } fwRenderWorkshop(); return; }
     if (fwWishChoices(r).includes(k)) { fwDisc.wishlist[r] = fwDisc.wishlist[r] === k ? '' : k; saveAll(); try { track('firework_wishlist', { rarity:r, firework:fwDisc.wishlist[r] || null }); } catch (e) {} fwRenderWorkshop(); return; }
-    if (card) card.click(); }; }); }
+    if (card) card.click(); }; });
+  fwHearts(); }
+/* Version 796: Favorites shows the owned firework cards, each with a heart button */
+function fwHearts() { const zone = $('fwZone'), box = $('fireworks'); if (!zone || !box) return; const fav = fwDisc.mode === 'favorites'; zone.classList.toggle('fwfav', fav);
+  if (!fav) { box.querySelectorAll('.fwheart').forEach(h => h.remove()); box.querySelectorAll('.fwnotmine').forEach(c => c.classList.remove('fwnotmine')); return; }
+  box.querySelectorAll('.opt').forEach(card => { const k = card.dataset.v, mine = fwHas(k) && !card.classList.contains('locked'); card.classList.toggle('fwnotmine', !mine); let h = card.querySelector('.fwheart'); if (!mine) { if (h) h.remove(); return; }
+    if (!h) { h = document.createElement('i'); h.className = 'fwheart'; h.setAttribute('role', 'button'); card.appendChild(h);
+      h.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); fwDisc.favorites = fwDisc.favorites.includes(k) ? fwDisc.favorites.filter(q => q !== k) : [...new Set([...fwDisc.favorites, k])]; saveAll(); fwRenderWorkshop(); }); }
+    const on = fwDisc.favorites.includes(k); h.classList.toggle('on', on); h.textContent = on ? '♥' : '♡'; h.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites'); }); }
 function wsPrimaryTab(tab) { const fw = tab === 'fireworks'; $('wsFireworks').setAttribute('aria-pressed', String(fw)); $('wsCosmetics').setAttribute('aria-pressed', String(!fw)); $('wsCosTabs').hidden = fw; $('fwZone').hidden = !fw; if (fw) fwRenderWorkshop(); }
 $('wsFireworks').onclick = () => setTab('fireworks');
 $('wsCosmetics').onclick = () => setTab('launchers');
