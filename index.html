@@ -1904,7 +1904,7 @@ input, textarea, select, [contenteditable="true"] { -webkit-user-select:text; us
 #relaxNote { color:#cfcaf7; font:600 .78rem var(--body); }
 
 /* Version 567: Sparky's Shell Drop and the Daily Challenge */
-#shdScreen { position:fixed; inset:0; z-index:61; display:flex; justify-content:center; background:#0d0b2e; touch-action:none; }
+#shdScreen { position:fixed; inset:0; z-index:61; display:flex; justify-content:center; background:#0d0b2e; touch-action:none; box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); }   /* Version 815: below the iPhone status bar */
 #shdScreen[hidden] { display:none; }
 #shdScreen .shdIn { position:relative; width:min(100%,480px); height:100%; overflow:hidden; }
 #shdCv { display:block; touch-action:none; }
@@ -2103,6 +2103,13 @@ body.fullmap #globeIntro { top:calc(104px + env(safe-area-inset-top,0px)); }
 .skbneed { margin:6px 0 0; font:700 .72rem var(--body); color:#ffb0a8; }
 .skbhow p { margin:0 0 9px; text-align:left; line-height:1.4; font-size:.86rem; }
 .skbhow b { color:#ffc94a; }
+/* Version 815 (owner): Sky Bowling's How to play as swipeable cards */
+#skbHowSheet { position:absolute; inset:0; z-index:9; display:grid; place-items:center; padding:16px; background:rgba(9,8,34,.9); }
+#skbHowSheet[hidden] { display:none; }
+#skbHowSheet .card { box-sizing:border-box; width:min(100%,350px); gap:10px; padding:14px 16px 18px; touch-action:pan-y; }
+.skbslide { min-height:11.5em; display:flex; flex-direction:column; justify-content:center; gap:4px; text-align:left; }
+.skbslide h3 { margin:6px 0 0; font:800 1.2rem var(--display); color:#ffc94a; }
+.skbslide p { margin:0 0 6px; font-size:.95rem; line-height:1.38; color:#ecebff; text-align:left; }
 #skySheet .skbbtns { display:flex; gap:8px; }
 #skySheet .skbbtns .bub { flex:1; }
 
@@ -2540,7 +2547,7 @@ var relaxBy = false;   /* Version 707: Relaxed chosen by the player */
   <section id="survival" class="screen" hidden>
     <div class="topbar"><h2 class="scrtitle" data-t="Zombie Night">Zombie Night</h2><button type="button" class="bub" id="zdHelp" data-tlabel="How to play" aria-label="How to play">?</button><button class="bub back" id="backSurv" data-t="Back">Back</button></div>
     <div class="zdparts" id="zdParts" role="tablist"><button type="button" role="tab" data-part="play" data-t="Play">Play</button><button type="button" role="tab" data-part="garage" data-t="Garage">Garage</button><button type="button" role="tab" data-part="rewards" data-t="Rewards">Rewards</button></div>
-    <div class="zdpart zdpage" id="zdPlay"><div class="zdhero"><canvas id="zdHero" width="780" height="400" aria-hidden="true"></canvas><span class="zdstchip" id="zdStChip"></span></div><div class="zdstats"><div><small data-t="Best">Best</small><b id="survBest"></b></div><div><small data-t="Embers">Embers</small><b class="zdembv"><i class="zdemb"></i><span id="zdEmbStat"></span></b></div><div><small data-t="Next reward">Next reward</small><b id="zdNextStat"></b></div></div><button class="bub zdgo" id="survGo" hidden></button><button class="bub zdgo" id="survStart" data-t="Start run">Start run</button><div class="zdmodes" id="zdModes" hidden><small>Test mode</small><div class="seg" id="zdModeSeg"><button type="button" data-m="classic">Today</button><button type="button" data-m="ammo">Ammo Merge</button><button type="button" data-m="merge">Merge &amp; Launch</button><button type="button" data-m="load">Load &amp; Aim</button><button type="button" data-m="drop">Drop &amp; Merge</button></div></div><div class="zdtest" id="zdTest" hidden><label>Test: start at round <input id="zdTestN" type="number" min="1" max="30" value="1" inputmode="numeric"></label></div></div>
+    <div class="zdpart zdpage" id="zdPlay"><div class="zdhero"><canvas id="zdHero" width="780" height="400" aria-hidden="true"></canvas><span class="zdstchip" id="zdStChip"></span></div><div class="zdstats"><div><small data-t="Best">Best</small><b id="survBest"></b></div><div><small data-t="Embers">Embers</small><b class="zdembv"><i class="zdemb"></i><span id="zdEmbStat"></span></b></div><div><small data-t="Next reward">Next reward</small><b id="zdNextStat"></b></div></div><button class="bub zdgo" id="survGo" hidden></button><button class="bub zdgo" id="survStart" data-t="Start run">Start run</button><div class="zdmodes" id="zdModes" hidden><small>Test mode</small><div class="seg" id="zdModeSeg"><button type="button" data-m="classic">Today</button><button type="button" data-m="drop">Drop &amp; Merge</button></div></div><div class="zdtest" id="zdTest" hidden><label>Test: start at round <input id="zdTestN" type="number" min="1" max="30" value="1" inputmode="numeric"></label></div></div>
     <div class="zdpart" id="zdGarageBox" hidden></div>
     <div class="zdpart zdrw" id="zdRewards" hidden><div class="zdrwhd"><h3 data-t="Survival unlocks">Survival unlocks</h3><span id="zdRwSum"></span></div><div id="survList"></div><p class="zdrwnote" data-t="Clear the round in one run to unlock its reward.">Clear the round in one run to unlock its reward.</p></div>
   </section>
@@ -2787,7 +2794,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.814.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.815.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -6008,9 +6015,6 @@ const STRINGS = {
   "IT ATE THE MOON!":["¡SE COMIÓ LA LUNA!", "IL A MANGÉ LA LUNE !", "ER HAT DEN MOND GEFRESSEN!", "ELE COMEU A LUA!", "月を食べられた！", "달을 삼켰다!", "它吞掉了月亮！", "KINAIN NITO ANG BUWAN!", "IA MEMAKAN BULAN!", "AYI YEDİ!", "HA MANGIATO LA LUNA!", "उसने चाँद निगल लिया!"],
   // test board modes (owner 11/19): Zombie Night
   "BOARD GROWS!":["¡EL TABLERO CRECE!", "LE PLATEAU S’AGRANDIT !", "DAS BRETT WÄCHST!", "O TABULEIRO CRESCEU!", "盤面が広がった！", "보드가 커졌다!", "棋盘变大了！", "LUMAKI ANG BOARD!", "PAPAN MEMBESAR!", "TAHTA BÜYÜDÜ!", "LA PLANCIA SI ALLARGA!", "बोर्ड बड़ा हो गया!"],
-  "MERGE!":["¡FUSIÓN!", "FUSION !", "VERSCHMOLZEN!", "FUSÃO!", "合体！", "합체!", "合成！", "PINAGSAMA!", "GABUNG!", "BİRLEŞTİ!", "FUSIONE!", "मिल गए!"],
-  "SALVO!":["¡ANDANADA!", "SALVE !", "SALVE!", "SALVA!", "一斉射撃！", "일제 사격!", "齐射！", "SABAYANG PUTOK!", "TEMBAKAN SERENTAK!", "YAYLIM ATEŞİ!", "SALVA!", "एक साथ वार!"],
-  "Tap a lane to fire":["Toca un carril para disparar", "Touchez une voie pour tirer", "Tippe auf eine Spur, um zu feuern", "Toque numa faixa para disparar", "レーンをタップして発射", "레인을 탭해 발사", "点一条通道来发射", "I-tap ang isang lane para magpaputok", "Ketuk satu jalur untuk menembak", "Ateş etmek için bir şeride dokun", "Tocca una corsia per sparare", "फायर करने के लिए किसी लेन पर टैप करें"],
   // Version 812: colour charges
   "Charged!":["¡Cargado!", "Chargé !", "Geladen!", "Carregado!", "チャージ!", "충전!", "充能!", "Kargado!", "Terisi!", "Doldu!", "Carico!", "चार्ज!"],
   // Version 812: the Vinta firework and the line that says what it is
@@ -8336,7 +8340,7 @@ const BLOCKS = {
     if (row.skip && hit(row.skip)) { if (wallet.skips > 0 && !helpOff()) { if (G.skipsUsed >= CONFIG.skipLimit) G.skipNote = 2; else this.skip(m); } return; }
     if (G.chopArmed) { const pc = m.bench.find(q => { const p = this.slotPos(m, q.slot); return q.onBench && Math.abs(x - p.x) < m.slotW / 2 && Math.abs(y - p.y) < trayH() / 2 + 3; }); if (pc) this.chop(m, pc); else G.chopArmed = false; return; }
     const k = Math.floor((x - m.ox) / m.cell) + ',' + Math.floor((y - m.oy) / m.cell), on = m.filled.get(k);
-    if (on) { const q = m.placed.find(p => p.pc === on); if (q && q.at && performance.now() - q.at < TAP_GUARD_MS) return;   /* Version 677 */ if (q.pc.cells.some(([a, b]) => m.sealed.has((q.gx + a) + ',' + (q.gy + b)))) return; if (!doorFree(m, q.pc, q.gx, q.gy)) { G.door.deny = clock; return; }   /* Version 622 */ m.placed.splice(m.placed.indexOf(q), 1); this.rebuild(m); this.checkZones(m); m.drag = { pc:on, from:'board', x, y, x0:x, y0:y, far:0, ox:m.ox + (q.gx + on.w / 2) * m.cell - x, oy:m.oy + (q.gy + on.h / 2) * m.cell - y, lift:this.liftOf(m, on) }; return; }
+    if (on) { if (on.pre) return;   /* Version 815 (owner bug): fitted pieces stay put; they have no tray slot to go back to */ const q = m.placed.find(p => p.pc === on); if (q && q.at && performance.now() - q.at < TAP_GUARD_MS) return;   /* Version 677 */ if (q.pc.cells.some(([a, b]) => m.sealed.has((q.gx + a) + ',' + (q.gy + b)))) return; if (!doorFree(m, q.pc, q.gx, q.gy)) { G.door.deny = clock; return; }   /* Version 622 */ m.placed.splice(m.placed.indexOf(q), 1); this.rebuild(m); this.checkZones(m); m.drag = { pc:on, from:'board', x, y, x0:x, y0:y, far:0, ox:m.ox + (q.gx + on.w / 2) * m.cell - x, oy:m.oy + (q.gy + on.h / 2) * m.cell - y, lift:this.liftOf(m, on) }; return; }
     const pc = m.bench.find(q => { const p = this.slotPos(m, q.slot); return q.onBench && Math.abs(x - p.x) < m.slotW / 2 && Math.abs(y - p.y) < trayH() / 2 + 3; }); if (pc) { pc.onBench = false; const lift = this.liftOf(m, pc); m.drag = { pc, from:'bench', x, y, x0:x, y0:y, far:40, ox:0, oy:lift, lift }; tutTrack('drag'); }
   },
   move(m, x, y) { const d = m.drag; if (!d) return; d.x = x; d.y = y; d.moved = Math.max(d.moved || 0, Math.hypot(x - d.x0, y - d.y0)); if (d.from === 'board') d.far = Math.max(d.far, d.moved); },
@@ -30032,7 +30036,7 @@ function shdFillQueue(B, announce) { const all = shdOptions(B); if (!all.length)
 const shdDone = B => B.cells.every(k => B.packed.has(k));
 const shdFitsNow = (B, p) => { const pc = shdPc(p), V = shdView(B, B.rot); for (let cx = 1 - pc.w; cx < B.N; cx++) { const L = shdLand(B, V, pc.cells, cx); if (L && shdLandOk(V, L, p.c)) return true; } return false; };
 // ---- layout, open and close
-function shdLayout() { const B = SHD.B; if (!B) return; const W = Math.min(window.innerWidth || 390, 480), H = window.innerHeight || 760, N = B.N, k = B.shape === 'round' ? 0.64 : 0.72, hm = B.sizes.includes(4) ? 4 : 3;
+function shdLayout() { const B = SHD.B; if (!B) return; const inn = document.querySelector('#shdScreen .shdIn'), W = Math.min(window.innerWidth || 390, 480), H = (inn && inn.clientHeight) || window.innerHeight || 760,   /* Version 815: the height left under the status bar */ N = B.N, k = B.shape === 'round' ? 0.64 : 0.72, hm = B.sizes.includes(4) ? 4 : 3;
   const s = Math.max(22, Math.min(58, (W / 2 - 30) / (k * N), (H - 300) / (hm - 1 + 2 * k * N))), R = k * N * s, railY = 124, cy = railY + 32 + (hm - 1) * s + R;
   SHD.L = { W, H, s, R, railY, cx:W / 2, cy, left:W / 2 - N * s / 2, top:cy - N * s / 2, prevY:cy + R + 14 };
   const cv = $('shdCv'), dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; SHD.g = cv.getContext('2d'); SHD.g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -30558,9 +30562,21 @@ const SKB_HOW = [['The goal', 'Knock down the 10 pins floating in the sky with S
   ['Pin action', 'Pins knocked by the blast fly into other pins, so a blast near the middle of the rack can take them all.'],
   ['Upgrades', 'Spend coins on Blast (a bigger blast), Accuracy (a slower, steadier launcher and a longer aim line) and Curve (more bend). Upgrades count in every game.'],
   ['Rewards', 'One free game a day and one more after an ad. Your best medal of the day pays once. Gold and Diamond also pay a Prize Wheel spin once a week, and a perfect 300 pays a bonus once a week.']];
-function skbHowOpen() { $('infoSheet').classList.add('over'); $('infoTitle').textContent = t('How Sky Bowling works'); $('infoText').textContent = ''; $('infoList').hidden = true; $('infoMore').hidden = true;
-  const b = $('infoBody'); b.innerHTML = `<div class="skbhow">${SKB_HOW.map(([h, p]) => `<p><b>${skbEsc(t(h))}</b> ${skbEsc(t(p))}</p>`).join('')}</div>`; b.hidden = false;
-  const done = $('infoDone'), prev = done.onclick; done.onclick = e => { b.hidden = true; b.innerHTML = ''; $('infoSheet').classList.remove('over'); done.onclick = prev; if (prev) prev.call(done, e); else $('infoSheet').hidden = true; }; $('infoSheet').hidden = false; }
+/* Version 815 (owner 11/21: "giant full screen wall of text needs the how to play in slides"): the same topics as swipeable cards, at most two a card */
+const SKB_SLIDES = [[0, 1], [7, 8], [2, 3], [4, 5], [6], [9, 10], [11]], SKH = { i:0, x0:null };
+function skhDom() { let el = $('skbHowSheet'); if (el) return el; el = document.createElement('div'); el.id = 'skbHowSheet'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-labelledby', 'skbHowTop');
+  el.innerHTML = '<div class="card"><small class="zdhowtop" id="skbHowTop"></small><div class="skbslide" id="skbHowBody" aria-live="polite"></div><div class="zdhowdots" id="skbHowDots"></div><div class="zdhowbtns"><button type="button" class="bub" id="skbHowBack"></button><button type="button" class="bub gold" id="skbHowNext"></button></div></div>';
+  $('infoSheet').insertAdjacentElement('afterend', el);
+  $('skbHowBack').onclick = () => { if (SKH.i > 0) skhGo(SKH.i - 1); else skhClose(); };
+  $('skbHowNext').onclick = () => { if (SKH.i < SKB_SLIDES.length - 1) skhGo(SKH.i + 1); else skhClose(); };
+  const card = el.firstChild; card.addEventListener('pointerdown', e => { SKH.x0 = e.clientX; }); card.addEventListener('pointerup', e => { if (SKH.x0 == null) return; const dx = e.clientX - SKH.x0; SKH.x0 = null; if (Math.abs(dx) < 44) return; if (dx < 0 && SKH.i < SKB_SLIDES.length - 1) skhGo(SKH.i + 1); else if (dx > 0 && SKH.i > 0) skhGo(SKH.i - 1); });
+  return el; }
+function skbHowOpen() { $('infoSheet').classList.remove('over'); skhDom().hidden = false; skhGo(0); }
+function skhClose() { const el = $('skbHowSheet'); if (el) el.hidden = true; try { sfx.tick(); } catch (e) {} }
+function skhGo(i) { SKH.i = i; const last = i === SKB_SLIDES.length - 1; $('skbHowTop').textContent = t('How Sky Bowling works');
+  $('skbHowBody').innerHTML = SKB_SLIDES[i].map(k => `<h3>${skbEsc(t(SKB_HOW[k][0]))}</h3><p>${skbEsc(t(SKB_HOW[k][1]))}</p>`).join('');
+  $('skbHowDots').innerHTML = SKB_SLIDES.map((q, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('');
+  $('skbHowBack').textContent = t(i ? 'Back' : 'Skip'); $('skbHowNext').textContent = t(last ? 'Got it' : 'Next'); }
 function skyStart() { const k = skyDay(); k.tries += 1; saveAll();
   startGame(1, { sky:true, seed:`sky|${dayKey()}`, offset:localDayNo() % tour1Last() }); skbBegin(); }
 function skbBegin() { const s = skbState(), plan = skbDayPlan(`skb|${dayKey()}`), lv = skbLevels(s.up);
@@ -30577,7 +30593,7 @@ const skbIn = (r, x, y) => x >= r.x - 4 && x <= r.x + r.w + 4 && y >= r.y - 8 &&
 function skbCurve(d) { const K = G.sky, c = Math.max(-5, Math.min(5, K.curve + d)); K.press = { id:d < 0 ? 'minus' : 'plus', at:clock }; if (c === K.curve) { try { buzz(8); } catch (e) {} return; } K.curve = c; try { sfx.tick(); buzz(10); } catch (e) {} }
 const skbAim = K => K.lv.amp * Math.sin(K.ph0 + K.lv.omega * K.aimT);
 function skbTap(x, y) { const K = G.sky; if (!K || !K.bowl) return;
-  if (Math.hypot(x - (W - 26), y - 88) < 22) { pauseGame(); return; }
+  if (Math.hypot(x - (W - 26), y - 88 - zdSafeTop()) < 22) { pauseGame(); return; }   /* Version 815 */
   if (K.mode === 'react') { if (K.soot && K.soot.t < 1.45) K.soot.t = 1.45; K.react.t = Math.max(K.react.t, K.react.dur - 0.05); return; }
   const B = skbBar(), low = y >= B.top;
   if (K.mode === 'aim') { if (K.rackIn > 0.2) return; if (low) { if (skbIn(B.minus, x, y)) skbCurve(-1); else if (skbIn(B.plus, x, y)) skbCurve(1); else if (skbIn(B.fire, x, y)) { K.press = { id:'fire', at:clock }; skbFire(); } return; } skbFire(); return; }
@@ -30669,10 +30685,10 @@ function skbDraw() { const K = G.sky, st = K.st, V = skbView(), T = st.T; drawWo
   if (K.soot) skbSootDraw(K);
   ctx.restore();
   /* the score sheet, frame, wind, pause, curve */
-  const S = skbSheet(6, 8, W - 12, K.G0.rolls, Math.min(9, K.G0.frame), false, K.splitRolls), fr = Math.min(9, K.G0.frame);
-  if (K.mode !== 'over') label(t('Frame {a} · Throw {b}', { a:fr + 1, b:Math.min(3, K.G0.ball + 1) }), 12, 84, 13, COL.ink, 'left', 140);
-  { ctx.save(); ctx.fillStyle = 'rgba(13,15,42,.8)'; ctx.beginPath(); ctx.arc(W - 26, 88, 16, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = COL.ink; ctx.fillRect(W - 31, 81, 3.6, 14); ctx.fillRect(W - 24.6, 81, 3.6, 14); ctx.restore(); }
-  if (st.wind) { const n = Math.abs(st.wind) <= 45 ? 1 : Math.abs(st.wind) <= 70 ? 2 : 3; label(`${t('Wind')} ${(st.wind > 0 ? '→' : '←').repeat(n)}`, W / 2, 106, 14, '#bfe6ff'); }
+  const skbSo = zdSafeTop(), S = skbSheet(6, 8 + skbSo, W - 12, K.G0.rolls, Math.min(9, K.G0.frame), false, K.splitRolls), fr = Math.min(9, K.G0.frame);   /* Version 815: below the iPhone status bar */
+  if (K.mode !== 'over') label(t('Frame {a} · Throw {b}', { a:fr + 1, b:Math.min(3, K.G0.ball + 1) }), 12, 84 + skbSo, 13, COL.ink, 'left', 140);
+  { ctx.save(); ctx.translate(0, skbSo); ctx.fillStyle = 'rgba(13,15,42,.8)'; ctx.beginPath(); ctx.arc(W - 26, 88, 16, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = COL.ink; ctx.fillRect(W - 31, 81, 3.6, 14); ctx.fillRect(W - 24.6, 81, 3.6, 14); ctx.restore(); }
+  if (st.wind) { const n = Math.abs(st.wind) <= 45 ? 1 : Math.abs(st.wind) <= 70 ? 2 : 3; label(`${t('Wind')} ${(st.wind > 0 ? '→' : '←').repeat(n)}`, W / 2, 106 + skbSo, 14, '#bfe6ff'); }
   skbBarDraw(K); if (K.mode === 'aim' && K.rackIn <= 0.2 && K.throws < 2) label(t('Tap to launch Sparky'), W / 2, H * 0.5, 18, COL.ink);
   if (K.mode === 'fly' && st.rocket && K.throws <= 3) label(t('Tap again to set him off!'), W / 2, H * 0.5, 18, COL.gold);
   if (K.banner && K.banner.t < 1.4) { const b = K.banner, pop = reduced ? 1 : b.t < 0.15 ? 0.5 + b.t / 0.15 * 0.6 : b.t < 0.25 ? 1.1 - (b.t - 0.15) : 1; ctx.save(); ctx.globalAlpha = Math.min(1, (1.4 - b.t) / 0.3); ctx.translate(W / 2, H * 0.44); ctx.scale(pop, pop); BLOCKS.outlined(b.text, 0, 0, b.gold ? 34 : 24, b.gold ? COL.gold : COL.ink, '#15133f'); ctx.restore(); } }
@@ -30833,27 +30849,25 @@ function zdRotate(pc) { const t = zdTurnCells(pc.cells); return Object.assign({}
 /* does turning change the shape at all (a dot and a square never get the turn icon) */
 const zdTurnable = k => k !== 'dot' && k !== 'o';
 const zdRectShape = s => { const g = zdNorm(s.c); return g.cells.length === g.w * g.h; };
-function zdPiece(R, rnd, small) { if (R.mode === 'drop') return zdDropPiece(R, rnd); const lucky = R.perks.lucky || 0, pool = R.mode && R.mode !== 'classic' ? ZD_POOL(ZD.N) : null, wt = s => ((pool && !pool.includes(s.k)) || (small && !zdRectShape(s)) ? 0 :   /* Calm Start: only squares and rectangles (owner 11/13) */ s.w * (s.c.length <= 2 ? 1 + 0.7 * lucky : s.c.length === 4 ? Math.max(0.25, 1 - 0.25 * lucky) : 1)), tot = ZD_SHAPES.reduce((a, s) => a + wt(s), 0);
+function zdPiece(R, rnd, small) { if (R.mode === 'drop') return zdDropPiece(R, rnd); const lucky = R.perks.lucky || 0, wt = s => (small && !zdRectShape(s) ? 0 :   /* Calm Start: only squares and rectangles (owner 11/13) */ s.w * (s.c.length <= 2 ? 1 + 0.7 * lucky : s.c.length === 4 ? Math.max(0.25, 1 - 0.25 * lucky) : 1)), tot = ZD_SHAPES.reduce((a, s) => a + wt(s), 0);
   let u = rnd() * tot, sh = ZD_SHAPES[0]; for (const s of ZD_SHAPES) { u -= wt(s); if (u <= 0) { sh = s; break; } }
   let g = zdNorm(sh.c); for (let i = Math.floor(rnd() * 4); i > 0; i--) g = zdTurnCells(g.cells);
   const c = R.lastCol != null && rnd() < ZD.sameCol ? R.lastCol : Math.floor(rnd() * 4); R.lastCol = c;
   const els = ['flame', 'elec', 'frost'].filter(k => R.round >= ZD.from[k] && (k !== 'frost' || R.frostOn)); let el = null;
   if (R.force) { el = R.force; R.force = null; } else if (els.length && rnd() < ZD.elShare) el = els[Math.floor(rnd() * els.length)];
   const turn = R.round >= ZD.from.turn && zdTurnable(sh.k) && rnd() < ZD.turnShare;
-  const plain = R.mode === 'ammo' || R.mode === 'merge';   /* their blocks are coloured by size, with no flame / lightning / turning */
-  return { id:++R.pid, k:sh.k, cells:g.cells, w:g.w, h:g.h, c:plain ? 0 : c, el:plain || !el ? null : el[0], turn:plain ? false : turn }; }
+  return { id:++R.pid, k:sh.k, cells:g.cells, w:g.w, h:g.h, c, el:el ? el[0] : null, turn }; }
 /* ---- the board: 36 cells, each null or { c colour 0-3, el null | 'f' flame | 'e' electric | 'i' frost } ---- */
 const zdAt = (x, y) => y * ZD.N + x;
 function zdFits(board, pc, gx, gy) { for (const [a, b] of pc.cells) { const x = gx + a, y = gy + b; if (x < 0 || y < 0 || x >= ZD.N || y >= ZD.N || (board[zdAt(x, y)] && !(pc.v && board[zdAt(x, y)].v === pc.v))) return false; } return true; }   /* Drop & Merge: a crate also fits on an equal crate */
 function zdAnyFit(board, pc) { let p = pc; for (let r = 0; r < (pc.turn ? 4 : 1); r++) { for (let y = 0; y <= ZD.N - p.h; y++) for (let x = 0; x <= ZD.N - p.w; x++) if (zdFits(board, p, x, y)) return true; p = zdRotate(p); } return false; }
 /* jammed: all three slots hold a piece and none of them fits anywhere (a turnable piece in any turn) */
 const zdJammed = (board, tray) => tray.every(p => !!p) && !tray.some(p => zdAnyFit(board, p));
-/* ---- test board modes (owner 11/19): 'ammo' Ammo Merge, 'merge' Merge & Launch, 'load' Load & Aim; 'classic' is today's game.
-   A test mode's board starts at 4 x 4 and grows with that mode's lifetime kills (ZD_GROW). show: the number on a block of each size. ---- */
-const ZD_MODES = { drop:{ every:1.25, unit:1, bonus:0.4, mk:1.5, wait:1, grow:[3, 8], more:[1.2, 0.05], hpG:1.4 }, ammo:{ every:0.9, unit:18, tier:[0, 1, 3.45, 11.7], show:[0, 1, 3, 9], salvo:1.5 }, merge:{ unit:24, tier:[0, 1, 3, 9, 27], show:[0, 1, 3, 9, 27] }, load:{ heat:0.03, idle:3 } };
-const ZD_GROW = [30, 150, 500];
-const zdModeN = o => { if (!o || !ZD_MODES[o.mode]) return 6; if (o.n >= 4 && o.n <= 7) return o.n | 0; if (o.mode === 'drop') return 4; const k = o.lk || 0; return k >= ZD_GROW[2] ? 7 : k >= ZD_GROW[1] ? 6 : k >= ZD_GROW[0] ? 5 : 4; };
-const ZD_POOL = n => (n <= 4 ? ['dot', 'i2', 'i3', 'l3', 'o'] : n === 5 ? ['dot', 'i2', 'i3', 'l3', 'o', 'i4', 't'] : null);   /* the shapes a small board deals (null: all) */
+/* ---- the test mode (owner 11/20): 'drop' Drop & Merge; 'classic' is today's game. The earlier three (Ammo Merge, Merge & Launch, Load & Aim)
+   were removed on the owner's word (11/20). ---- */
+const ZD_MODES = { drop:{ every:1.25, unit:1, bonus:0.4, mk:1.5, wait:1, grow:[3, 8], more:[1.2, 0.05], hpG:1.4 } };
+const ZD_DROP_NOPERK = ['lucky', 'eagle', 'ref'];   /* owner 11/20: perks that do nothing on this board (more small pieces, the best spot for sets, a fridge for awkward pieces) */
+const zdModeN = o => (!o || !ZD_MODES[o.mode] ? 6 : o.n >= 4 && o.n <= 7 ? o.n | 0 : 4);   /* today's game 6 x 6; Drop & Merge starts 4 x 4 (or &zdn=) */
 const zdSetsMemo = {};
 const zdSetsFor = N => zdSetsMemo[N] || (zdSetsMemo[N] = (() => { const out = []; for (let y = 0; y < N; y++) out.push({ kind:'row', i:y, cells:Array.from({ length:N }, (_, x) => y * N + x) }); for (let x = 0; x < N; x++) out.push({ kind:'col', i:x, cells:Array.from({ length:N }, (_, y) => y * N + x) });
   if (N === 6) [[0, 0], [3, 0], [0, 3], [3, 3]].forEach(([x0, y0], i) => { const cells = []; for (let y = y0; y < y0 + 3; y++) for (let x = x0; x < x0 + 3; x++) cells.push(y * N + x); out.push({ kind:'box', i, cells }); }); return out; })());   /* the 3 x 3 corner blocks only on 6 x 6 */
@@ -30872,9 +30886,9 @@ function zdNewRun(o, rnd) { o = o || {}; ZD.N = zdModeN(o); const R = { round:0,
   R.max = R.hp = ZD.hp + ZD_UP.hull.hp * lv('hull'); R.jamHp = ZD_UP.jam.hp[lv('jam')]; R.patchHp = ZD_UP.patch.hp[lv('patch')]; R.dmgUp = 1 + ZD_UP.hot.f * lv('hot'); R.radUp = 1 + ZD_UP.wide.f * lv('wide');
   R.qCap = ZD.qCap + lv('rack'); R.freezes = lv('frost') ? 2 : 1; R.trayRr = lv('tray'); R.perkRr = lv('perkrr'); R.scout = lv('scout') > 0; R.lib = { ref:lv('lib') > 0 }; R.ref = [];
   R.finale = lv('finale') > 0; R.fin = 0; R.fins = 0; R.eagleT = 0; R.eagleN = 0; R.taste = !!o.taste && !R.finale;   /* round 11: the Grand Finale (its meter), Eagle Eye, the one free taste */ R.bossKills = 0;   /* round 12 */
-  (o.head || []).slice(0, lv('head')).forEach(k => { if (ZD_PERKS[k] && !ZD_PERKS[k].from && !ZD_PERKS[k].lib && zdTakePerk(R, k)) R.picks -= 1; });
+  (o.head || []).filter(k => !(o.mode === 'drop' && ZD_DROP_NOPERK.includes(k))).slice(0, lv('head')).forEach(k => { if (ZD_PERKS[k] && !ZD_PERKS[k].from && !ZD_PERKS[k].lib && zdTakePerk(R, k)) R.picks -= 1; });   /* Drop & Merge skips its three left-out perks, so the next pick gets the slot */
   { const n = 3 + lv('room'); R.tray = Array(n).fill(null); R.refT = Array(n).fill(0); }   /* round 11 (owner 11/13): the Bigger Tray, 4 / 5 / 6 pieces */
-  R.mode = ZD_MODES[o.mode] ? o.mode : 'classic'; R.n = ZD.N; R.n0 = o.n || 0; R.lk = o.lk || 0; R.gid = 0; R.amT = 0.6; R.loadGo = false; R.loadLane = null; R.loadIdle = 0; R.loadN = 0;   /* test modes (owner 11/19) */
+  R.mode = ZD_MODES[o.mode] ? o.mode : 'classic'; R.n = ZD.N; R.n0 = o.n || 0; R.gid = 0;   /* the test mode (Drop & Merge) */
   for (let i = 0; i < R.tray.length; i++) R.tray[i] = zdPiece(R, rnd, lv('calm') > 0); R.next = R.mode === 'drop' ? null : zdPiece(R, rnd); return R; }   /* next: round 12, the piece shown in the NEXT box */
 /* owner 11/13 (BLO-99 part 2): the Ref perk, a fridge for tray pieces. Level 1: one slot; level 2: two; level 3: a piece taken out of the
    Ref comes out chilled, and the sets it is part of hit 25% harder. It keeps tray pieces only, never placed ones. The Perk Library (the
@@ -30924,7 +30938,7 @@ function zdSpawn(R, s) { const T = ZD.types[s.type], n = R.round, baku = s.type 
 /* perks: after rounds 2, 4 and 6, then every third round; none after the last */
 const zdPerkDue = n => n < ZD.rounds && (n === 2 || n === 4 || n === 6 || (n > 6 && n % 3 === 0));
 const ZD_PERKS = { blast:{ max:3 }, powder:{ max:3 }, patch:{ max:99 }, armour:{ max:3 }, loader:{ max:3 }, double:{ max:3 }, lucky:{ max:3 }, turret:{ max:3 }, burn:{ max:3, from:'flame' }, chain:{ max:3, from:'elec' }, freeze:{ max:3 }, ref:{ max:3, lib:'ref' }, eagle:{ max:3 } };
-function zdPerkChoices(R, rnd) { const pool = Object.keys(ZD_PERKS).filter(k => { const P = ZD_PERKS[k]; if ((R.perks[k] || 0) >= P.max) return false; if (P.from && R.round + 1 < ZD.from[P.from]) return false; if (P.lib && !(R.lib && R.lib[P.lib])) return false; if (k === 'patch' && R.hp >= R.max - 5) return false; return true; });
+function zdPerkChoices(R, rnd) { const pool = Object.keys(ZD_PERKS).filter(k => { const P = ZD_PERKS[k]; if (R.mode === 'drop' && ZD_DROP_NOPERK.includes(k)) return false; if ((R.perks[k] || 0) >= P.max) return false; if (P.from && R.round + 1 < ZD.from[P.from]) return false; if (P.lib && !(R.lib && R.lib[P.lib])) return false; if (k === 'patch' && R.hp >= R.max - 5) return false; return true; });
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
 function zdTakePerk(R, k) { if (!ZD_PERKS[k]) return false; R.perks[k] = (R.perks[k] || 0) + 1; R.picks += 1;
   if (k === 'patch') R.hp = Math.min(R.max, R.hp + ZD.patch); else if (k === 'armour') { R.max += ZD.armour; R.hp = Math.min(R.max, R.hp + ZD.armour); } else if (k === 'freeze') R.freezes += 1;
@@ -30957,11 +30971,9 @@ function zdTurn(R, slot) { const p = R.tray[slot]; if (!p || !p.turn || R.jamT >
 function zdPut(R, slot, gx, gy, fromRef) { const pc = fromRef ? (R.ref || [])[slot] : R.tray[slot]; if (!pc || R.jamT > 0 || R.phase === 'dead' || R.phase === 'won' || !zdFits(R.board, pc, gx, gy)) return null; const ch = fromRef && (R.perks.ref || 0) >= 3; const was = R.mode === 'drop' ? R.board[zdAt(gx, gy)] : null;
   pc.cells.forEach(([a, b]) => { R.board[zdAt(gx + a, gy + b)] = ch ? { c:pc.c, el:pc.el, g:pc.id, ch:1 } : { c:pc.c, el:pc.el, g:pc.id }; });   /* g: the piece a cell came from (drawn whole); ch: chilled, out of the Ref (BLO-99) */ if (fromRef) R.ref.splice(slot, 1); else { R.tray[slot] = null; R.refT[slot] = ZD.refill; } R.placed += 1;
   if (R.mode === 'drop') return zdPutDrop(R, pc, gx, gy, was);   /* Drop & Merge (owner 11/20) */
-  if (R.mode === 'ammo' || R.mode === 'merge') return zdPutMode(R, pc, gx, gy);   /* test modes (owner 11/19) */
   const sets = zdFindSets(R.board), cleared = []; if (!sets.length) return { sets, cleared, combo:R.combo, mult:1 };
   const seen = new Set(); sets.forEach(s => s.cells.forEach(i => { if (!seen.has(i)) { seen.add(i); cleared.push({ i, c:R.board[i].c, el:R.board[i].el }); } })); seen.forEach(i => { R.board[i] = null; });
-  const q0 = R.queue.length, mult = zdLoad(R, sets); if (R.mode === 'load') { const heat = 1 + ZD_MODES.load.heat * R.board.filter(Boolean).length; for (let i = q0; i < R.queue.length; i++) R.queue[i].mult *= heat; R.loadIdle = 0; }   /* Load & Aim: every block left on the board adds 3% */
-  return { sets, cleared, combo:R.combo, mult }; }
+  const mult = zdLoad(R, sets); return { sets, cleared, combo:R.combo, mult }; }
 /* ---- Drop & Merge (owner 11/20): single numbered crates; equal crates that touch join upward; swipes slide the board 2048 style;
    every crate fires by itself; a full board launches its smallest crate. A board cell: { c colour, el, g, t (number = 2^t), v, f fire timer } ---- */
 const ZD_EL = { flame:'f', elec:'e', frost:'i' };   /* the board's element codes (zdFindSets counts 'f', 'e', 'i') */
@@ -30969,8 +30981,8 @@ const zdDropCol = t => (t - 1) % 4;
 const zdNbs = i => { const N = ZD.N, x = i % N, y = Math.floor(i / N), o = []; if (y > 0) o.push(i - N); if (x > 0) o.push(i - 1); if (x < N - 1) o.push(i + 1); if (y < N - 1) o.push(i + N); return o; };   /* up first */
 const zdDropCan = (R, t) => R.board.some((c, i) => c && c.t === t && zdNbs(i).some(j => !R.board[j]));
 function zdDropPiece(R, rnd) { const want = [1, 2].filter(t => zdDropCan(R, t)), has = R.tray.some(p => p && zdDropCan(R, p.t)), t = want.length && !has ? want[Math.floor(rnd() * want.length)] : rnd() < 0.8 ? 1 : 2;
-  const els = ['flame', 'elec', 'frost'].filter(k => R.round >= ZD.from[k] && (k !== 'frost' || R.frostOn)); let el = null;
-  if (R.force) { el = R.force; R.force = null; } else if (els.length && rnd() < ZD.elShare) el = els[Math.floor(rnd() * els.length)];
+  const hasEl = k => R.board.some(c => c && c.el === ZD_EL[k]) || R.tray.some(p => p && p.el === ZD_EL[k]) || (R.ref || []).some(p => p && p.el === ZD_EL[k]), els = ['flame', 'elec', 'frost'].filter(k => R.round >= ZD.from[k] && (k !== 'frost' || R.frostOn) && !hasEl(k)); let el = null;   /* owner 11/20: one of each power-up at a time (board, tray and Ref) */
+  if (R.force) { if (!hasEl(R.force)) el = R.force; R.force = null; } else if (els.length && rnd() < ZD.elShare) el = els[Math.floor(rnd() * els.length)];
   return { id:++R.pid, k:'dot', cells:[[0, 0]], w:1, h:1, c:zdDropCol(t), el:el ? ZD_EL[el] : null, turn:false, t, v:2 ** t }; }
 function zdPutDrop(R, pc, gx, gy, was) { const i = zdAt(gx, gy), e0 = R.ev.length, t = was ? was.t + 1 : pc.t;
   R.board[i] = { c:zdDropCol(t), el:was ? was.el || pc.el : pc.el, g:was ? 'd' + (++R.gid) : pc.id, t, v:2 ** t, f:ZD_MODES.drop.every * (0.3 + 0.5 * ((R.placed * 0.618) % 1)) };
@@ -31019,38 +31031,6 @@ function zdDropMore(plan, n, rnd) { const M = ZD_MODES.drop.more, k = M[0] + M[1
 /* the board grows between rounds: 5 x 5 after Round 3, 6 x 6 after Round 8 */
 function zdDropGrow(R) { const g = ZD_MODES.drop.grow, want = Math.min(7, Math.max(R.n0 || 0, R.round >= g[1] ? 6 : R.round >= g[0] ? 5 : 4)); if (want <= ZD.N) return;
   const N0 = ZD.N, old = R.board, nb = Array(want * want).fill(null); for (let y = 0; y < N0; y++) for (let x = 0; x < N0; x++) nb[y * want + x] = old[y * N0 + x]; R.board = nb; ZD.N = R.n = want; R.ev.push({ e:'grow', n:want }); }
-/* ---- test modes (owner 11/19) ---- */
-/* Ammo Merge: blocks slide up to the feed row; three of one size stacked in a column become one bigger block (colour = size - 1) */
-function zdAmmoSettle(R, merges) { const N = ZD.N, B = R.board, compact = () => { for (let x = 0; x < N; x++) { const col = []; for (let y = 0; y < N; y++) if (B[y * N + x]) col.push(B[y * N + x]); for (let y = 0; y < N; y++) B[y * N + x] = col[y] || null; } };
-  compact(); for (let g = 0, moved = true; moved && g < 20; g++) { moved = false; for (let x = 0; x < N; x++) for (let y = 0; y + 2 < N; y++) { const a = B[y * N + x], b = B[(y + 1) * N + x], c = B[(y + 2) * N + x]; if (a && b && c && a.t === b.t && b.t === c.t && a.t < 3) { B[y * N + x] = { c:a.t, el:null, g:'m' + (++R.gid), t:a.t + 1 }; B[(y + 1) * N + x] = null; B[(y + 2) * N + x] = null; merges.push({ i:y * N + x, t:a.t + 1 }); moved = true; } } if (moved) compact(); } }
-/* Merge & Launch: 3+ touching blocks of one size, at least one already on the board, become one bigger block where the piece landed */
-function zdMergeAt(R, placed, merges) { const N = ZD.N, B = R.board, fresh = new Set(placed), q = placed.slice();
-  for (let g = 0; q.length && g < 80; g++) { const i = q.shift(), c = B[i]; if (!c || c.t >= 4) continue; const grp = [], seen = new Set([i]), st = [i];
-    while (st.length) { const j = st.pop(); grp.push(j); const x = j % N, y = Math.floor(j / N); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const X = x + dx, Y = y + dy, k = Y * N + X; if (X < 0 || Y < 0 || X >= N || Y >= N || seen.has(k) || !B[k] || B[k].t !== c.t) return; seen.add(k); st.push(k); }); }
-    if (grp.length >= 3 && grp.some(j => !fresh.has(j))) { grp.forEach(j => { B[j] = null; }); B[i] = { c:Math.min(3, c.t), el:null, g:'m' + (++R.gid), t:c.t + 1 }; fresh.add(i); merges.push({ i, t:c.t + 1 }); q.push(i); } } }
-const zdModeShot = (R, c, k, side) => ({ raw:ZD_MODES[R.mode].unit * ZD_MODES[R.mode].tier[c.t] * (k || 1), heavy:c.t >= 3, pure:false, flame:0, elec:0, frost:0, cols:[c.c], mult:1, n:1, at:R.T, side });
-function zdPutMode(R, pc, gx, gy) { const N = ZD.N, B = R.board, M = ZD_MODES[R.mode], placed = pc.cells.map(([a, b]) => zdAt(gx + a, gy + b)), sets = [], cleared = [], merges = [], e0 = R.ev.length;
-  placed.forEach(i => { B[i] = { c:0, el:null, g:'m' + (++R.gid), t:1 }; });
-  if (R.mode === 'merge') { zdMergeAt(R, placed, merges); const full = new Set();
-    for (let y = 0; y < N; y++) { const row = Array.from({ length:N }, (_, x) => y * N + x); if (row.every(i => B[i])) { sets.push({ kind:'row', i:y, cells:row, pure:false }); row.forEach(i => full.add(i)); } }
-    for (let x = 0; x < N; x++) { const col = Array.from({ length:N }, (_, y) => y * N + x); if (col.every(i => B[i])) { sets.push({ kind:'col', i:x, cells:col, pure:false }); col.forEach(i => full.add(i)); } }
-    full.forEach(i => { const c = B[i]; cleared.push({ i, c:c.c, el:null }); R.queue.push(Object.assign(zdModeShot(R, c, 1, zdColSide(i % N)), { at:R.T + ZD.loadT })); B[i] = null; }); }
-  else { zdAmmoSettle(R, merges); for (let y = 0; y < N; y++) { const row = Array.from({ length:N }, (_, x) => y * N + x); if (!row.every(i => B[i])) continue; sets.push({ kind:'row', i:y, cells:row, pure:false });
-      row.forEach(i => { const c = B[i], q = zdModeShot(R, c, M.salvo, zdColSide(i % N)), z = zdTarget(R, true, q.side); cleared.push({ i, c:c.c, el:null }); if (z) zdFire(R, q, z); else R.queue.push(q); B[i] = null; }); }
-    if (sets.length) { zdAmmoSettle(R, merges); R.ev.push({ e:'salvo', n:sets.length }); } }
-  if (sets.length) { R.sets += sets.length; if (sets.length > 1) R.multis += 1; if (R.finale) R.fin = Math.min(1, (R.fin || 0) + sets.length / ZD.fin.need); }
-  merges.forEach(m => R.ev.push({ e:'mrg', i:m.i, t:m.t })); R.evq = (R.evq || []).concat(R.ev.splice(e0)); return { sets, cleared, combo:R.combo, mult:1 }; }   /* zdStep clears R.ev, so a placement's events wait in R.evq for the next step */
-/* Ammo Merge: about once a second every column fires the block on the feed row at a zombie in its lanes */
-function zdAmmoFeed(R, dt) { R.amT -= dt; if (R.amT > 0) return; const M = ZD_MODES.ammo, N = ZD.N, B = R.board; if (!zdTarget(R, false, null)) { R.amT = 0.1; return; } R.amT = M.every / Math.pow(1.4, R.perks.loader || 0); let shot = 0;
-  for (let x = 0; x < N; x++) { const c = B[x]; if (!c) continue; const side = zdColSide(x), z = zdTarget(R, false, side) || zdTarget(R, true, side); if (!z) continue; zdFire(R, zdModeShot(R, c, 1, side), z); B[x] = null; shot += 1; }
-  if (shot) zdAmmoSettle(R, []); }
-/* Load & Aim: the launcher holds its rockets until a lane is tapped, 3 s pass with a zombie in range, or it is over-full */
-function zdLoadGate(R, dt) { if (!R.queue.length) { R.loadGo = false; R.loadLane = null; R.loadIdle = 0; return; } if (R.loadGo) return; R.loadIdle += dt; if (zdLoaded(R) > (R.qCap || ZD.qCap) || (R.loadIdle >= ZD_MODES.load.idle && zdTarget(R, false, null))) { R.loadGo = true; R.loadN = R.queue.length; } }
-function zdLoadFire(R, lane) { if (R.mode !== 'load' || !R.queue.length) return false; R.loadGo = true; R.loadLane = lane; R.loadN = R.queue.length; return true; }   /* a tap aims only the rockets loaded at that moment (loadN) */
-const zdLaneFront = (R, lane) => { let b = null; for (const z of R.zombies) if (z.hp > 0 && z.z >= 0.03 && zdLaneOf(z.x) === lane && !(z.baku && z.baku.ph === 'down') && (!b || z.z > b.z)) b = z; return b; };
-/* the board grows between rounds with the mode's lifetime kills (and this run's) */
-function zdGrowCheck(R) { const k = (R.lk || 0) + R.kills, want = Math.min(7, Math.max(R.n0 || 0, k >= ZD_GROW[2] ? 7 : k >= ZD_GROW[1] ? 6 : k >= ZD_GROW[0] ? 5 : 4)); if (want <= ZD.N) return;
-  const N0 = ZD.N, old = R.board, nb = Array(want * want).fill(null); for (let y = 0; y < N0; y++) for (let x = 0; x < N0; x++) nb[y * want + x] = old[y * N0 + x]; R.board = nb; ZD.N = R.n = want; R.ev.push({ e:'grow', n:want }); }
 /* Sets made by one placement load the launcher: one rocket each. Sets within ZD.comboWin seconds of the last ones raise the combo. */
 function zdLoad(R, sets) { if (R.comboT > 0) R.combo = Math.min(ZD.comboMax, R.combo + 1); else R.combo = 0; R.comboT = ZD.comboWin; R.bestCombo = Math.max(R.bestCombo, R.combo);
   const mult = (1 + ZD.multi * (sets.length - 1)) * (1 + ZD.comboStep * R.combo); R.sets += sets.length; if (sets.length > 1) R.multis += 1;
@@ -31090,7 +31070,7 @@ function zdStep(R, dt, rnd) { const ev = R.ev; ev.length = 0; if (R.evq && R.evq
   if (R.taste && R.phase === 'fight' && R.round >= 10 && R.zombies.some(z => z.boss && z.hp > 0 && z.z > 0.3)) { R.taste = false; zdFinaleFire(R, true); }   /* round 11: the one free Grand Finale (owner: Round 10 at the earliest) */
   if (R.comboT > 0) { R.comboT -= dt; if (R.comboT <= 0) { R.comboT = 0; if (R.combo > 0) ev.push({ e:'comboEnd' }); R.combo = 0; } }
   /* rounds */
-  if (R.phase === 'breather') { R.phT -= dt; if (R.phT <= 0) { if (R.mode === 'drop') zdDropGrow(R); else if (R.mode && R.mode !== 'classic') zdGrowCheck(R); R.round += 1; R.phase = 'fight'; R.rt = 0; R.plan = zdRoundPlan(R.round, R.seed != null ? zdRng(R.seed + '|plan|' + R.round) : rnd);   /* a saved run (R.seed) gets the same zombies in a round, however many pieces were drawn before it */ if (R.mode === 'drop') R.plan = zdDropMore(R.plan, R.round, R.seed != null ? zdRng(R.seed + '|more|' + R.round) : rnd); R.pi = 0; R.rTotal = R.plan.length; R.rKilled = 0; ev.push({ e:'round', n:R.round });
+  if (R.phase === 'breather') { R.phT -= dt; if (R.phT <= 0) { if (R.mode === 'drop') zdDropGrow(R); R.round += 1; R.phase = 'fight'; R.rt = 0; R.plan = zdRoundPlan(R.round, R.seed != null ? zdRng(R.seed + '|plan|' + R.round) : rnd);   /* a saved run (R.seed) gets the same zombies in a round, however many pieces were drawn before it */ if (R.mode === 'drop') R.plan = zdDropMore(R.plan, R.round, R.seed != null ? zdRng(R.seed + '|more|' + R.round) : rnd); R.pi = 0; R.rTotal = R.plan.length; R.rKilled = 0; ev.push({ e:'round', n:R.round });
       (R.mode === 'drop' ? ['flame', 'elec', 'frost'] : ['turn', 'flame', 'elec', 'frost']).forEach(k => { if (R.round === ZD.from[k] && !R.seenEl[k] && (k !== 'frost' || R.frostOn)) { R.seenEl[k] = true; if (k !== 'turn') R.force = k; ev.push({ e:'unlock', k }); } }); } }
   const rush = !!zdBakuRush(R);   /* round 16: the Bakunawa is going for the moon */
   if (R.phase === 'fight' && !rush) { R.rt += dt; while (R.pi < R.plan.length && R.plan[R.pi].t <= R.rt) zdSpawn(R, R.plan[R.pi++]); }
@@ -31114,8 +31094,8 @@ function zdStep(R, dt, rnd) { const ev = R.ev; ev.length = 0; if (R.evq && R.evq
   if (R.perks.turret && !frozen) { R.turT += dt; const every = ZD.turret.every / R.perks.turret; if (R.turT >= every) { const z = zdTarget(R, true); if (z) { R.turT = 0; ev.push({ e:'spark', zb:z }); zdHurt(R, z, ZD.turret.dmg * (1 + 0.2 * (R.perks.powder || 0)) * zdHpMul(R.round) ** 0.5, 'spark'); } else R.turT = every; } }
   /* the launcher fires queued rockets one at a time, each at the zombie nearest the line in its lanes that still needs one; a rocket with
      nothing in its lanes waits and lets the next one go (round 11), and an over-full launcher fires its oldest rocket at anything */
-  if (R.mode === 'drop') zdDropFeed(R, dt); else if (R.mode === 'ammo') zdAmmoFeed(R, dt); else if (R.mode === 'load') zdLoadGate(R, dt);   /* test modes (owner 11/19) */
-  R.fireT -= dt; if (R.queue.length && R.fireT <= 0 && (R.mode !== 'load' || R.loadGo)) { const over = zdLoaded(R) > (R.qCap || ZD.qCap); for (let i = 0; i < R.queue.length; i++) { const q = R.queue[i]; if (q.at > R.T) break; const z = (R.mode === 'load' && R.loadLane != null && zdLaneFront(R, R.loadLane)) || zdTarget(R, over && i === 0, q.side); if (z) { R.queue.splice(i, 1); if (R.mode === 'load' && R.loadGo && --R.loadN <= 0) { R.loadGo = false; R.loadLane = null; R.loadIdle = 0; } zdFire(R, q, z); R.fireT = ZD.gap / Math.pow(1.4, R.perks.loader || 0); break; } } }
+  if (R.mode === 'drop') zdDropFeed(R, dt);   /* Drop & Merge (owner 11/20) */
+  R.fireT -= dt; if (R.queue.length && R.fireT <= 0) { const over = zdLoaded(R) > (R.qCap || ZD.qCap); for (let i = 0; i < R.queue.length; i++) { const q = R.queue[i]; if (q.at > R.T) break; const z = zdTarget(R, over && i === 0, q.side); if (z) { R.queue.splice(i, 1); zdFire(R, q, z); R.fireT = ZD.gap / Math.pow(1.4, R.perks.loader || 0); break; } } }
   /* rockets home on their zombie and go off on impact */
   for (const r of R.rockets) { const z = R.zombies.find(o => o.id === r.tid); if (z && z.hp > 0) { r.x = z.x; r.z = z.z; } r.t += dt; if (r.t >= r.T) { r.done = true; zdBoom(R, r); } }
   if (R.rockets.some(r => r.done)) R.rockets = R.rockets.filter(r => !r.done);
@@ -31129,7 +31109,7 @@ function zdStep(R, dt, rnd) { const ev = R.ev; ev.length = 0; if (R.evq && R.evq
 /* owner 11/13 (BLO-88): the suspend save. Between rounds the run is plain data: zdSnap copies it (the event list left out) and zdUnsnap
    lays a copy over a fresh run, so a field added later still gets its default. The screens keep it in stats.runSave. */
 function zdSnap(R) { return JSON.parse(JSON.stringify(Object.assign({}, R, { ev:[] }))); }
-function zdUnsnap(o) { const R = Object.assign(zdNewRun({}, () => 0.5), JSON.parse(JSON.stringify(o))); R.ev = []; ZD.N = R.n || 6; return R; }   /* a resumed run keeps its board size */
+function zdUnsnap(o) { const R = Object.assign(zdNewRun({}, () => 0.5), JSON.parse(JSON.stringify(o))); R.ev = []; ZD.N = R.n || 6; if (!ZD_MODES[R.mode]) R.mode = 'classic'; return R; }   /* (owner 11/20) a run saved in a removed test mode goes on as a normal run */   /* a resumed run keeps its board size */
 /* how much of the current round is done (for the bar and the near-miss line): 0 to 1 */
 const zdRoundPart = R => (R.rTotal ? R.rKilled / R.rTotal : 0);
 if (typeof module !== 'undefined') module.exports = { ZD, ZD_SHAPES, ZD_SETS, ZD_PERKS, zdHpMul, zdSpdMul, zdBossHp, zdBudget, zdRng, zdNorm, zdTurnCells, zdShapeKey, zdRotate, zdPiece, zdAt, zdFits, zdAnyFit, zdJammed, zdFindSets, zdNewRun, zdRoundPlan, zdSpawn, zdPerkDue, zdPerkChoices, zdTakePerk, zdFreeze, zdTurn, zdPut, zdLoad, zdDist, zdDmgOf, zdRadOf, zdTarget, zdStep, zdRoundPart, zdSnap, zdUnsnap, ZD_UP, zdEmbers, zdReroll, zdRefSlots, zdRefStore, zdRefHelps, zdLaneOf, ZD_SIDE, zdSideOk, zdSideOf, zdLoaded, zdEagleCan, zdEagle, zdEagleSpots, zdFinaleFire, zdBakuRush };
@@ -31970,7 +31950,7 @@ function zdHeroPaint() { const cv2 = $('zdHero'); if (!cv2) return; { const q = 
 function zdStart() { if (zdSave()) { zdEndSaved(); return; }   /* owner 11/13 (BLO-88): a new run first ends the saved one, with its recap */
   tickStamina(); if (stam.n <= 0) { anStaminaEmpty('blocked'); $('noStam').hidden = false; return; } stats.runSave = null; const r0 = devMode() ? clamp(Math.round(+$('zdTestN').value || 1), 1, ZD.rounds) : 1;
   startGame(1, { zd:true, perfect:0, seed:Math.random().toString(36).slice(2, 8) }); G.charged = true; spendStamina();   /* the stamina is paid when a run starts; resuming is free */ zdBegin(r0); }
-function zdBegin(r0, sv, quiet) { const s = zdState(), seed = sv ? sv.seed : Math.random().toString(36).slice(2, 10), R = sv ? zdUnsnap(sv.R) : zdNewRun({ mode:zdTestMode(), n:zdTestN(), lk:((s.mk || {})[zdTestMode()] || 0), round:r0, up:s.up, head:zdHeadPicks(s), taste:!s.finTaste && r0 <= 1 }, zdRng(seed + '|start'));   /* the Garage's levels (BLO-99) */ R.seed = seed; if (!sv && r0 <= 1 && zdEasy() && R.mode === 'classic') zdEasyBoard(R); M = null; G.cd = null; G.phase = 'zd'; $('hud').hidden = true; $('pillWrap').style.visibility = 'hidden'; $('intro').hidden = true; resize();
+function zdBegin(r0, sv, quiet) { const s = zdState(), seed = sv ? sv.seed : Math.random().toString(36).slice(2, 10), R = sv ? zdUnsnap(sv.R) : zdNewRun({ mode:zdTestMode(), n:zdTestN(), round:r0, up:s.up, head:zdHeadPicks(s), taste:!s.finTaste && r0 <= 1 }, zdRng(seed + '|start'));   /* the Garage's levels (BLO-99) */ R.seed = seed; if (!sv && r0 <= 1 && zdEasy() && R.mode === 'classic') zdEasyBoard(R); M = null; G.cd = null; G.phase = 'zd'; $('hud').hidden = true; $('pillWrap').style.visibility = 'hidden'; $('intro').hidden = true; resize();
   const ts = (() => { try { return LAUNCHERS[pick.launcher].tubes(3); } catch (e) { return [{ x:0, y:0, a:0, len:40 }]; } })(), ext = ts.reduce((m, q) => Math.max(m, Math.abs(q.x)), 0) + 42, top = ts.reduce((m, q) => Math.max(m, Math.cos(q.a) * q.len - q.y), 0), lk = clamp(Math.min(52 / ext, 46 / Math.max(30, top + 14)), 0.36, 0.8);
   G.zd = { R, rnd:zdRng(seed + '|pc|' + (sv ? sv.key : 'start')), gfx:s.gfx === 'low' ? 'low' : 'high', meas:s.gfx === 'auto' ? { n:0, sum:0, last:0 } : null, lk, top:top * lk, drag:null, back:null, fx:[], fly:[], words:[], flash:[], nums:0, snd:{}, cellT:Array(49).fill(-9), slotT:Array(6).fill(-9), spin:Array(6).fill(-9), recoil:0, loadAt:null, hpShow:R.hp, hurtT:-9, cheerT:-9, shake:0, banner:null, tips:[], tip:null, perk:null, over:null, sky:zdSkyOf(sv ? Math.max(1, R.cleared + 1) : r0), skyFrom:null, skyT:-9, start:sv ? 1 : r0, best0:sv ? sv.best0 : stats.survBest, got:sv ? sv.got : 0, jamCells:null, lay:null, born:clock, log:quiet ? null : zdlNew(s, sv ? R.cleared + 1 : r0, sv) };
   if (sv) { const K = G.zd; if (G.run) G.run.perfect = R.clean; if (!quiet && sv.perk && sv.perk.length) { R.phase = 'perk'; K.perk = { list:sv.perk.slice(), t0:clock }; } if (!quiet) track('zd_resume', { round:R.cleared + 1, graphics:s.gfx }); return; }
@@ -32014,7 +31994,7 @@ const zdSay = (K, key, gap, fn) => { if (clock - (K.snd[key] || -9) < gap) retur
 const zdWord = (K, text, x, y, size, col, dur) => K.words.push({ text, x, y, size, col, t0:clock, dur:dur || 0.9 });
 /* ---- input ---- */
 /* owner 11/16: the link's first run starts with four cells of the bottom row in one colour and a matching two-cell piece in the tray, so the finger's first move finishes a PURE row and fires */
-/* test modes (owner 11/19): a link with ?zdmode=ammo|merge|load|classic picks the mode on this phone (kept until another link changes it); &zdn=4..7 a starting size */
+/* the test mode: a link with ?zdmode=drop|classic picks the mode on this phone (owner 11/20: the other three were removed) (kept until another link changes it); &zdn=4..7 a starting size */
 function zdTestMode() { const s = zdState(); try { const q = new URLSearchParams(location.search), m = q.get('zdmode'); if (m != null && m + '|' + q.get('zdn') !== s.tmodeQ) { s.tmodeQ = m + '|' + q.get('zdn'); s.tmode = ZD_MODES[m] ? m : 'classic'; const n = +q.get('zdn'); s.tn = n >= 4 && n <= 7 ? n : 0; saveAll(); } } catch (e) {} return ZD_MODES[s.tmode] ? s.tmode : 'classic'; }
 function zdTestN() { const s = zdState(); return zdTestMode() !== 'classic' && s.tn >= 4 && s.tn <= 7 ? s.tn : 0; }
 function zdEasyBoard(R) { const c = 2; for (let x = 0; x < 4; x++) R.board[zdAt(x, ZD.N - 1)] = { c, el:null, g:9001 + (x >> 1) }; R.tray[0] = { id:++R.pid, k:'i2', cells:[[0, 0], [1, 0]], w:2, h:1, c, el:null, turn:false }; R.refT[0] = 0; }
@@ -32029,7 +32009,6 @@ function zdDown(x, y) { const K = G.zd; if (!K) return; const L = zdLay(), R = K
   if (R.perks.eagle && Math.hypot(x - L.eye.x, y - L.eye.y) < L.eye.r + 8) { if (zdEagle(R)) { K.eagleKey = null; track('zd_eagle', { round:R.round }); zdSay(K, 'eagle', 0.2, () => { syn(1175, 0.14, 0.05, { type:'triangle' }); syn(1568, 0.18, 0.04, { at:0.06 }); }); } return; }   /* round 11: Eagle Eye */
   if (R.finale && Math.hypot(x - L.fin.x, y - L.fin.y) < L.fin.r + 8) { if (zdFinaleFire(R)) zdFinaleFx(K, L, false); return; }   /* round 11: the Grand Finale */
   if (Math.hypot(x - L.frz.x, y - L.frz.y) < L.frz.r + 8) { if (zdFreeze(R)) { zdlNote(K, 'freeze'); zdSay(K, 'frz', 0.2, () => { syn(1568, 0.5, 0.05, { type:'triangle' }); syn(2093, 0.6, 0.035, { at:0.06 }); nz(0.4, 0.05, { hp:4200 }); buzz(30); }); zdWord(K, t('FREEZE!'), W / 2, L.bf * 0.5, 28, '#aee6ff', 1.1); } return; }
-  if (R.mode === 'load' && y < L.bf - 4 && R.queue.length && zdLoadFire(R, x < W * 0.38 ? 0 : x > W * 0.62 ? 2 : 1)) { zdSay(K, 'aim', 0.05, () => { try { sfx.tick(); } catch (e) {} }); return; }   /* Load & Aim: tap a lane to fire (owner 11/19) */
   if (R.mode === 'drop' && x >= L.bx - 8 && x <= L.bx + L.board + 8 && y >= L.by - 8 && y <= L.by + L.board + 8) { K.dsw = { x0:x, y0:y, x, y }; return; }   /* Drop & Merge: a stroke here swipes, a tap places a picked crate */
   { const gx = Math.floor((x - L.bx) / L.cell), gy = Math.floor((y - L.by) / L.cell); if (gx >= 0 && gx < ZD.N && gy >= 0 && gy < ZD.N && R.board[gy * ZD.N + gx]) { zdHint(K, 'stay', x, L.by - 4); return; } }   /* BLO-90 */
   zdGrab(K, L, R, x, y); }
@@ -32126,13 +32105,11 @@ function zdEvents(K, L, ev) { const R = K.R, hi = K.gfx === 'high'; for (const e
     else if (e.e === 'perk') { const list = zdPerkChoices(R, zdRng(R.seed + '|perk|' + R.cleared)); if (!list.length) { R.phase = 'breather'; R.phT = ZD.breather; zdCheck(K, R.cleared + 'c', null); } else if (K.drag) K.perkDue = list; else zdPerkOpen(K, list); }   /* owner 11/13 (BLO-89): a piece in the hand lands first */
     else if (e.e === 'jam') { K.jamCells = R.board.map((c, i) => (c ? i : -1)).filter(i => i >= 0); K.drag = null; zdWord(K, t('JAMMED!'), L.bx + L.board / 2, L.by + L.board / 2, 34, '#ff6a5e', 1.25); zdSay(K, 'jam', 0.3, () => { sfx.wrong(); buzz([30, 40, 30]); }); }
     else if (e.e === 'grow') { K.lay = null; const L2 = zdLay(); zdWord(K, t('BOARD GROWS!'), L2.bx + L2.board / 2, L2.by + L2.board * 0.36, 30, '#7be08a', 1.8); zdWord(K, e.n + '×' + e.n, L2.bx + L2.board / 2, L2.by + L2.board * 0.36 + 38, 28, '#ffffff', 1.8); zdSay(K, 'grow', 0.05, () => { syn(660, 0.2, 0.06, { type:'triangle' }); syn(990, 0.3, 0.05, { type:'triangle', at:0.12 }); }); }   /* test modes (owner 11/19) */
-    else if (e.e === 'mrg') { const x = L.bx + (e.i % ZD.N + 0.5) * L.cell, y = L.by + (Math.floor(e.i / ZD.N) + 0.5) * L.cell; zdWord(K, t('MERGE!'), x, y - 8, 17, '#ffffff', 0.7); K.flash.push({ cells:[e.i], t0:clock, pure:true }); zdSay(K, 'mrg', 0.06, () => { syn(784 + 196 * e.t, 0.14, 0.05, { type:'triangle' }); }); }
     else if (e.e === 'dmrg') { const p = { x:L.bx + (e.i % ZD.N + 0.5) * L.cell, y:L.by + (Math.floor(e.i / ZD.N) + 0.5) * L.cell }; zdWord(K, (2 ** e.t) + '!', p.x, p.y - 10, e.t >= 5 ? 22 : 17, '#ffffff', 0.7); K.flash.push({ cells:[e.i], t0:clock, pure:true }); if (e.from != null) (K.dghost = K.dghost || []).push({ from:e.from, to:e.i, t:e.t - 1, t0:clock, n:ZD.N }); zdSay(K, 'mrg', 0.06, () => { syn(523 * Math.pow(1.122, Math.min(12, e.t)), 0.14, 0.05, { type:'triangle' }); }); }   /* Drop & Merge (owner 11/20) */
     else if (e.e === 'dslide') { K.dmov = {}; e.moves.forEach(([f, to, j]) => { if (f !== to) K.dmov[to] = { dx:f % ZD.N - to % ZD.N, dy:Math.floor(f / ZD.N) - Math.floor(to / ZD.N), t0:clock, n:ZD.N }; if (j != null && R.board[to]) (K.dghost = K.dghost || []).push({ from:j, to, t:R.board[to].t - 1, t0:clock, n:ZD.N }); }); }
     else if (e.e === 'dshot') { (K.dk = K.dk || {})[e.i] = clock; }
     else if (e.e === 'dlaunch') { const p = { x:L.bx + (e.i % ZD.N + 0.5) * L.cell, y:L.by + (Math.floor(e.i / ZD.N) + 0.5) * L.cell }; zdWord(K, t('LAUNCH!'), p.x, p.y - 12, 15, '#ffd25e', 0.8); K.flash.push({ cells:[e.i], t0:clock, pure:false }); }
     else if (e.e === 'dnudge') { K.dmov = {}; R.board.forEach((c, i) => { if (c) K.dmov[i] = { dx:{ L:0.12, R:-0.12, U:0, D:0 }[e.d], dy:{ U:0.12, D:-0.12, L:0, R:0 }[e.d], t0:clock, n:ZD.N }; }); }
-    else if (e.e === 'salvo') { zdWord(K, t('SALVO!'), L.bx + L.board / 2, L.by + L.board * 0.42, 30, COL.gold, 1); }
     else if (e.e === 'dump') { K.hurtT = clock; (K.jamCells || []).forEach(i => K.fx.push({ k:'puff', x:L.bx + (i % ZD.N + 0.5) * L.cell, y:L.by + (Math.floor(i / ZD.N) + 0.5) * L.cell, r:L.cell * 0.5, t0:clock + Math.random() * 0.12, dur:0.45, col:'190,186,214' })); K.jamCells = null; zdSay(K, 'dump', 0.3, () => { nz(0.25, 0.12, { lp:900, to:200 }); tone(90, 0.22, 'triangle', 0.14, -30); }); }
     else if (e.e === 'refill') { K.slotT[e.slot] = clock; if (R.placed >= 2 && !K.hint) zdHint(K, 'next', L.next.x + L.next.w / 2, L.next.y - 4); }   /* round 12 */
     else if (e.e === 'dead') { K.over = { t0:clock, won:false }; K.drag = null; K.shake = hi && !reduced ? 1 : 0; const x = L.lau.x, y = L.lau.y - 10; if (!reduced) for (let i = 0; i < (hi ? 46 : 16); i++) { const a = Math.random() * 6.283, sp = rand(60, 260); parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp - 60, c:['#ffd25a', '#ff9a3c', '#ff5a52', '#fff1c0'][i % 4], life:rand(0.5, 1.1), age:0, r:rand(1.6, 3), g:160, drag:1.2, glow:true }); } K.fx.push({ k:'ring', x, y, rx:90, ry:60, t0:clock, dur:0.6, col:'255,180,90' }); zdWord(K, t('KABOOM'), x, y - 46, 34, '#ff7a5a', 1.5); try { sfx.blast(); buzz([60, 40, 90]); } catch (e2) {} }
@@ -32364,8 +32341,8 @@ function zdBoardArt3(L) { const lk = boardLook(), K3 = B3.casing[lk], s = L.cell
     for (let y = 0; y < ZD.N; y++) for (let x = 0; x < ZD.N; x++) { const px = x * s, py = y * s; c.beginPath(); c.roundRect(px + 3.5, py + 3.5, s - 7, s - 7, s * (lk === 'A' ? 0.24 : 0.12));
       if (lk === 'gem') { c.strokeStyle = 'rgba(217,169,58,.2)'; c.lineWidth = 1.1; c.stroke(); } else if (lk === 'A') { c.fillStyle = 'rgba(255,240,225,.055)'; c.fill(); c.strokeStyle = 'rgba(255,240,225,.1)'; c.lineWidth = 1; c.stroke(); } else { c.strokeStyle = 'rgba(93,255,168,.22)'; c.lineWidth = 1.2; c.setLineDash([4, 3]); c.stroke(); c.setLineDash([]); } }
     c.strokeStyle = K3.acc; c.globalAlpha = 0.36; c.lineWidth = 1.6; c.setLineDash([5, 5]); c.beginPath(); c.moveTo(L.board / 2, 4); c.lineTo(L.board / 2, L.board - 4); c.moveTo(4, L.board / 2); c.lineTo(L.board - 4, L.board / 2); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; c.restore(); }); }
-/* test modes (owner 11/19): the size number on each block, Ammo Merge's feed row, Load & Aim's firepower meter and lane prompt, and a TEST tag */
-const ZD_MODE_NAMES = { drop:'Drop & Merge', ammo:'Ammo Merge', merge:'Merge & Launch', load:'Load & Aim' };
+/* the test mode's board extras and its TEST tag */
+const ZD_MODE_NAMES = { drop:'Drop & Merge' };
 /* ---- Drop & Merge (owner 11/20): what the board shows ---- */
 function zdDropNum(v, x, y, s) { const F = "'Figtree','Segoe UI',system-ui,sans-serif", str = String(v); ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.font = `900 ${Math.round(s * (str.length > 2 ? 0.3 : 0.4))}px ${F}`; ctx.lineWidth = Math.max(3, s * 0.1); ctx.strokeStyle = 'rgba(14,12,40,.85)'; ctx.strokeText(str, x, y + 1); ctx.fillStyle = '#ffffff'; ctx.fillText(str, x, y + 1); ctx.restore(); }
 /* a crate that has just slid draws from where it was, easing in over 0.14 s (K.dmov: by the square it slid to) */
@@ -32393,16 +32370,8 @@ function zdDrawDrop(K, L) { const R = K.R, N = ZD.N, s = L.cell, D = K.drop, hid
   if (R.placed > 0 && !L0.drop) zdDropLearn('drop'); if ((R.dMerges || 0) > 0 && !L0.merge) { zdDropLearn('merge'); K.dTip = clock; } if ((R.dSwipes || 0) > 0 && !L0.swipe) zdDropLearn('swipe');
   if (say) { const F = "'Figtree','Segoe UI',system-ui,sans-serif"; ctx.save(); ctx.font = `800 15px ${F}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#15133f'; ctx.globalAlpha = reduced ? 1 : 0.8 + 0.2 * Math.sin(clock * 5); ctx.strokeText(say, W / 2, ty); ctx.fillStyle = '#ffd25e'; ctx.fillText(say, W / 2, ty); ctx.restore(); }
   if (hand) zdDropHand(...hand); }
-function zdDrawModeX(K, L) { const R = K.R, m = R.mode; if (!m || m === 'classic' || !ZD_MODES[m]) return; const N = ZD.N, s = L.cell, M = ZD_MODES[m], F = "'Figtree','Segoe UI',system-ui,sans-serif";
-  if (m === 'ammo' || m === 'merge') { ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.font = `900 ${Math.round(s * 0.34)}px ${F}`; ctx.lineWidth = Math.max(3, s * 0.1); ctx.strokeStyle = 'rgba(14,12,40,.85)'; ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < N * N; i++) { const c = R.board[i]; if (!c || !c.t) continue; const v = String(M.show[c.t]), x = L.bx + (i % N + 0.5) * s, y = L.by + (Math.floor(i / N) + 0.5) * s + 1; ctx.strokeText(v, x, y); ctx.fillText(v, x, y); } ctx.restore(); }
-  if (m === 'drop') zdDrawDrop(K, L);
-  if (m === 'ammo') { ctx.save(); ctx.strokeStyle = 'rgba(255,210,94,.85)'; ctx.lineWidth = 2.5; ctx.setLineDash([7, 5]); ctx.lineDashOffset = reduced ? 0 : -clock * 14; rr(L.bx + 1, L.by + 1, L.board - 2, s - 2, s * 0.18); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#ffd25e';
-    for (let x = 0; x < N; x++) { const cx = L.bx + (x + 0.5) * s, cy = L.by - 4; ctx.beginPath(); ctx.moveTo(cx, cy - 5); ctx.lineTo(cx + 5, cy + 2); ctx.lineTo(cx - 5, cy + 2); ctx.closePath(); ctx.fill(); } ctx.restore(); }
-  if (m === 'load') { const f = R.board.filter(Boolean).length, mx = L.bx + L.board + 12, h = L.board * f / (N * N), txt = '+' + Math.round(f * M.heat * 100) + '%'; ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.12)'; rr(mx, L.by, 7, L.board, 3.5); ctx.fill(); if (h > 0) { ctx.fillStyle = '#ff9a5c'; rr(mx, L.by + L.board - h, 7, h, 3.5); ctx.fill(); }
-    ctx.font = `800 11px ${F}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = '#15133f'; ctx.strokeText(txt, mx + 3.5, L.by - 8); ctx.fillStyle = '#ff9a5c'; ctx.fillText(txt, mx + 3.5, L.by - 8);
-    if (R.queue.length && !R.loadGo) { ctx.globalAlpha = reduced ? 1 : 0.65 + 0.35 * Math.sin(clock * 6); ctx.font = `800 15px ${F}`; ctx.lineWidth = 4; ctx.strokeText(t('Tap a lane to fire'), W / 2, L.lau.y - 70); ctx.fillStyle = '#ffd25e'; ctx.fillText(t('Tap a lane to fire'), W / 2, L.lau.y - 70); } ctx.restore(); }
-  ctx.save(); ctx.font = `800 10px ${F}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.globalAlpha = 0.75; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = '#15133f'; const tag = 'TEST · ' + ZD_MODE_NAMES[m] + ' ' + N + '×' + N; ctx.strokeText(tag, 10, L.bf - 8); ctx.fillStyle = '#c9c4ff'; ctx.fillText(tag, 10, L.bf - 8); ctx.restore(); }
+function zdDrawModeX(K, L) { const R = K.R, m = R.mode; if (m !== 'drop') return; zdDrawDrop(K, L); const F = "'Figtree','Segoe UI',system-ui,sans-serif";
+  ctx.save(); ctx.font = `800 10px ${F}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.globalAlpha = 0.75; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = '#15133f'; const tag = 'TEST · ' + ZD_MODE_NAMES[m] + ' ' + ZD.N + '×' + ZD.N; ctx.strokeText(tag, 10, L.bf - 8); ctx.fillStyle = '#c9c4ff'; ctx.fillText(tag, 10, L.bf - 8); ctx.restore(); }
 function zdCell(L, i, c, el, x, y, s, pop, look) { drawPiece(zdOne(c), x, y, s, pop || 0, look || b3Look(true)); if (el) ctx.drawImage(zdElSprite(el, s, Math.floor(clock * 8 + i * 1.7)), x, y, s, s); }
 /* a piece's squash after it lands (the campaign's settle: Jelly wobbles longer, Neon's edge flickers on) */
 function zdSquash(lk, ld) { const tail = lk === 'A' ? 0.42 : lk === 'neon' ? 0.26 : 0.2; if (ld < 0 || ld >= tail) return null; const v = ld / tail;
@@ -32429,7 +32398,7 @@ function zdDrawBoard(K, L) { const R = K.R, s = L.cell, on3 = b3dOn(), lk = boar
   zdDrawEagle(K, L);   /* round 11 */
   if (K.hint && K.hint.k === 'corner' && K.cornerBox != null) { const s3 = L.cell * 3, x0 = L.bx + (K.cornerBox % 2) * s3, y0 = L.by + Math.floor(K.cornerBox / 2) * s3; ctx.save(); ctx.strokeStyle = '#ffd25e'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.lineDashOffset = reduced ? 0 : -clock * 18; rr(x0 + 2, y0 + 2, s3 - 4, s3 - 4, 10); ctx.stroke(); ctx.restore(); }   /* round 13: the corner block the hint means */
   /* the held piece's landing: a dashed outline, and any set it would finish lights up gold */
-  const d = K.drag; if (d && d.spot) { const b = R.board.slice(); d.pc.cells.forEach(([a, c]) => { b[zdAt(d.spot.gx + a, d.spot.gy + c)] = { c:d.pc.c, el:d.pc.el }; }); const hit = new Set(); (R.mode === 'ammo' || R.mode === 'drop' ? [] : zdFindSets(b)).forEach(q => q.cells.forEach(i => hit.add(i))); if (hit.size) { ctx.fillStyle = `rgba(255,214,110,${reduced ? 0.3 : 0.24 + 0.1 * Math.sin(clock * 9)})`; hit.forEach(i => { rr(L.bx + (i % ZD.N) * s + 1.5, L.by + Math.floor(i / ZD.N) * s + 1.5, s - 3, s - 3, s * 0.16); ctx.fill(); }); }
+  const d = K.drag; if (d && d.spot) { const b = R.board.slice(); d.pc.cells.forEach(([a, c]) => { b[zdAt(d.spot.gx + a, d.spot.gy + c)] = { c:d.pc.c, el:d.pc.el }; }); const hit = new Set(); (R.mode === 'drop' ? [] : zdFindSets(b)).forEach(q => q.cells.forEach(i => hit.add(i))); if (hit.size) { ctx.fillStyle = `rgba(255,214,110,${reduced ? 0.3 : 0.24 + 0.1 * Math.sin(clock * 9)})`; hit.forEach(i => { rr(L.bx + (i % ZD.N) * s + 1.5, L.by + Math.floor(i / ZD.N) * s + 1.5, s - 3, s - 3, s * 0.16); ctx.fill(); }); }
     ctx.save(); ctx.translate(L.bx + d.spot.gx * s, L.by + d.spot.gy * s); ctx.globalAlpha = 0.34; drawPiece(d.pc, 0, 0, s, 0, b3Look(true)); ctx.globalAlpha = 1; edges(ctx, d.pc, s, 2.5, s * 0.15); ctx.strokeStyle = 'rgba(8,8,24,.6)'; ctx.lineWidth = 4.6; ctx.stroke(); ctx.setLineDash([6, 4]); ctx.lineDashOffset = reduced ? 0 : -clock * 12; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.3; ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     /* a white ring wherever it will join a piece already on the board (the 3D boards' landing outline) */
     if (b3dOn()) d.pc.cells.forEach(([a, c]) => { const x = d.spot.gx + a, y = d.spot.gy + c; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([u, v]) => { const nx = x + u, ny = y + v; if (nx < 0 || ny < 0 || nx > ZD.N - 1 || ny > ZD.N - 1 || !R.board[zdAt(nx, ny)]) return; const mx = L.bx + (x + 0.5 + u * 0.5) * s, my = L.by + (y + 0.5 + v * 0.5) * s; ctx.fillStyle = 'rgba(8,8,24,.85)'; ctx.beginPath(); ctx.arc(mx, my, 5, 0, 7); ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(mx, my, 4.2, 0, 7); ctx.stroke(); }); }); }
@@ -32600,7 +32569,7 @@ function zdReport(K, how, beacon) { try { if (!CLOUD || !CLOUD_DID || !K || !K.R
   cloudPost('zdrun', { did:CLOUD_DID, src:cloudSrc(), v:CONFIG.analytics && CONFIG.analytics.appVersion, rid:K.rid, start:K.start || 1, round:R.round || 0, cleared:R.cleared || 0, kills:R.kills || 0, how, secs:Math.round((Date.now() - (K.t0 || Date.now())) / 1000), run:zdState().runs || 0, link:pfGet('zdLink') === 1 ? 1 : 0, lvls:done.size }, beacon).catch(() => {}); } catch (e) {} }   /* Version 746: one record per run for the dashboard */
 if (CLOUD) document.addEventListener('visibilitychange', () => { try { if (document.hidden && G && G.phase === 'zd' && G.zd && !G.zd.banked) zdReport(G.zd, 'left', true); } catch (e) {} });
 function zdBank(K, won, reason) { if (K.banked) return; K.banked = reason; zdReport(K, reason); const R = K.R, s = zdState(), real = K.start <= 1;
-  if (real) { shdEarn(SHD_EARN.survival, 'survival'); s.kills += R.kills; if (R.mode && R.mode !== 'classic') { s.mk = s.mk || {}; s.mk[R.mode] = (s.mk[R.mode] || 0) + R.kills; }   /* test modes: each mode's lifetime kills grow its board */ s.bestCombo = Math.max(s.bestCombo, R.bestCombo + 1); if (won) { if (s.wins >= 1) { s.gold = (s.gold | 0) + 1; K.gold = 1; } else K.gold = 'first'; s.wins += 1; } K.emb = zdEmbers(R.kills, R.cleared, R.cleared > K.best0); s.embers += K.emb.total; s.bosses += Math.floor(R.cleared / 5); }   /* Embers, only here (BLO-99); bosses: every fifth round is a boss round, for the Defeat N bosses achievements */
+  if (real) { shdEarn(SHD_EARN.survival, 'survival'); s.kills += R.kills; s.bestCombo = Math.max(s.bestCombo, R.bestCombo + 1); if (won) { if (s.wins >= 1) { s.gold = (s.gold | 0) + 1; K.gold = 1; } else K.gold = 'first'; s.wins += 1; } K.emb = zdEmbers(R.kills, R.cleared, R.cleared > K.best0); s.embers += K.emb.total; s.bosses += Math.floor(R.cleared / 5); }   /* Embers, only here (BLO-99); bosses: every fifth round is a boss round, for the Defeat N bosses achievements */
   stats.runSave = null; saveAll(); try { an.state.active = null; } catch (e) {}
   track('zd_end', { wave:R.round, cleared:R.cleared, won, reason, kills:R.kills, sets:R.sets, best_combo:R.bestCombo + 1, rockets:R.fired, jams:R.jams, perks:R.picks, secs:Math.round(R.T), graphics:K.gfx, start_round:K.start, clean:R.clean, embers:K.emb ? K.emb.total : 0, gold:K.gold === 1 ? 1 : 0 });
   zdlEnd(K, reason); }
