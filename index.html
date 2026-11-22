@@ -2798,7 +2798,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.859.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.860.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -6608,15 +6608,114 @@ const BAR_SFX = {
   fount(at = 0) { nz(2.4, 0.014, { hp:3800, a:0.25, at }); nz(2.4, 0.012, { bp:1500, q:0.8, a:0.25, at }); },
   burst(at = 0, i = 0) { syn(64 + i * 6, 0.6, 0.05, { slide:-18, a:0.004, at }); nz(0.3, 0.04, { lp:420, to:160, a:0.006, at }); nz(0.12, 0.05, { bp:900, q:1, a:0.003, at }); CS.sparkle(4, 0.014, at + 0.1, 2400, 0.08); },
 };
+// Version 860: the five Filipino fireworks' soundscapes (the owner: "make players feel like they are there")
+// The five Filipino fireworks' soundscapes (the owner, 22 November 2026: "can you work on the sounds for each of the 5 filipino
+// fireworks? ... the vinta should sound like the ocean and wind breezing against the sails. make players feel like they are there").
+// Lives in the game's sound block (so sound_bench.html can render it), next to SAR_SFX. Each list is [seconds after the firework's
+// moment, sound]; the firework's own step sends each one when its time comes (never queued all at once: the 32-voice cap).
+// House rules kept: original sounds only (no known tunes), no crowd or applause, no voices; noise is low-passed or narrow and short so
+// there is no hiss above 4 kHz ("chhh"); bells and sparkles stay at or under about 2.4 kHz (small speakers); quiet, under the main sounds.
+const FIL_SFX = (() => {
+  // ---- shared pieces ----
+  const swell = (d, v, at = 0, lo = 420, hi = 260) => { nz(d, v, { lp:lo, to:hi, a:d * 0.42, at }); nz(d * 0.85, v * 0.32, { bp:820, to:480, q:0.7, a:d * 0.38, at }); };   // with a mid wash a phone can play                       // a sea swell: rises, breaks softly, draws back
+  const breeze = (d, v, at = 0, f0 = 420, f1 = 760) => nz(d, v, { bp:f0, to:f1, q:0.55, a:d * 0.45, at });              // wind: a slow, wide band of air
+  const lap = (v, at = 0, f = 900) => { nz(0.16, v, { lp:f, to:f * 0.45, a:0.012, at }); syn(150, 0.09, v * 0.9, { slide:-40, a:0.004, at }); };   // water slapping a hull
+  const step = (v, at = 0, f = 95) => { syn(f, 0.08, v, { slide:-25, a:0.003, at }); nz(0.07, v * 0.55, { lp:520, to:260, a:0.004, at }); syn(f * 3.6, 0.05, v * 0.5, { slide:-f, a:0.002, at }); };   /* the heel's knock, which a phone can play */       // a bare foot on earth
+  const creak = (v, at = 0, f = 205) => { syn(f, 0.32, v, { type:'triangle', lp:900, slide:-f * 0.08, a:0.04, sus:0.4, at }); syn(f * 1.51, 0.22, v * 0.35, { type:'triangle', lp:1100, slide:-f * 0.06, a:0.05, at }); };   // bamboo bending under a load
+  const bamboo = (f, v, at = 0) => { syn(f, 0.28, v, { type:'triangle', lp:f * 2.2, a:0.002, at, wet:0.25 }); syn(f * 2.9, 0.06, v * 0.25, { a:0.001, at }); };   // a hollow bamboo tone (wind chime, gabbang key)
+  const paper = (v, at = 0, f = 1500) => nz(0.07, v, { bp:f, q:2.4, a:0.01, at });                                       // a papery rustle (kiping)
+  const brass = (ms, v, at = 0, d = 0.7) => ms.forEach((m, i) => syn(mf(m), d, v, { type:'sawtooth', lp:1150, det:8, a:0.05, sus:0.45, at:at + i * 0.012, wet:0.35 }));   // a distant town band
+  const swish = (v, at = 0, f0 = 380, f1 = 1150) => nz(0.42, v, { lp:f0, to:f1, a:0.16, at });                           // cloth sweeping round
+  const drop = (v, at = 0, f = 900) => syn(f, 0.07, v, { slide:f * 0.7, st:0.05, a:0.002, at, wet:0.2 });                 // a water drop (a rising "plip")
+  const GAB = [0, 2, 4, 7, 9, 12, 14];
+
+  return {
+    // ---- VINTA: the open sea. A low gong as the hull is drawn, then a bamboo xylophone note (gabbang-like) and a small snap of cloth for
+    // each strip of the sail; the sail fills with a soft "fwump"; wind breathes across it while the sea swells under the hull and laps at
+    // its sides; when the strips fall away, a small shimmer and a last wave washes in. (seconds after the last shell bursts)
+    vinta:[
+      [0.05, () => { IN.gong(mf(50), 0.015, 0, 1.4); swell(2.6, 0.07, 0, 460, 280); }],
+      ...GAB.map((g, b) => [0.38 + b * 0.075, () => { bamboo(mf(67 + g), 0.013); nz(0.05, 0.007, { bp:1100, q:1.6, a:0.006 }); }]),
+      [0.9, () => { nz(0.32, 0.03, { lp:620, to:230, a:0.03 }); syn(110, 0.16, 0.02, { slide:-30, a:0.01 }); }],
+      [0.95, () => breeze(3.6, 0.032, 0, 380, 820)],
+      [1.25, () => swell(2.7, 0.065)], [2.65, () => swell(2.8, 0.06, 0, 400, 250)], [3.9, () => breeze(2.2, 0.024, 0, 600, 420)],
+      ...[1.6, 2.25, 2.95, 3.55, 4.2].map((t, i) => [t, () => lap(0.016 + (i % 2) * 0.004, 0, 820 + i * 60)]),
+      [4.7, () => { CS.sparkle(5, 0.009, 0.1, 1900, 0.08); nz(0.6, 0.012, { lp:900, to:400, a:0.15 }); }],
+      [4.9, () => swell(1.8, 0.055, 0, 480, 240)],
+    ],
+
+    // ---- SARIMANOK: a Maranao kulintang ensemble (a kulintang-like run of small gongs, the deep agung gong, a dabakan-like drum, a thin
+    // babendil-like tick), then the bird's take-off and wing-beats. Same calls as before: ros() a rosette, note(i) one of the six notes
+    // as the bird is drawn, fly() the take-off, flap(i) a wing-beat.
+    sari:{
+      ros(at = 0, i = 0) { IN.gong(mf(67 + [0, 2, 4, 7, 9][i % 5]), 0.018, at, 0.6); nz(0.05, 0.008, { bp:1400, q:1.4, a:0.005, at }); },
+      note(i = 0) { IN.gong(mf(67 + [0, 2, 4, 7, 9, 12][i % 6]), 0.017, 0, 0.75);
+        if (i === 0 || i === 3) IN.gong(mf(41), 0.024, 0.01, 1.8);                                       // the agung, deep and slow
+        CS.drum(i % 2 ? 185 : 150, i % 2 ? 0.008 : 0.012, 0.005, 0.16);                                    // the drum under each note
+        if (i % 2) IN.metal(mf(79), 0.004, 0.085, 0.25);                                                   // a thin tick between notes
+        if (i === 5) CS.sparkle(5, 0.009, 0.25, 1900, 0.08); },
+      // The take-off (revision 2, the owner: "sarimanok doesn't really sound like its flying away at the end"): a strong push of air and a
+      // rising rush, two gong notes like a call, then a swoop that passes and falls away into the distance, and one last far-off gong as
+      // the bird disappears. flap(i): six wing-beats, each farther away: softer, duller and with more echo.
+      fly(at = 0) { nz(0.5, 0.024, { lp:320, to:700, a:0.06, at }); nz(0.8, 0.02, { bp:650, to:2000, q:0.9, a:0.22, at }); IN.gong(mf(79), 0.011, at + 0.05, 1); IN.gong(mf(86), 0.008, at + 0.3, 1);
+        nz(1.3, 0.016, { bp:1700, to:380, q:0.8, a:0.12, at:at + 0.75, wet:0.35 }); IN.gong(mf(86), 0.0045, at + 1.95, 1.8, { wet:0.7 }); },
+      flap(at = 0, i = 0) { const far = Math.min(1, i / 5), v = 1 - 0.8 * far; nz(0.18, 0.019 * v, { bp:560 - far * 160, to:950 - far * 400, q:0.8, a:0.03, at, wet:0.1 + 0.55 * far }); nz(0.12, 0.016 * v * (1 - far * 0.6), { lp:280 - far * 80, to:150, a:0.02, at }); },
+    },
+
+    // ---- BAYANIHAN: a barrio at night. house: the hut appears with a soft knock, bamboo wind chimes, a breeze through the thatch.
+    // lift (seconds after the carriers' rocket): each man takes his place (bare feet on earth), the poles creak as they crouch, a low
+    // drum and two rising notes as they lift together, footsteps in step and the poles creaking as they walk, a heavy wooden settle
+    // as the house is set down, then bamboo chimes and a warm bell as its windows burst. No voices, no applause.
+    bayanHouse:[
+      [0.05, () => { IN.mallet(mf(60), 0.013, 0, 0.5); bamboo(mf(55), 0.009, 0.02); }],
+      [0.5, () => bamboo(mf(72), 0.008)], [0.64, () => bamboo(mf(76), 0.007)], [0.82, () => bamboo(mf(79), 0.006)],
+      [0.9, () => breeze(2.4, 0.016, 0, 500, 700)],
+    ],
+    bayanLift:[
+      ...[0, 1, 2, 3, 4, 5].map(i => [0.05 + i * 0.05, () => step(0.012, 0, 90 + (i % 3) * 8)]),
+      [0.65, () => creak(0.012)], [0.72, () => creak(0.009, 0, 228)],
+      [0.8, () => { CS.drum(92, 0.02, 0, 0.35); IN.mallet(mf(64), 0.013, 0, 0.35); }], [0.95, () => IN.mallet(mf(67), 0.013, 0, 0.45)],
+      ...[0, 1, 2, 3, 4, 5, 6, 7].map(j => [1.15 + j * 0.33, () => { step(0.021, 0, j % 2 ? 88 : 100); step(0.014, 0.06, j % 2 ? 96 : 84); }]),
+      ...[1.4, 2.05, 2.7, 3.35].map((t, j) => [t, () => creak(0.007, 0, 200 + (j % 2) * 22)]),
+      [3.8, () => { CS.drum(70, 0.022, 0, 0.4); nz(0.18, 0.016, { lp:600, to:250, a:0.01 }); creak(0.008, 0.05, 190); }], [4.05, () => step(0.01, 0, 80)],
+      [4.27, () => { IN.bell(mf(76), 0.013, 0, 0.9); [72, 76, 79, 84].forEach((m, i) => bamboo(mf(m), 0.007, 0.06 + i * 0.09)); CS.sparkle(4, 0.008, 0.2, 1800, 0.09); }],
+    ],
+
+    // ---- PAHIYAS: a fiesta night in Lucban. The house appears with a warm mallet while a town band plays far off (two soft chords);
+    // the kiping climb with papery rustles and small rising bells; the small arangya tinkles; every kiping lets go in a flutter of paper
+    // and a rising rush of air; the big arangya rings like a wind chime as it turns; it opens on a three-note chord with a warm swell
+    // and a shimmer; the leaves fall with soft rustles. (seconds after the last shell bursts)
+    pahiyas:[
+      [0.05, () => IN.mallet(mf(60), 0.013, 0, 0.5)], [0.15, () => brass([55, 59, 62], 0.0045, 0, 0.8)], [0.95, () => brass([57, 60, 64], 0.004, 0, 0.9)],
+      ...[0, 1, 2, 3, 4].map(j => [0.5 + j * 0.2, () => { paper(0.008, 0, 1300 + j * 120); paper(0.006, 0.07, 1600 + j * 90); IN.bell(mf(76 + [0, 2, 4, 7, 9][j]), 0.006, 0.02, 0.35); }]),
+      ...[1.6, 2.15, 2.65].map((t, j) => [t, () => IN.bell(mf(81 + j * 2), 0.005, 0, 0.6)]), [1.7, () => breeze(1.8, 0.008, 0, 600, 800)],
+      [2.95, () => { CS.flutter(7, 0.007, 0, 1500); nz(0.7, 0.014, { lp:600, to:2000, a:0.28 }); }], [3.15, () => CS.flutter(5, 0.005, 0, 1700)],
+      [3.6, () => IN.bell(mf(72), 0.011, 0, 0.8)], ...[3.85, 4.05, 4.25].map((t, j) => [t, () => IN.bell(mf(84 + [0, 3, 5][j]), 0.006, 0, 0.5)]),
+      [4.45, () => { IN.bell(mf(76), 0.011, 0, 1.1); IN.bell(mf(79), 0.009, 0.04, 1.1); IN.bell(mf(84), 0.008, 0.08, 1.2); syn(mf(60), 1.6, 0.012, { type:'triangle', lp:800, a:0.35, wet:0.4 }); syn(mf(67), 1.6, 0.009, { type:'triangle', lp:900, a:0.4, wet:0.4 }); CS.sparkle(5, 0.008, 0.12, 1900, 0.07); }],
+      ...[4.95, 5.4, 5.85].map((t, j) => [t, () => IN.bell(mf(86 + [0, 2, -3][j]), 0.0045, 0, 0.7)]),
+      ...[6.15, 6.45, 6.8].map((t, j) => [t, () => { paper(0.006 - j * 0.0012, 0, 1400); paper(0.005 - j * 0.001, 0.09, 1250); }]),
+    ],
+
+    // ---- HIGANTES: the Angono fiesta. A parade drum starts as the giants arrive and keeps a marching beat (a deep drum on the beat, a
+    // dry snare tap off it) while they dance; a soft band chord and a low mallet for the bow; a sweep of cloth for each twirl (outer pair,
+    // then the middle giant); party-popper pops and paper as the costumes burst; a wooden knock as the frames show; then the basaan:
+    // water sloshes from the buckets, splashes, and drips. No crowd, no applause. (seconds after the last shell bursts)
+    higantes:[
+      ...[0, 1, 2].map(j => [0.3 + j * 0.12, () => CS.drum(110 + j * 12, 0.013, 0, 0.25)]),
+      ...[0, 1, 2, 3, 4, 5].map(j => [0.85 + j * 0.2, () => { if (j % 2) nz(0.05, 0.013, { bp:1900, q:1.1, a:0.002 }); else { CS.drum(88, 0.018, 0, 0.28); syn(560, 0.06, 0.009, { slide:-120, a:0.002 }); }   /* the drum head's knock, which a phone can play */ }]),
+      [2.1, () => { brass([53, 57, 60], 0.005, 0, 1.0); IN.mallet(mf(55), 0.013, 0.02, 0.6); }],
+      [3.3, () => { swish(0.02); swish(0.012, 0.05, 420, 1250); }], [4.1, () => swish(0.02, 0, 400, 1200)],
+      [4.95, () => { CS.pop(900, 0.013); CS.pop(1200, 0.011, 0.05); CS.pop(750, 0.011, 0.1); CS.flutter(6, 0.006, 0.08, 1600); }], [5.1, () => CS.wood(520, 0.008)],
+      [5.5, () => { nz(0.4, 0.03, { lp:1100, to:450, a:0.06 }); syn(120, 0.25, 0.016, { slide:-40, a:0.03 }); }], [5.68, () => nz(0.38, 0.026, { lp:1000, to:420, a:0.06 })],
+      [5.95, () => CS.splash(0.04)], [6.1, () => CS.splash(0.035)],
+      ...[6.05, 6.2, 6.38, 6.5, 6.7, 6.9].map((t, j) => [t, () => drop(0.006, 0, 820 + (j * 137) % 500)]),
+    ],
+  };
+})();
 // Version 662: the Sarimanok's sounds, quiet and under the main sounds: ros() one small gong note for a rosette, note() one of the six
 // gong notes that rise as the bird is drawn (a kulintang-like run; the last brings a little shimmer). No applause.
-const SAR_SFX = {
-  ros(at = 0, i = 0) { IN.bell(mf(72 + [0, 2, 4, 7, 9][i % 5]), 0.02, at, 0.5); nz(0.3, 0.011, { hp:5000, a:0.05, at }); },
-  note(i = 0) { IN.bell(mf(72 + [0, 2, 4, 7, 9, 12][i % 6]), 0.017, 0, 0.7); if (i === 5) CS.sparkle(6, 0.011, 0.25, 2600, 0.08); },
-  /* Version 663: fly() the take-off, a soft rising whoosh with two small high gong notes; flap() one wing-beat, a soft puff of air */
-  fly(at = 0) { nz(0.9, 0.02, { bp:700, to:2400, q:0.9, a:0.25, at }); IN.bell(mf(84), 0.012, at + 0.05, 0.9); IN.bell(mf(91), 0.01, at + 0.3, 0.9); },
-  flap(at = 0, i = 0) { nz(0.16, 0.016, { bp:520 + i * 40, to:900, q:0.8, a:0.03, at }); },
-};
+const SAR_SFX = FIL_SFX.sari;   // Version 860: the kulintang ensemble, in FIL_SFX
+// (was: the six bell notes, the take-off and the wing-beats; now in FIL_SFX.sari)
 // Version 662: Big Steps' sounds, quiet and under the main sounds, each with a part above 300 Hz for phone speakers: step() a soft low
 // thud for a footprint (alternating a little in pitch, left and right), call() a far-off low call as Bigfoot appears. No applause.
 const BST_SFX = {
@@ -15757,7 +15856,7 @@ function sarimanokFrom(L, x, y, g, sp, d, last) { const real = L === parts, th =
         for (let i = 0; i < K.queue.length; i++) { const q = K.queue[i]; if (q[0] > K.t) continue; K.queue.splice(i--, 1); K.add(q[1], q[2], q[3], q[4], q[5]); }
         if (real && K.fin != null && S === K.s0) while (K.bell < 6 && K.fin + K.bell * 0.17 <= K.t + 0.03) { const b = K.bell++; sarSfx(() => SAR_SFX.note(b)); }   /* six gong notes rising as the bird is drawn, each sent at its own moment */
         /* Version 663: the take-off's whoosh, then a soft puff of air on each of the first four wing-beats */
-        if (real && K.fin != null && S === K.s0) { const tf = K.t - K.fin - SAR.FLY0 - SAR.CROUCH; if (!K.fl && tf > -0.03) { K.fl = 1; sarSfx(() => SAR_SFX.fly(Math.max(0, -tf))); } while (!reduced && K.fl >= 1 && K.fl <= 4 && tf > (K.fl - 0.75) / 2.6 - 0.03) { const i = K.fl++; sarSfx(() => SAR_SFX.flap(0, i - 1)); } }
+        if (real && K.fin != null && S === K.s0) { const tf = K.t - K.fin - SAR.FLY0 - SAR.CROUCH; if (!K.fl && tf > -0.03) { K.fl = 1; sarSfx(() => SAR_SFX.fly(Math.max(0, -tf))); } while (!reduced && K.fl >= 1 && K.fl <= 6 && tf > (K.fl - 0.75) / 2.6 - 0.03) { const i = K.fl++; sarSfx(() => SAR_SFX.flap(0, i - 1)); } }
         K.items = K.items.filter(it => K.t - it.t0 < it.life + 0.05); if ((K.fin != null && K.t > K.fin + SAR.HOLD + 0.3 && !K.queue.length) || (real && S !== K.s0)) p.age = p.life; },
       paint(c) { K.items.forEach(it => sarPaint(c, it, K.t)); } }));
     K.add = (type, px, py, f, mask) => { if (type === 'bird') { K.items.push({ bird:true, strokes:sarBirdStrokes(), x:px, y:py, s:s * (real ? 1.32 : 1.05), t0:K.t, life:SAR.HOLD, fadeT:0.35, fill:f, glow:150, gx:6, gy:-6, fly:real ? [px + 160 * s * 1.32 + 30, (px + 160 * s * 1.32 + 30) * 0.5] : [300, 150], trail:[] }); K.fin = K.t; K.bell = 0; K.fl = 0; }
@@ -16378,7 +16477,7 @@ function makeHoaNotice(L, x, y) {
         lights(c, list, a, al); c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 9; i++) sparkleMark(c, (i - 4) * 10, 14 + Math.sin(i * 1.7 + a * 6) * 2.5, 3.2, i % 2 ? '#bfeaff' : '#49c6ff', 0.8 * al * E(ramp(a, 0, 0.35))); } }; } };
   // The sounds, each sent at its own moment after the last shell bursts: a low gong as the hull is drawn, a rising plucked note and a small snap of cloth as each
   // strip opens, a hush of water as it gets under way, and a little shimmer as the sail scatters. No applause.
-  const CUES = [[0.05, () => IN.gong(mf(55), 0.014, 0, 0.9)]].concat(SAIL.bands.map((q, b) => [0.38 + b * 0.075, () => { IN.pluck(mf(67 + [0, 2, 4, 7, 9, 12, 14][b % 7]), 0.012, 0, 0.35); nz(0.05, 0.006, { hp:3000, a:0.004 }); }]), [[1.2, () => nz(1.2, 0.005, { lp:900, a:0.4 })], [4.7, () => CS.sparkle(6, 0.011, 0.25, 2600, 0.08)]]);
+  const CUES = FIL_SFX.vinta;   // Version 860: the open sea (filipino soundscapes)
   const sfx = fn => { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.firework; try { fn(); } finally { cosK = 1; } };   // quiet, and under the main sounds, like the Sarimanok's
   // One controller for a whole show. In a show: every shell before the last opens as a small fan of the sail's strips; the last shell is the vinta itself.
   // On a card, banner or icon (L is not the show's list): the vinta alone, small, in the middle.
@@ -16493,9 +16592,8 @@ function makeHoaNotice(L, x, y) {
   // The sounds, each sent at its own moment. The house: a soft mallet note, then a small bell as its windows light. The carriers: a tick of wood as each takes
   // his place, two rising notes as they lift, soft footsteps while they walk, a low note as the house is set down, and a bell with a little shimmer as the
   // windows burst. No applause.
-  const HOUSE_CUES = [[0.05, () => IN.mallet(mf(60), 0.014, 0, 0.5)], [0.5, () => IN.bell(mf(72), 0.012, 0, 0.6)]];
-  const LIFT_CUES = MEN.map((m, i) => [0.05 + i * 0.05, () => CS.wood(900 + i * 40, 0.008)]).concat([[0.8, () => IN.mallet(mf(64), 0.014, 0, 0.35)], [0.95, () => IN.mallet(mf(67), 0.014, 0, 0.45)]],
-    [0, 1, 2, 3, 4, 5, 6, 7].map(j => [1.15 + j * 0.33, () => CS.wood(j % 2 ? 480 : 520, 0.006)]), [[4.05, () => IN.mallet(mf(48), 0.014, 0, 0.3)], [4.27, () => { CS.sparkle(6, 0.012, 0.25, 2200, 0.08); IN.bell(mf(76), 0.014, 0, 0.8); }]]);
+  const HOUSE_CUES = FIL_SFX.bayanHouse;   // Version 860: a barrio at night
+  const LIFT_CUES = FIL_SFX.bayanLift;
   const sfx = fn => { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.firework; try { fn(); } finally { cosK = 1; } };   // quiet, and under the main sounds, like the Sarimanok's
   // One controller for a whole show: which shell is which. The shell before the last is the house's; the last is the carriers'; any earlier one is a plain
   // scatter of sparks. With one shell the same rocket does both. On a card, banner or icon (L is not the show's list): the house, then its carriers, small.
@@ -16627,9 +16725,7 @@ function makeHoaNotice(L, x, y) {
 
   // The sounds, each at its own moment: a soft mallet as the house appears, small bells as the kiping climb, a rustle and a rising
   // whoosh as every kiping lets go, a bell as the arangya hangs, a three-note chord and a shimmer as it opens, a soft flutter as the leaves fall.
-  const PAH_CUES = [[0.05, () => IN.mallet(mf(60), 0.013, 0, 0.5)], ...[0, 1, 2, 3, 4].map(j => [0.55 + j * 0.22, () => IN.bell(mf(76 + [0, 2, 4, 7, 9][j]), 0.007, 0, 0.35)]),
-    [2.95, () => { CS.flutter(6, 0.006, 0, 2400); CS.whoosh(0.55, 0.012, 700, 2600); }], [3.6, () => IN.bell(mf(72), 0.011, 0, 0.8)],
-    [4.45, () => { IN.bell(mf(76), 0.011, 0, 1.1); IN.bell(mf(79), 0.009, 0.04, 1.1); IN.bell(mf(84), 0.008, 0.08, 1.2); CS.sparkle(6, 0.008, 0.12, 2400, 0.07); }], [6.15, () => CS.flutter(5, 0.004, 0, 1800)]];
+  const PAH_CUES = FIL_SFX.pahiyas;   // Version 860: a fiesta night in Lucban
   const sfx = fn => { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.firework; try { fn(); } finally { cosK = 1; } };
   function run(L, x, y, g, sp) { const real = L === parts, th = fxTheme(L), s = real ? W / 390 : 0.42, last = real && fxLast(L, sp);
     if (!th.pahiyas) { const K = th.pahiyas = { t:0, items:[], fin:null, n:0, cue:0, cues:[], s0:real ? S : null };
@@ -16758,9 +16854,7 @@ function makeHoaNotice(L, x, y) {
 
   // The sounds: three soft drum taps as the giants arrive, a light wooden tick on each step of the dance, a low mallet for the bow,
   // a whoosh for each twirl, pops and a jingle as the costumes burst, two splashes as the water is thrown. No applause.
-  const HIG_CUES = [...[0, 1, 2].map(j => [0.3 + j * 0.12, () => CS.drum(110 + j * 12, 0.012, 0, 0.25)]), ...[0, 1, 2, 3, 4, 5].map(j => [0.85 + j * 0.2, () => CS.wood(j % 2 ? 620 : 700, 0.006)]),
-    [2.1, () => IN.mallet(mf(55), 0.013, 0, 0.6)], [3.3, () => CS.whoosh(0.6, 0.009, 500, 1600)], [4.1, () => CS.whoosh(0.6, 0.009, 520, 1700)],
-    [4.95, () => { CS.pop(900, 0.012); CS.pop(1200, 0.010, 0.05); CS.pop(700, 0.010, 0.1); CS.jingle(0.010, 0.06); }], [5.5, () => CS.splash(0.045)], [5.68, () => CS.splash(0.04)]];
+  const HIG_CUES = FIL_SFX.higantes;   // Version 860: the Angono fiesta
   const sfx = fn => { if (!ac || !$('cosOn').checked) return; cosK = COS_LEVEL.firework; try { fn(); } finally { cosK = 1; } };
   function run(L, x, y, g, sp) { const real = L === parts, th = fxTheme(L), s = real ? W / 390 : 0.42, last = real && fxLast(L, sp);
     if (!th.higantes) { const K = th.higantes = { t:0, items:[], fin:null, n:0, cue:0, cues:[], s0:real ? S : null };
