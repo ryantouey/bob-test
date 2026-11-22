@@ -2798,7 +2798,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.848.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.849.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -7485,7 +7485,7 @@ function commitShell() {
   const clean = !sev && !saved && !G.aim && !!M; if (sev > 0) { sfx.wrong(); for (let k = 0; k < 7; k++) puff(); } else if (clean) { if (!b3LoadStart(secs, true)) clearStart(secs); } else sfx.place();
   if (gain > 0) showLoss(gain * 100, true); else showLoss(lost * 100); const b3l = sev > 0 && !saved && !G.aim && b3LoadStart(secs, false), failFx = sev > 0 && !saved && !G.aim && !b3l && failFxStart(M); if (G.aim) afterLid(); else { G.phase = 'beat'; G.beat = saved ? CONFIG.saveBeat : G.b3L ? G.b3L.dur : clean ? CLEAR.beat : failFx ? SHELL_FX.beat : CONFIG.shellBeat; if (G.grade && G.grade.grade !== 'clean') G.beat = Math.max(G.beat, FIX.beat); }
 }
-function afterLid() { const b3o = G.b3L ? G.b3L.lk : null; G.b3L = null; G.fx = null; G.clear = null; G.failFx = null; G.i++; if (G.emptyAt != null || G.blowAt != null || G.lineAt != null) G.i = G.n;   /* Version 668 */ if (G.i >= G.n) { G.phase = 'ready'; G.readyT = 0; G.readyTick = 0; } else { nextShell(); if (b3o && M) G.b3O = { t0:clock, lk:b3o, m:M };   /* Version 609: the doors open on the next shell */ } }
+function afterLid() { const b3o = G.b3L ? G.b3L.lk : null; G.b3L = null; G.fx = null; G.clear = null; G.failFx = null; G.i++; if (G.emptyAt != null || G.blowAt != null || G.lineAt != null) G.i = G.n;   /* Version 668 */ if (G.i >= G.n) { G.phase = 'ready'; G.readyT = 0; G.readyTick = 0; if (allPacked849()) { G.noCount = 1; readyGo(); } } else { nextShell(); if (b3o && M) G.b3O = { t0:clock, lk:b3o, m:M };   /* Version 609: the doors open on the next shell */ } }
 
 // ---- Shell packed: a burst for every clean shell (Version 200, owner's playtest notes of 11/4/26) ----
 // Friends found the game a wow but not gripping ("needs more stimulation like Candy Crush"). A clean shell now pops tile by tile from the
@@ -7613,6 +7613,9 @@ $('tFxFail').onchange = e => { shellFxPick.fail = e.target.value; fxSave(); };
 // The show starts by itself after a 3-2-1 countdown (owner, Version 200: the LIGHT THE FUSE button is gone). A tap starts it at once.
 // The count runs on the game's own time, so it waits while the pause sheet is open.
 const READY = { step:0.6, n:3 };
+/* 0.849 (owner): a level packed 100% launches at once; any shell short of full keeps the 3-2-1 for the suspense */
+function allPacked849() { try { if (!G || !G.shells || !G.shells.length || G.emptyAt != null || G.blowAt != null || G.lineAt != null) return false;
+  return G.shells.every(sh => !sh.sev && !sh.saved && (!sh.bl || sh.bl.c >= 0.999)); } catch (e) { return false; } }
 function readyGo() { if (!G || G.phase !== 'ready') return; if (G.fuse) startFuse(); else startShow(); }
 function drawReady() { drawWorld(0, G.setting, {}); drawSmoke(H - 104, 0); const k = Math.floor(G.readyT / READY.step), u = G.readyT / READY.step - k; if (k >= READY.n) { readyGo(); return; }
   const num = READY.n - k, cy = H * 0.36, pop = reduced ? 1 : u < 0.18 ? lerp(1.6, 0.92, u / 0.18) : u < 0.3 ? lerp(0.92, 1, (u - 0.18) / 0.12) : 1;
@@ -12026,6 +12029,8 @@ if (CLOUD) document.addEventListener('visibilitychange', () => { if (document.hi
 /* Version 751 (owner): what ad players do in the full game - a short event log for the dashboard's In the game tab (public demo only) */
 const GL = (() => { if (!CLOUD) return null; let log = []; try { log = JSON.parse(localStorage.getItem('bob_glog') || '[]'); if (!Array.isArray(log)) log = []; } catch (e) { log = []; } let t0 = Date.now(); try { t0 = +localStorage.getItem('bob_glog0') || t0; localStorage.setItem('bob_glog0', String(t0)); } catch (e) {} return { log, t0, sent:-1, scr:'' }; })();
 function glog(c, x) { if (!GL || GL.log.length >= 1500) return; GL.log.push([Math.min(2592e5 * 1000, Date.now() - GL.t0), c].concat(x || [])); try { localStorage.setItem('bob_glog', JSON.stringify(GL.log)); } catch (e) {} }
+/* handoff849: the tutorial revealed the game (Level 1 visible and playable from here) */
+addEventListener('message', function (e) { try { if (e.origin === location.origin && e.data === 'bob-go') glog('W', [typeof G !== 'undefined' && G ? G.level || 0 : 0, typeof G !== 'undefined' && G ? G.phase || '' : '']); } catch (x) {} });
 function glSend(beacon) { try { if (!GL || !CLOUD_DID || GL.log.length === GL.sent) return; GL.sent = GL.log.length; const p = cloudPost('gamelog', { did:CLOUD_DID, src:cloudSrc(), v:CONFIG.analytics && CONFIG.analytics.appVersion, log:GL.log, t0:GL.t0, pgid:GL.tlm ? GL.tlm.pg : '', sid:GL.tlm ? GL.tlm.sid : '' }, beacon);   /* telemetry P0: clock origin + ids */ if (p && p.catch) p.catch(() => {}); } catch (e) {} }
 function glWhere() { try { if (G) return G.zd ? 'zombie' : G.sky ? 'skyshot' : 'level' + (G.level || ''); } catch (e) {} return GL ? GL.scr || 'home' : ''; }
 if (GL) {
