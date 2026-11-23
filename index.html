@@ -2806,7 +2806,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.863.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.864.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -6908,6 +6908,8 @@ const seedRng = str => { let h = 1779033703 ^ str.length; for (const ch of str) 
 /* Version 587 (owner): the menu phrase: D4 q, B4 dotted q, A4 e, G4 q | F#4 q, E4 h, starting on bar 5 of Stage 1's 8-bar loop (bar index 4) */
 const MENU_MOTIF = { bar:4, v:0.055, notes:[[62, 2], [71, 3], [69, 1], [67, 2], [66, 2], [64, 4]] }, MENU_MUSIC_LEVEL = 0.75;
 function composeMusic(theme) {
+  if (theme === 'zdnight') return composeZd();   /* round 37 (owner 11/22) */
+  if (ZD_SONGS[theme]) return composeZdSong(ZD_SONGS[theme]);
   const tk = theme === 'menu' ? 'park' : theme, m = STAGE_MUSIC[tk] || STAGE_MUSIC.park, rnd = seedRng(`music|${tk}`),   /* Version 587: 'menu' = Stage 1's theme */ dur = 60 / m.bpm / m.s, per = m.b * m.s, bars = m.p.length, steps = per * bars, ev = Array.from({ length:steps }, () => []), mode = SCALES[m.m], lead = SCALES[m.l || m.m], ci = IN[m.ci] || IN.pluck, M = { mus:1 }, co = m.co || 0, cv = 0.032;
   const hz = (sc, i, oct = 0) => pitchAt(m.r, sc[((i % sc.length) + sc.length) % sc.length] + 1200 * (oct + Math.floor(i / sc.length)));
   const add = (k, fn, tag) => ev[k].push({ fn, tag }), beat = (bar, b, h = 0) => bar * per + b * m.s + h;
@@ -6958,11 +6960,11 @@ function composeMusic(theme) {
 const MUS = { theme:null, plan:null, k:0, loop:0, next:0, level:-1, ending:0 };
 function setMusic(v, tau) { const g = ac.music.gain, t = ac.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.setTargetAtTime(v, t, tau); }
 // The tune comes in halfway through the first time round and rests every third time; drums come in after two bars
-function playStep(at) { const P = MUS.plan, k = MUS.k, swing = k % 2 && P.sw ? P.sw * P.dur : 0; P.ev[k].forEach(e => { if (e.tag === 'lead' && ((MUS.loop === 0 && k < P.per * 4) || MUS.loop % 3 === 2)) return; if (e.tag === 'perc' && MUS.loop === 0 && k < P.per * 2) return; e.fn(at + swing); }); MUS.k = (k + 1) % P.steps; if (!MUS.k) MUS.loop++; MUS.next += P.dur; }
+function playStep(at) { const P = MUS.plan, k = MUS.k, swing = k % 2 && P.sw ? P.sw * P.dur : 0; P.ev[k].forEach(e => { if (e.tag === 'tense' && !MUS.tense) return;   /* round 37 */ if (e.tag === 'lead' && ((MUS.loop === 0 && k < P.per * 4) || MUS.loop % 3 === 2)) return; if (e.tag === 'perc' && MUS.loop === 0 && k < P.per * 2) return; e.fn(at + swing); }); MUS.k = (k + 1) % P.steps; if (!MUS.k) MUS.loop++; MUS.next += P.dur; }
 // Runs every 60 ms: starts, fades, pauses and switches the music to match the game
 function musicTick() {
   if (!ac || ac.state !== 'running') return; bus();
-  const now = ac.currentTime, theme = !$('musicOn').checked ? null : G ? (G.phase !== 'result' ? G.setting : null) : 'menu',   /* Version 587: menu music outside levels */ paused = document.hidden || !($('sheet').hidden && $('help').hidden && $('leave').hidden && $('intro').hidden);
+  const now = ac.currentTime, theme = !$('musicOn').checked ? null : zdMusTheme() || (G ? (G.phase !== 'result' ? G.setting : null) : 'menu'),   /* round 37 */   /* Version 587: menu music outside levels */ paused = document.hidden || !($('sheet').hidden && $('help').hidden && $('leave').hidden && $('intro').hidden);
   if (MUS.theme && theme !== MUS.theme) { if (!MUS.ending) { MUS.ending = now + 0.9; setMusic(0, 0.25); } if (now >= MUS.ending) { MUS.theme = null; MUS.ending = 0; } return; }
   if (!theme) return;
   if (!MUS.theme) { Object.assign(MUS, { theme, plan:composeMusic(theme), k:0, loop:0, next:now + 0.12, level:-1 }); ac.music.gain.cancelScheduledValues(now); ac.music.gain.setValueAtTime(0, now); }
@@ -6994,6 +6996,134 @@ const ZD_RSND = {
   /* a zapped zombie's skeleton falls apart: a soft puff and three woody bone clacks */
   bones() { nz(0.06, 0.04, { lp:1200 }); [[900, 0.02], [1150, 0.08], [760, 0.14]].forEach(([f, at]) => syn(f, 0.04, 0.04, { type:'triangle', at })); }
 };
+/* Zombie Night round 37 (owner 11/22: "it just doesn't feel zombies, especially the menu background music"): Zombie Night's own music,
+   the zombies' voices and night sounds. All original synth made here, nothing copied: no film or Halloween themes. Sits in the sound block
+   so the sound bench can render it.
+   Music: a slow minor-key night tune in D (harmonic minor, 76 bpm, 8 bars) that composeMusic returns for theme 'zdnight'.
+   - calm: a low drone pad, a soft bass, a slightly out-of-tune music box, a wavering theremin-like line, a quiet heartbeat, wind and crickets;
+   - tense (MUS.tense, set by the game when zombies are close or in a boss round): adds a plucked low ostinato, a second heartbeat and a
+     low drum. Same loop, so going tense never restarts the music.
+   Voices (ZD_ZSND): short cartoon groans, a grunt at the launcher, a crunchy bite, a brute's growl, the boss's roar, distant thunder. */
+const ZD_MUSIC_TRIM = 1.25;
+const zdMbox = (f, v, at, d, M) => { const c = (Math.random() - 0.5) * 22; syn(f, d, v, { a:0.002, at, wet:0.4, vib:[4.2, 6], ...M }); syn(f * 3.01, d * 0.4, v * 0.16, { a:0.001, at, wet:0.4, ...M }); syn(f * 2, d * 0.6, v * 0.12, { a:0.001, at, det:Math.abs(c) + 4, ...M }); };
+const zdTheremin = (f0, f1, v, at, d, M) => syn(f0, d, v, { a:0.14, sus:0.6, slide:f1 - f0, st:Math.min(0.16, d * 0.3), vib:[5.6, 32], at, wet:0.45, ...M });
+const zdHeart = (v, at, M) => { [[0, 1], [0.17, 0.7]].forEach(([dt, k]) => { syn(58, 0.2, v * k, { slide:-14, a:0.004, at:at + dt, ...M }); syn(116, 0.12, v * k * 0.4, { type:'triangle', slide:-30, a:0.003, at:at + dt, ...M }); }); };
+function composeZd() {
+  const r = 50, mode = SCALES.harmonic, bpm = 76, s = 2, b = 4, per = b * s, dur = 60 / bpm / s, P = [1, 1, 6, 5, 1, 4, 6, 5], bars = P.length, steps = per * bars,
+    ev = Array.from({ length:steps }, () => []), M = { mus:1 }, rnd = seedRng('music|zdnight');
+  const hz = (i, oct = 0) => pitchAt(r, mode[((i % 7) + 7) % 7] + 1200 * (oct + Math.floor(i / 7)));
+  const add = (k, fn, tag) => ev[k % steps].push({ fn, tag }), barLen = per * dur;
+  P.forEach((deg, bar) => {
+    const k0 = bar * per, ch = [0, 2, 4].map(q => deg - 1 + q);
+    add(k0, at => ch.forEach(i => syn(hz(i), barLen + 0.4, 0.014, { type:'triangle', det:12, lp:700, a:barLen * 0.35, sus:0.5, at, mus:1 })));   /* drone pad */
+    if (bar % 2 === 0) add(k0, at => { syn(hz(0, -1), barLen * 2 + 0.3, 0.02, { type:'triangle', det:6, lp:500, a:barLen * 0.4, sus:0.6, at, mus:1 }); syn(hz(4, -1), barLen * 2 + 0.3, 0.012, { type:'triangle', lp:500, a:barLen * 0.4, sus:0.6, at, mus:1 }); });
+    add(k0, at => { syn(hz(deg - 1, -1), barLen * 0.8, 0.06, { type:'triangle', lp:420, a:0.01, sus:0.4, at, mus:1 }); syn(hz(deg - 1, 0), barLen * 0.5, 0.012, { type:'triangle', lp:900, a:0.01, at, mus:1 }); });   /* bass, with a mid touch for phone speakers */
+    const box = [[0, 2], [2, 1], [3, 0], [5, 1], [6, 2]], up = bar % 2;   /* music box: a few chord tones, two octaves up */
+    box.forEach(([j, q], n) => { if (rnd() < 0.22) return; const i = ch[up ? q : 2 - q] + (n === 4 && up ? 7 : 0); add(k0 + j, at => zdMbox(hz(i, 2), 0.022, at, 1.3, M)); });
+    add(k0, at => zdHeart(0.07, at, M));   /* a quiet heartbeat on every bar */
+    if (bar % 2 === 0) add(k0, at => nz(barLen * 2.2, 0.01, { lp:480, to:950, a:barLen * 0.9, at, mus:1 }), 'amb');   /* wind */
+    if (bar % 2 === 1) add(k0 + 5, at => PERC.chirp(0.007, at), 'amb');   /* crickets */
+    /* tense layer */
+    [0, 0, 0, 1, 0, 0, -2, -1].forEach((dx, j) => add(k0 + j, at => syn(hz(deg - 1 + dx, 0), 0.2, j % 2 ? 0.036 : 0.048, { type:'triangle', lp:1300, a:0.003, at, mus:1 }), 'tense'));
+    add(k0 + 4, at => zdHeart(0.09, at, M), 'tense');
+    if (bar % 2 === 1) add(k0 + 6, at => { syn(88, 0.35, 0.07, { slide:-20, a:0.003, at, mus:1 }); syn(176, 0.15, 0.025, { type:'triangle', slide:-40, a:0.002, at, mus:1 }); }, 'tense');
+    if (bar === 3 || bar === 7) add(k0, at => { syn(hz(6, 1), barLen, 0.008, { a:barLen * 0.5, sus:0.4, vib:[6, 10], at, mus:1 }); syn(hz(7, 1), barLen, 0.007, { a:barLen * 0.5, sus:0.4, vib:[6.3, 10], at, mus:1 }); }, 'tense');   /* a rubbing high pair */
+  });
+  /* the theremin line: two short phrases, gliding from note to note (scale index, eighths) */
+  const phrase = (bar0, notes) => { let k = bar0 * per, prev = null; notes.forEach(([i, len]) => { if (i != null) { const f = hz(i, 1), f0 = prev || f, d = len * dur * 1.05; add(k, at => zdTheremin(f0, f, 0.03, at, d, M), 'lead'); prev = f; } k += len; }); };
+  phrase(2, [[4, 3], [5, 3], [4, 2], [3, 2], [2, 2], [1, 4]]);
+  phrase(6, [[7, 3], [6, 3], [5, 2], [4, 6], [null, 2]]);
+  return { ev, dur, per, steps, sw:0, v:ZD_MUSIC_TRIM };
+}
+/* A rough voice: a sawtooth with a little wobble and gravel, shaped by two moving vowel filters (o: drop pitch ratio, fa/fb vowel formants
+   at the start and end, rough 0-1, a attack). Short, for the zombies; respects the sound switch and the voice cap like every other sound. */
+function zdVox(f0, d, v, o = {}) {
+  if (!canSound()) return; const t = ac.currentTime + Math.max(0, o.at || 0), end = t + d, osc = ac.createOscillator(), g = ac.createGain(), out = ac.createGain(), lp = ac.createBiquadFilter();
+  osc.type = 'sawtooth'; osc.frequency.setValueAtTime(f0, t); osc.frequency.exponentialRampToValueAtTime(Math.max(30, f0 * (o.drop || 0.85)), end);
+  const wob = ac.createOscillator(), wd = ac.createGain(); wob.frequency.value = 6 + Math.random() * 2; wd.gain.value = 18; wob.connect(wd).connect(osc.detune);
+  const fry = ac.createOscillator(), fd = ac.createGain(), fg = ac.createGain(); fry.frequency.value = 26 + Math.random() * 10; fd.gain.value = 0.5 * (o.rough || 0.4); fg.gain.value = 1 - 0.5 * (o.rough || 0.4); fry.connect(fd).connect(fg.gain);
+  lp.type = 'lowpass'; lp.frequency.value = 2600; osc.connect(fg).connect(lp);
+  const fa = o.fa || [640, 1190], fb = o.fb || [450, 800];
+  fa.forEach((f, i) => { const bp = ac.createBiquadFilter(), bg = ac.createGain(); bp.type = 'bandpass'; bp.Q.value = i ? 9 : 6; bp.frequency.setValueAtTime(f, t); bp.frequency.linearRampToValueAtTime(fb[i], end); bg.gain.value = i ? 1.6 : 2.4; lp.connect(bp).connect(bg).connect(out); });
+  const a = Math.min(o.a || 0.06, d * 0.4), pk = v * cosK; out.connect(g); g.gain.value = 0; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + a); g.gain.setValueAtTime(pk, t + d * 0.55); g.gain.exponentialRampToValueAtTime(0.0008, end);
+  route(g, o); voice(osc); [osc, wob, fry].forEach(n => { n.start(t); n.stop(end + 0.02); });
+}
+const ZD_ZSND = {
+  /* a zombie in the crowd: one of three short groans (fired now and then, never more than one at a time) */
+  groan(k) { const V = [[105, 0.75, [640, 1190], [450, 800]], [92, 0.95, [730, 1090], [520, 900]], [122, 0.6, [450, 800], [640, 1190]]][((k | 0) % 3 + 3) % 3]; zdVox(V[0] * (0.94 + Math.random() * 0.12), V[1], 0.07, { fa:V[2], fb:V[3], drop:0.8, rough:0.45, a:0.09 }); },
+  /* a zombie reaches the launcher: a short grunt */
+  grunt() { zdVox(132, 0.26, 0.075, { fa:[700, 1150], fb:[560, 950], drop:0.75, rough:0.55, a:0.02 }); },
+  /* a bite: a crunch and a small thud (in place of the old soft blip) */
+  bite() { [[0, 1900], [0.05, 2500], [0.11, 1600]].forEach(([at, f]) => nz(0.045, 0.055, { bp:f, q:2, a:0.002, at })); syn(150, 0.13, 0.08, { type:'triangle', slide:-60, a:0.002 }); syn(300, 0.06, 0.03, { type:'triangle', slide:-120, a:0.001, at:0.04 }); },
+  /* a brute walks on: a deep growl, with a mid vowel so a phone speaker carries it */
+  brute() { zdVox(74, 1.0, 0.085, { fa:[730, 1090], fb:[480, 820], drop:0.8, rough:0.65, a:0.12 }); syn(74, 0.9, 0.035, { type:'triangle', slide:-14, a:0.1 }); },
+  /* the boss arrives: a big roar in two voices with breath, not a scream */
+  boss() { zdVox(62, 1.5, 0.1, { fa:[800, 1150], fb:[600, 1000], drop:0.78, rough:0.7, a:0.18 }); zdVox(94, 1.3, 0.045, { fa:[760, 1200], fb:[560, 980], drop:0.8, rough:0.5, a:0.2, at:0.05 }); nz(1.2, 0.03, { bp:900, q:1, a:0.25 }); },
+  /* distant thunder at a boss round: a soft crack and a long low roll */
+  thunder() { nz(0.14, 0.05, { bp:2200, q:1, a:0.003 }); nz(2.8, 0.085, { lp:1100, to:170, a:0.06, at:0.08 }); syn(55, 1.6, 0.04, { type:'triangle', slide:-12, a:0.2, at:0.1 }); }
+};
+
+/* Round 37b (owner 11/22: the feel of a slow haunted-piano zombie menu, "write your own melody"): three ORIGINAL menu songs to pick from,
+   themes zdA, zdB, zdC. E minor, 86 bpm, 8 bars. Calm: a felt piano melody (each song's own notes), a wordless synth choir, a low drone and
+   record crackle. Tense ('tense' events, MUS.tense): distorted palm-muted guitar chugs, a deep kick and a metal clank. Nothing taken from any
+   recording or score: the melodies, chords and sounds are written here. */
+const zdPiano = (f, v, at, d) => { syn(f, d, v, { a:0.003, at, wet:0.5, mus:1 }); syn(f * 2, d * 0.45, v * 0.22, { type:'triangle', a:0.002, at, wet:0.5, mus:1 }); syn(f * 3.01, 0.25, v * 0.06, { a:0.001, at, mus:1 }); };
+function zdMusNode(make) { if (!canSound(1)) return null; return make(); }
+const zdCurve = () => ac.zdCurve || (ac.zdCurve = Float32Array.from({ length:1024 }, (_, i) => { const x = i / 511.5 - 1; return Math.tanh(x * 7) / Math.tanh(7); }));
+function zdChug(f, v, at, d) { zdMusNode(() => { const t = ac.currentTime + Math.max(0, at || 0), ws = ac.createWaveShaper(), lp = ac.createBiquadFilter(), hp = ac.createBiquadFilter(), g = ac.createGain(), pre = ac.createGain(); ws.curve = zdCurve(); pre.gain.value = 1.4; lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 0.8; hp.type = 'highpass'; hp.frequency.value = 70; pre.connect(ws).connect(lp).connect(hp).connect(g);
+  const os = [f, f * 1.0055, f * 1.5].map((x, i) => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = x; const og = ac.createGain(); og.gain.value = i === 2 ? 0.5 : 0.6; o.connect(og).connect(pre); return o; });
+  g.gain.value = 0; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0008, t + d); route(g, { mus:1 }); voice(os[0], 1); os.forEach(o => { o.start(t); o.stop(t + d + 0.02); }); }); }
+function zdChoir(fs, v, at, d) { zdMusNode(() => { const t = ac.currentTime + Math.max(0, at || 0), end = t + d, g = ac.createGain(), mix = ac.createGain(); mix.gain.value = 1;
+  [[400, 800, 700, 1100, 5, 2.2], [1000, 1200, 1100, 1250, 8, 0.9]].forEach(([a0, a1, b0, b1, q, k], n) => { const bp = ac.createBiquadFilter(), bg = ac.createGain(); bp.type = 'bandpass'; bp.Q.value = q; bp.frequency.setValueAtTime(n ? a1 : a0, t); bp.frequency.linearRampToValueAtTime(n ? b1 : b0, t + d * 0.6); bg.gain.value = k; mix.connect(bp).connect(bg).connect(g); });
+  let first = null; fs.forEach(f => [-7, 7].forEach(c => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = c; const w = ac.createOscillator(), wd = ac.createGain(); w.frequency.value = 4.6 + Math.random(); wd.gain.value = 9; w.connect(wd).connect(o.detune); o.connect(mix); o.start(t); o.stop(end + 0.02); w.start(t); w.stop(end + 0.02); first = first || o; }));
+  g.gain.value = 0; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + d * 0.4); g.gain.setValueAtTime(v, t + d * 0.7); g.gain.exponentialRampToValueAtTime(0.0008, end); route(g, { mus:1 }); voice(first, 1); }); }
+/* chords: [root for bass and guitar (MIDI), pad tones]; melody per bar: [MIDI, eighths] adding up to 8 */
+const ZD_CH = { Em:[40, [52, 55, 59]], C:[36, [48, 52, 55]], Am:[45, [45, 48, 52]], B:[47, [47, 51, 54]], D:[38, [50, 54, 57]] };
+const ZD_SONGS = {
+  zdA:{ trim:0.95, ch:['Em', 'C', 'Am', 'B', 'Em', 'C', 'Am', 'B'], mel:[[[64, 2], [71, 2], [72, 4]], [[71, 3], [69, 1], [67, 2], [66, 2]], [[69, 2], [72, 2], [76, 4]], [[75, 4], [71, 4]], [[64, 2], [71, 2], [72, 4]], [[72, 2], [71, 2], [67, 4]], [[69, 3], [72, 1], [71, 2], [69, 2]], [[66, 4], [63, 4]]] },
+  zdB:{ trim:0.95, ch:['Em', 'Am', 'Em', 'B', 'Em', 'C', 'Am', 'B'], mel:[[[67, 1], [69, 1], [71, 4], [76, 2]], [[72, 3], [71, 1], [69, 4]], [[67, 2], [66, 2], [64, 2], [59, 2]], [[63, 6], [66, 2]], [[67, 1], [69, 1], [71, 4], [79, 2]], [[76, 2], [72, 2], [71, 4]], [[69, 2], [72, 2], [71, 2], [69, 2]], [[66, 6], [63, 2]]] },
+  zdC:{ trim:0.95, ch:['Em', 'Em', 'D', 'C', 'Em', 'Em', 'C', 'B'], mel:[[[71, 3], [71, 1], [72, 2], [71, 2]], [[76, 4], [71, 4]], [[69, 3], [69, 1], [71, 2], [69, 2]], [[64, 6], [67, 2]], [[71, 3], [71, 1], [72, 2], [71, 2]], [[79, 4], [78, 2], [76, 2]], [[76, 3], [72, 1], [71, 2], [67, 2]], [[66, 2], [63, 2], [59, 4]]] },
+};
+function composeZdSong(S) {
+  const bpm = 86, per = 8, dur = 60 / bpm / 2, bars = 8, steps = per * bars, barLen = per * dur, ev = Array.from({ length:steps }, () => []), rnd = seedRng('music|zdsong|' + S.ch.join()), add = (k, fn, tag) => ev[k % steps].push({ fn, tag });
+  S.ch.forEach((c, bar) => {
+    const [root, pad] = ZD_CH[c], k0 = bar * per;
+    add(k0, at => zdChoir(pad.map(m => mf(m + 12)), 0.019, at, barLen + 0.5));   /* choir */
+    add(k0, at => { syn(mf(root + 12), barLen * 0.95, 0.035, { type:'triangle', lp:500, a:0.02, sus:0.5, at, mus:1 }); syn(mf(root + 24), barLen * 0.6, 0.01, { type:'triangle', lp:900, a:0.02, at, mus:1 }); });   /* low drone */
+    for (let n = 0; n < 4; n++) { const j = Math.floor(rnd() * per), dt = rnd() * dur; add(k0 + j, at => nz(0.006, 0.012 + rnd() * 0.01, { hp:2200, a:0.001, at:at + dt, mus:1 }), 'amb'); }   /* crackle */
+    let k = k0; S.mel[bar].forEach(([m, e], i) => { const vv = 0.05 * (i === 0 ? 1 : 0.85 + rnd() * 0.1); add(k, at => zdPiano(mf(m), vv, at + (rnd() - 0.5) * 0.012, Math.max(1.2, e * dur * 2.2))); k += e; });   /* the melody, a touch loose like a hand */
+    /* tense: guitar chugs on the root, a kick and a clank */
+    [[0, 1], [1, 0.6], [3, 0.8], [4, 1], [6, 0.7]].forEach(([j, a]) => add(k0 + j, at => zdChug(mf(root), 0.05 * a, at, j === 0 ? 0.32 : 0.17), 'tense'));
+    [0, 4].forEach(j => add(k0 + j, at => { syn(52, 0.32, 0.12, { slide:-16, a:0.002, at, mus:1 }); syn(104, 0.12, 0.03, { type:'triangle', slide:-40, a:0.002, at, mus:1 }); }, 'tense'));
+    [2, 6].forEach(j => add(k0 + j, at => { nz(0.07, 0.02, { bp:3100, q:5, a:0.001, at, mus:1 }); syn(620, 0.09, 0.012, { type:'triangle', a:0.001, at, mus:1 }); syn(931, 0.07, 0.008, { a:0.001, at, mus:1 }); }, 'tense'));
+  });
+  return { ev, dur, per, steps, sw:0, v:S.trim || 1 };
+}
+
+/* round 37 (owner 11/22): which music Zombie Night plays, and the zombies' voices in the fight */
+function zdMusTheme() {
+  const K = G && G.zd, R = K && K.R, sv = $('survival');
+  if (sv && !sv.hidden) { MUS.tense = false; return 'zdA'; }   /* the Zombie Night menu: Song A, calm */
+  if (R && G.phase === 'zd' && !K.over && SCREENS.every(k => $(k).hidden)) {   /* the fight itself, not another tab over a paused run */
+    if (R.phase === 'fight' && (R.round || 0) > 0 && R.round % 5 === 0) { MUS.tense = true; return 'zdA'; }   /* a boss round: Song A, heavy */
+    if (R.phase === 'fight' && R.zombies.some(z => z.hp > 0 && (z.atk || z.z > 0.72))) MUS.zdT = performance.now();
+    MUS.tense = performance.now() - (MUS.zdT || -1e9) < 4000; return 'zdnight';
+  }
+  MUS.tense = false;
+  if (R && G.phase === 'zdres' && SCREENS.every(k => $(k).hidden)) return 'zdA';   /* the run's recap: Song A, calm */
+  return null;
+}
+function zdZTick(K, R, dt) {
+  if (!dt || R.phase !== 'fight' || K.over) return; const live = R.zombies.filter(z => z.hp > 0 && !z.baku); if (!K.zAtk) K.zAtk = new Set();
+  for (const z of live) if (z.atk && !K.zAtk.has(z.id)) { K.zAtk.add(z.id); zdSay(K, 'zgru', 0.6, () => ZD_ZSND.grunt()); }
+  if (!live.length) return; if (K.zgT == null) K.zgT = clock + 2 + Math.random() * 2;
+  if (clock >= K.zgT) { K.zgT = clock + 3 + Math.random() * 4; zdSay(K, 'zgro', 2.5, () => ZD_ZSND.groan(Math.floor(Math.random() * 3))); }
+}
+function zdZSpawn(K, zb) {
+  if (zb.boss) zdSay(K, 'zboss', 5, () => { ZD_ZSND.thunder(); ZD_ZSND.boss(); });
+  else if (zb.type === 'brute') zdSay(K, 'zbru', 2.5, () => ZD_ZSND.brute());
+}
+
 // ---- Game state ----
 let G = null, S = null, M = null, parts = [], smoke = [], last = 0, clock = 0;
 ['pointerup', 'touchend', 'click'].forEach(ev => document.addEventListener(ev, () => { try { if (!ac || ac.state !== 'running') startAudio(); } catch (e) {} }, { capture:true, passive:true }));   /* Version 742: iPhone starts sound from a tap that ends */
@@ -31810,6 +31940,7 @@ function zdUpdate(dt) { const K = G.zd; if (!K) return; const R = K.R, L = zdLay
   if (R.mode === 'drop') { if ((R.dSwipes || 0) !== K.swN) { K.swN = R.dSwipes || 0; K.swT = R.T || 0; } if (R.phase === 'fight' && K.swR !== R.round) { K.swR = R.round; K.swT = R.T || 0; }
     K.keepP = !K.over && R.phase === 'fight' && R.round <= 2 && zdKeepOn() && (R.dSwipes || 0) > 0 && (R.T || 0) - (K.swT || 0) > 3;   /* round 36: only after this run's first swipe */ if (K.keepP) dt = 0; }
   if (R.mode === 'drop' && R.phase === 'fight' && ZD_MODES.drop.tap && R.round >= ZD_MODES.drop.tap.from && !seenIntro.has('zdTap')) { seenIntro.add('zdTap'); K.tips.push({ text:'New: tap a crate to launch it at the zombies. Its square frees up for new crates. Then it recharges for 8 seconds.' }); saveAll(); }   /* round 23 */   /* drop22 (owner 11/21): Rounds 1-2 pause 3 s after the last swipe until the next one, until this phone has cleared Round 2 */
+  zdZTick(K, R, dt);   /* round 37: groans and grunts */
   /* Auto graphics: the first three seconds of real frames decide (under about 45 a second = Low) */
   if (K.meas && dt > 0) { const now = performance.now(), m = K.meas; if (m.last) { const d = now - m.last; if (++m.n > 20 && d < 250) { m.sum += d; m.k = (m.k || 0) + 1; } if (m.sum > 3000) { if (m.sum / m.k > 22.2) { K.gfx = 'low'; zdArt.clear(); } K.meas = null; } } m.last = now; } else if (K.meas) K.meas.last = 0;
   if (K.drop && !K.drop.landed && clock >= K.drop.t0 + K.drop.fall) zdLand(K, L);
@@ -31954,7 +32085,7 @@ function zdTmFields(K, how) { const R = K.R; if (!R || R.mode !== 'drop') return
   if (!T.ended && how !== 'left' && how !== 'live') { T.ended = true; glog('k', ['end', String(how || '').slice(0, 16), R.round || 0]); }
   return { bv:ZD_BV, sw:R.dSwipes || 0, sw0:T.sw0, mg:R.dMerges || 0, big:zdTmBig(R), hp:zdTmHp(R), d1:T.d1, cl:R.clean || 0, tk:Math.round(R.taken || 0), bk:R.bossKills || 0, rk:T.rk, rkK:T.rkK,
     pu:['f', 'l', 'z'].map(k => k + T.pu[k][0] + ':' + T.pu[k][1]).join('.') + (R.dTaps ? '.t' + R.dTaps : '') + (T.road ? '.s' + T.road : '') + (T.cx ? '.c' + T.cx : ''), pl:T.pl, pk:T.pk.join('.').slice(0, 60), fs:T.fs, fm:T.fm, idle:Math.round(T.idle), help:T.help, rr, ...zdTm8(K, T, R) }; }   /* track8 */
-function zdEvents(K, L, ev) { const R = K.R, hi = K.gfx === 'high'; for (const e of ev) { zdTm(K, e); const zb = e.zb, p = zb ? (zb.baku ? zdBkAt(K, L, zb.x, zb.z) : zdProj(L, zb.x, zb.z)) : null; if (/^baku/.test(e.e) || (e.e === 'spawn' && zb && zb.baku)) zdBakuEv(K, L, e);   /* round 16 */ if (K.log && (e.e === 'round' || e.e === 'bite' || e.e === 'clear' || e.e === 'dump')) zdlNote(K, e.e, e);
+function zdEvents(K, L, ev) { const R = K.R, hi = K.gfx === 'high'; for (const e of ev) { zdTm(K, e); const zb = e.zb, p = zb ? (zb.baku ? zdBkAt(K, L, zb.x, zb.z) : zdProj(L, zb.x, zb.z)) : null; if (/^baku/.test(e.e) || (e.e === 'spawn' && zb && zb.baku)) zdBakuEv(K, L, e);   /* round 16 */ if (e.e === 'spawn' && zb && !zb.baku) zdZSpawn(K, zb);   /* round 37 */ if (K.log && (e.e === 'round' || e.e === 'bite' || e.e === 'clear' || e.e === 'dump')) zdlNote(K, e.e, e);
     if (e.e === 'fire') { const hv = !!(e.r && e.r.q.heavy), own = !!(e.r && e.r.src != null); if (!own) { K.recoil = hv ? 1.6 : 1; K.fx.push({ k:'muz', t0:clock, dur:hv ? 0.3 : 0.14, big:hv }); }   /* round 5: a crate's own rocket */
       if (hv && !own) { for (let i = 0; i < (hi ? 6 : 3); i++) K.fx.push({ k:'puff', x:L.muz.x + rand(-16, 16), y:L.muz.y + rand(-6, 6), r:rand(7, 11), t0:clock + i * 0.02, dur:0.55, col:'205,198,228', up:22 }); if (hi && !reduced) { K.shake = Math.max(K.shake, 0.35); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + rand(-1.2, 1.2), sp = rand(70, 170); parts.push({ x:L.muz.x, y:L.muz.y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, c:['#ffd25e', '#ff9a3c', '#fff1c0'][i % 3], life:rand(0.25, 0.5), age:0, r:rand(1.4, 2.4), g:200, drag:2, glow:true }); } }
         zdSay(K, 'fireH', 0.12, () => { tone(82, 0.2, 'sine', 0.16, -30); nz(0.14, 0.09, { lp:900, to:200 }); }); }   /* round 11: the corner block's shell leaves with a mini explosion */
@@ -31966,7 +32097,7 @@ function zdEvents(K, L, ev) { const R = K.R, hi = K.gfx === 'high'; for (const e
     else if (e.e === 'chain') { const a = zdProj(L, e.x, e.z); K.fx.push({ k:'bolt', x0:a.x, y0:a.y - 10 * a.s, x1:p.x, y1:p.y - 18 * p.s, t0:clock, dur:0.32, seed:Math.random() * 99 }); zdSay(K, 'zap', 0.07, () => nz(0.07, 0.05, { hp:3200 })); zdHint(K, 'elec', p.x, p.y - 34 * p.s); }
     else if (e.e === 'spark') { K.fx.push({ k:'bolt', x0:L.muz.x - 20, y0:L.muz.y + 4, x1:p.x, y1:p.y - 18 * p.s, t0:clock, dur:0.14, seed:Math.random() * 99, thin:true }); zdSay(K, 'spk', 0.3, () => tone(1760, 0.04, 'square', 0.02)); }
     else if (e.e === 'pop') zdPopFx(K, L, zb, p, e);
-    else if (e.e === 'bite') { K.hurtT = clock; K.fx.push({ k:'bite', x:p.x, y:p.y - 16 * p.s, t0:clock, dur:0.25 }); zdSay(K, 'bite', 0.22, () => { tone(105, 0.12, 'triangle', 0.1, -30); buzz(14); }); }
+    else if (e.e === 'bite') { K.hurtT = clock; K.fx.push({ k:'bite', x:p.x, y:p.y - 16 * p.s, t0:clock, dur:0.25 }); zdSay(K, 'bite', 0.22, () => { if (clock - (K.zbT || -9) > 0.5) { K.zbT = clock; ZD_ZSND.bite(); } buzz(14);   /* round 37: a crunch at most every half second; the buzz as before */ }); }
     else if (e.e === 'round') { const boss = e.n % 5 === 0, last = e.n >= ZD.rounds; K.banner = { text:last ? t('FINAL ROUND') : t('ROUND {n}', { n:e.n }), sub:boss ? t('BOSS!') : R.mode === 'drop' && e.n === 4 ? t('Boss next round') : '', sub2:zdPerkDue(e.n) ? t('Perk after this round') : '', sub3:R.mode === 'drop' && e.n % ZD_FW.every === 0 && K.start <= 1 ? t('Firework after this round') : '', t0:clock, dur:1.9, col:boss ? '#ff7a5a' : COL.gold, y:0.66 };   /* owner 11/16: drawn low, so the far road stays clear as the round's zombies arrive */   /* BLO-90: the perk rhythm, shown */ const sky = zdSkyOf(e.n); if (sky !== K.sky) { K.skyFrom = K.sky; K.sky = sky; K.skyT = clock; }
       zdSay(K, 'round', 0.3, () => { if (boss) { tone(98, 0.5, 'triangle', 0.16, -18); tone(147, 0.4, 'sine', 0.08, -20); } else { tone(392, 0.14, 'triangle', 0.08); syn(523, 0.2, 0.07, { type:'triangle', at:0.12 }); } }); if (boss && !seenIntro.has('zdBoss')) { seenIntro.add('zdBoss'); K.tips.push({ text:R.mode === 'drop' ? ZD_TIPS_DROP.boss : ZD_TIPS.boss[1] }); } }
     else if (e.e === 'unlock') { const T = ZD_TIPS[e.k], dr = R.mode === 'drop' ? ZD_TIPS_DROP[e.k] : null, key = T && (dr ? T[0] + 'Drop' : T[0]); if (T && !seenIntro.has(key)) { seenIntro.add(key); K.tips.push({ text:(e.k === 'boss' && R.mode === 'drop' && !(R.freezes > 0) ? 'A boss is coming! It takes many rockets. Keep merging.' : dr) || T[1], el:e.k });   /* round 24: no 'save your freeze' once it is spent */ saveAll(); } }
