@@ -2806,7 +2806,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.865.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.866.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -11258,7 +11258,8 @@ const pkCdf = (x, c) => { const v = Math.max(0.01, x); return 0.5 * (1 + zdErf((
 function pkCurveOf() { try { if (!G || !G.won || G.run || G.tut || G.preview || G.daily || G.trap || G.sky || (G.door && doorPlay) || G.skipsUsed || (M && M.skipped)) return null; const st = stageOf(G.level), n = levelNo(G.level);
   if (G.pk0 == null || G.pk1 == null || G.pk1 <= G.pk0) return null; if (!((st === 1 && n >= 1 && n <= STAGES[0].levels) || (st === 2 && n >= 1 && n <= STAGES[1].levels))) return null; return pkModel859(); } catch (e) { return null; } }
 /* pkModel859 (owner): an estimated curve, not live data - typical time = pieces x 2.7 s (Stage 1) or 3.6 s (Stage 2); one shape everywhere */
-function pkModel859() { const pcs = Math.max(1, G.pkN || G.pieces || 4), per = stageOf(G.level) === 1 ? 2.7 : 3.6, med = Math.max(3, pcs * per); return [Math.round(med * 10) / 10, 0.6, 0.45]; }
+/* curve866 (owner): looser middle, same 99% time */
+function pkModel859() { const pcs = Math.max(1, G.pkN || G.pieces || 4), s1 = stageOf(G.level) === 1, per = s1 ? 3.5 : 4.5, med = Math.max(3, pcs * per); return [Math.round(med * 10) / 10, s1 ? 0.711 : 0.695, 0.45]; }
 /* 0.859 (owner): "Pyro Pro" in flaming red letters on the curve card */
 function pyroTitle859(word, rest, cx, y, size) { try { const font = "800 " + size + "px 'Figtree','Segoe UI',system-ui,sans-serif"; ctx.save(); ctx.font = font; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   const ww = ctx.measureText(word).width, rw = ctx.measureText(rest).width, x0 = cx - (ww + rw) / 2, tt = reduced ? 0 : clock;
@@ -11460,7 +11461,7 @@ function fwPrepareShow(success) {
   fwDisc.pulls[id] = pull; if (isNew) fwDisc.discovered.push(key);   /* F-05: a duplicate adds nothing */
   if (fwDisc.wishlist[rarity] === key) fwDisc.wishlist[rarity] = '';
   G.showFw = key; G.fwPull = pull; saveAll();   /* saved before the rockets fly */
-  try { track('firework_first_pull', { level_id:G.level, firework:key, rarity, new_discovery:isNew, duplicate:!isNew }); } catch (e) {} }
+  try { track('firework_first_pull', { level_id:G.level, firework:key, rarity, new_discovery:isNew, duplicate:!isNew }); } catch (e) {} try { glog('p', [+G.level || 0, key, rarity, isNew ? 1 : 0]); } catch (e) {} }   /* 0.866: level firework wins reach the dashboard */
 function fwOwnedReal(x, i) { const k = fwKeyOf(x); if (!k) return ownedRealLegacy(x, i); if (x.retired) return false; return fwHas(k) || (!fwDisc.migrated && ownedRealLegacy(x, i)); }
 function fwSyncGrants() { try { if (devMode() || !ownedAt(1)) return 0;   /* Version 793: was !done.has(rewardAt(1)) */ let n = 0; Object.keys(FIREWORKS).forEach((k, i) => { const x = FIREWORKS[k]; if (slotOf(x, i) === 1 && !x.lv && !x.retired && !notLevelReward(x) && !fwDisc.granted.includes(k)) { fwDisc.granted.push(k); n++; } }); return n; } catch (e) { return 0; } }   /* the starter set's firework (slot 1), as live */
 function fwMigrate() { try { let ch = false;
