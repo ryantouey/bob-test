@@ -2335,6 +2335,7 @@ html, body { touch-action:pan-x pan-y; }
 #survList .zdpv svg { width:18px; height:18px; margin-left:2px; }
 #survList .zdpv:active { transform:translateY(2px); box-shadow:0 1px 0 #2f2680; }
 html, body { overscroll-behavior:none; }   /* Version 738: no page bounce or pull inside in-app browsers */
+html.ptr1 body::after { content:''; display:block; height:1px; }   /* ptr39 (owner 11/23): one pixel to hold the page off the top edge */
 #c { touch-action:none; }
 /* COLL-WORKSHOP: Fireworks / Cosmetics sections */
 #wsPrimary { display:flex; gap:8px; margin:8px 12px 10px; }
@@ -2806,7 +2807,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.869.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.870.0', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -12262,6 +12263,11 @@ const screenBack = {};   /* Version 425 (owner): the map and Survival remember t
 /* Version 702: keep testers' progress. Inside an app's built-in browser (TikTok and the like) ask for the real browser; after the
    tutorial offer the home-screen app once. Both use the shared info sheet. */
 const inAppBrowser = () => { try { return /TikTok|musical_ly|BytedanceWebview|trill|FBAN|FBAV|Instagram/i.test(navigator.userAgent); } catch (e) { return false; } };
+/* ptr39 (owner 11/23): an Android in-app browser's own pull-to-refresh starts when the page is at the very top and a finger drags down, and it
+   reloaded the page mid-run for 39 of 596 recent players. Hold the page one pixel down so it is never at the top. */
+(() => { try { const ua = navigator.userAgent || ''; if (!/Android/i.test(ua) || !(inAppBrowser() || /; wv\)/.test(ua))) return; document.documentElement.classList.add('ptr1');
+  const hold = () => { if ((window.scrollY || 0) < 1) window.scrollTo(0, 1); }; addEventListener('scroll', hold, { passive:true }); addEventListener('resize', () => setTimeout(hold, 60));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(hold, 60); }); addEventListener('load', hold); [0, 300, 1500].forEach(ms => setTimeout(hold, ms)); } catch (e) {} })();
 const isInstalled = () => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
 let a2hsEvt = null, inAppShown = false; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); a2hsEvt = e; }); if (window.BOB_HOST === 'public' && location.protocol === 'https:' && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {} }   /* Version 710: lets Android Chrome offer install */
 /* Version 757 (owner): Save app icon - a button at the top instead of install popups (public demo) */
@@ -31836,6 +31842,11 @@ function zdResume() { const sv = zdSave(); if (!sv) { renderSurvival(); return; 
 function zdEndSaved() { const sv = zdSave(); if (!sv) return false; try { startGame(1, { zd:true, perfect:sv.R.clean || 0, seed:sv.seed }); G.charged = true; zdBegin(1, sv, true); zdFinish(false, 'ended'); }
   catch (e) { console.error(e); stats.runSave = null; saveAll(); try { if (G) quit('survival'); } catch (e2) {} } return true; }
 function zdSaved(K) { track('zd_save', { round:K.R.round, cleared:K.R.cleared, mid:K.R.phase === 'fight' }); zdlEnd(K, 'saved'); K.saved = true; }
+/* round 39 (owner 11/23): save the fight as it stands when the page hides or closes, so a reload (an in-app browser's pull-to-refresh, or the
+   browser closing and the ad tapped again) carries on mid-round instead of replaying the round from its checkpoint */
+function zdMidSave() { try { const K = typeof G !== 'undefined' && G ? G.zd : null, R = K && K.R; if (!R || G.phase !== 'zd' || K.over || K.banked || K.start > 1 || R.mode !== 'drop' || R.phase !== 'fight') return;
+  stats.runSave = { zd:1, v:1, seed:R.seed, key:R.cleared + 'm', round:R.cleared + 1, R:zdSnap(R), perk:null, got:K.got, best0:K.best0, at:Date.now(), mid:1 }; saveAll(); } catch (e) {} }
+addEventListener('pagehide', zdMidSave); document.addEventListener('visibilitychange', () => { if (document.hidden) zdMidSave(); });
 function zdSaveExit() { const K = G && G.zd; $('sheet').hidden = true; if (!K || G.phase !== 'zd' || K.banked) return; if (K.over || K.start > 1 || !zdSave()) { zdEndRun(); return; } zdSaved(K); quit('survival'); }
 function zdEndRun() { const K = G && G.zd; $('sheet').hidden = true; if (!K || G.phase !== 'zd' || K.banked) return; const won = !!(K.over && K.over.won); zdFinish(won, won ? 'won' : K.over ? 'launcher' : 'quit'); }
 /* the pause sheet: Save and exit, a line on where the run picks up, and End run, in place of Quit level (refreshSheet calls this) */
