@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.20', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.21', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -11849,7 +11849,7 @@ function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) 
   b.el.halo.style.setProperty('--tc', tc); b.el.hd.textContent = t('Page {n}', { n:b.page });
   const tile = k => { if (!k) return ''; const x = FIREWORKS[k], has = fwHas(k) && k !== b.key; let src = ''; if (has) { try { src = itemIcon({ x, kind:'firework', key:k }); } catch (e) {} } return has ? fcCard(k, { art:'bp' }) /* CARD-FRAMES */ : bndLockedTile(k, b.cat.indexOf(k) + 1, true); };   /* BINDER-BOOKS: name engraved + faint picture (was the number) */
   const first = (b.page - 1) * 4; for (let k = 0; k < 4; k++) { const key = b.cat[first + k], s = document.createElement('div'); s.className = 'b5slot';
-    if (k === b.slot) { s.className = 'b5slot dest'; s.innerHTML = bndLockedTile(key, first + k + 1, false) /* BINDER-BOOKS */ + '<div class="b5fly"><canvas class="b5art"></canvas><div class="b5tag"></div><div class="b5foot"><div class="b5name"></div></div>' + (b.R.pre ? '<div class="b5cback"></div>' : '') + '</div><div class="b5pocket"><i class="b5shine"></i></div>'; b.el.slot = s; }
+    if (k === b.slot) { s.className = 'b5slot dest'; s.innerHTML = bndLockedTile(key, first + k + 1, false) /* BINDER-BOOKS */ + '<div class="b5fly"><canvas class="b5art"></canvas><div class="b5tag"></div><div class="b5foot"><div class="b5name"></div></div>' + (b.R.pre || b.gift ? '<div class="b5cback"></div>' : '') + '</div><div class="b5pocket"><i class="b5shine"></i></div>'; b.el.slot = s; }
     else s.innerHTML = (key ? tile(key) : '') + '<div class="b5pocket"></div>'; b.el.grid.appendChild(s); }
   b.el.fly = q('.b5fly'); b.el.art = q('.b5art'); b.el.tag = q('.b5tag'); b.el.name = q('.b5name'); b.el.cback = q('.b5cback'); if (b.el.cback) { try { const im = new Image(); im.alt = ''; im.decoding = 'async'; im.draggable = false; im.src = CARDBACK886; if (im.decode) im.decode().catch(() => {}); b.el.cback.appendChild(im); } catch (e) {} }   /* 0.886.1: the owner's card back, decoded before it shows */ b.el.pocket = b.el.slot.querySelector('.b5pocket'); b.el.shine = q('.b5shine');
   b.el.fly.style.setProperty('--tier', tc); b.el.fly.classList.add('fc-' + fcTier(b.tier));   /* CARD-FRAMES */ b.el.tag.textContent = t(TIERS[b.tier] ? TIERS[b.tier].name : b.tier); b.el.name.textContent = t(FIREWORKS[b.key].name);
@@ -11869,7 +11869,7 @@ function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) 
   else { T.card = T.flick + fEnd + 0.02; T.touch = T.card + 0.38; T.flip = T.touch; T.bloom = -1; T.freeze = -1; T.print = -1; T.fly = T.touch; T.slide = T.touch; }   /* SPARK-FIX: the spark flies into the slot; the card pops out of it when it lands */
   T.land = T.slide + (R.pre ? R.desc : BND_SPKPOP); T.seat = T.land + 0.14; if (!R.pre) { T.rar = T.seat - 0.05; T.name = T.seat + 0.1; }
   if (b.first || (!b.gift && s1Win886())) { T.close = Infinity; T.end = T.seat + 0.6; }   /* S1-RESULT: on Stage 1 the book stays open on its page */ else { T.close = Math.max(T.seat, T.name) + (R.pre ? 0.5 : 0.35); T.end = T.close + 0.5; }   /* v11: shorter hold for Commons */
-  if (b.gift) { T.close = T.seat + 0.6; T.end = T.close + 0.4; }   /* 0.886.7: about 2.7 s in all; the card lands at about 1.5 s and "Yours to keep!" holds about 0.8 s */ b.T = T; bndLayout(true);
+  if (b.gift) gcbTiming(b, T);   /* GIFT-CARDBACK (was: close at seat + 0.6, end at close + 0.4) */   /* 0.886.7: about 2.7 s in all; the card lands at about 1.5 s and "Yours to keep!" holds about 0.8 s */ b.T = T; bndLayout(true);
   if (!R.pre) bndPrint();   /* Commons arrive already printed */ bndTapSetup886(b);   /* S1-RESULT: opens on a tap once settled */ }
 // screen geometry: the binder lives in the top band above the stars line; the big card may use the space down to just above Next level
 function bndLayout(force) { const b = BND, cv0 = cv, r = cv0.getBoundingClientRect(); if (!r.width) return; const key = [r.left, r.top, r.width, r.height, RSH858, G ? G.upTo885 : ''].join(',');
@@ -11905,7 +11905,7 @@ function bndPaint(mode, k, glint) { const b = BND, art = b.el.art, c = art.getCo
     gr.addColorStop(0, 'rgba(' + col + ',0)'); gr.addColorStop(0.5, 'rgba(' + col + ',.42)'); gr.addColorStop(1, 'rgba(' + col + ',0)'); tc.fillStyle = gr; tc.fillRect(0, 0, tmp.width, tmp.height);
     c.save(); c.globalCompositeOperation = 'lighter'; c.drawImage(tmp, 0, 0); c.restore(); } }   /* foil: a sheen that catches only the printed sparks */
 // ---- motion ----
-function bndPose(t) { const b = BND, G0 = b.G || { dx0:0, dy0:-b.h * 0.4, rot0:0, hx:0, hy:-b.h, arc:0, ex:0, ey:0, erot:0 }, T = b.T, R = b.R, P = { dx:G0.dx0, dy:G0.dy0, rot:G0.rot0, sc:1.06, ry:0, face:!R.pre, op:0, sh:1, front:false };
+function bndPose(t) { if (BND && BND.gift && BND.T && BND.T.cbR != null) return gcbPose(t);   /* GIFT-CARDBACK */ const b = BND, G0 = b.G || { dx0:0, dy0:-b.h * 0.4, rot0:0, hx:0, hy:-b.h, arc:0, ex:0, ey:0, erot:0 }, T = b.T, R = b.R, P = { dx:G0.dx0, dy:G0.dy0, rot:G0.rot0, sc:1.06, ry:0, face:!R.pre, op:0, sh:1, front:false };
   if (t < T.card) return P;
   if (!R.pre) return spkPopPose(P, t);   /* SPARK-FIX: out of the slot when the spark lands (was: flew in ahead of it) */
   else { const HS = b.hs; P.op = 1; P.dx = G0.hx; P.dy = G0.hy; P.rot = 0; P.sc = HS; P.front = true;   /* v11: the card back is opaque from its first frame */
@@ -11979,7 +11979,7 @@ function bndRender(t, now) { const b = BND, T = b.T, R = b.R, el = b.el, rm = re
   // a gentle shimmer now and then says the resting card can be touched
   if (b.first && !rm && !b.INS && !b.RO && !b.FB && t >= b.T.end) { if (!b.hintTimer) b.hintTimer = setTimeout(() => { b.hintTimer = 0; if (BND === b && !b.dying && !b.INS && !b.RO && !b.FB) { b.hintStart = performance.now(); bndKick(); } }, 3500);   /* the page rests between shimmers */
     const hq = b.hintStart ? (now - b.hintStart) / 600 : 2; if (hq < 1) el.shine.style.transform = 'translateX(' + (-120 + 600 * hq) + '%)'; }
-  bndFx(t, P, now);
+  bndFx(t, P, now); if (b.gift && T.cbR != null) gcbAfter(b, t, rm);   /* GIFT-CARDBACK */
   if (rm && !b.rmInit && b.G && !b.gift) { b.rmInit = true; if (!b.INS) bndInspect('seated'); }   /* 0.886.7: the gift never waits for File it */   /* reduced motion: a static reward - the print, name, rarity and where it goes */
 }
 function bndFx(t, P, now) { const b = BND, c = b.el.fx, x = c.getContext('2d'), d = b.fxd, s = b.s, T = b.T;
@@ -12021,7 +12021,7 @@ function bndGiftStart(key) { if (BND) { clearInterval(BND.watch); cancelAnimatio
   bndBuild(); const me = BND, rt = me.root; me.raf = requestAnimationFrame(bndLoop); me.watch = setInterval(() => { if (BND !== me) clearInterval(me.watch); }, 250);
   rt.style.background = 'rgba(8,6,28,.74)'; rt.style.transition = 'opacity .18s'; rt.style.pointerEvents = 'auto';   /* a dark backdrop over Level 1; touches stay off the board */
   const wh = rt.querySelector('.b5where'); if (wh) wh.style.fontSize = '4.4cqw';   /* the gift's line is read, so it is larger */
-  const stop = e => { e.stopPropagation(); if (e.type === 'pointerdown' && BND === me && !me.dying && performance.now() - me.start > 600) bndKill(); }; me.start = performance.now(); ['pointerdown', 'touchstart', 'mousedown'].forEach(n => rt.addEventListener(n, stop));   /* a tap after 0.6 s dismisses it */
+  const stop = e => { e.stopPropagation(); if (e.type === 'pointerdown' && BND === me && gcbTap(me)) return;   /* GIFT-CARDBACK */ if (e.type === 'pointerdown' && BND === me && !me.dying && performance.now() - me.start > 600) bndKill(); }; me.start = performance.now(); ['pointerdown', 'touchstart', 'mousedown'].forEach(n => rt.addEventListener(n, stop));   /* a tap after 0.6 s dismisses it */
   setTimeout(() => { if (BND === me && !me.dying) bndKill(); }, reduced ? 2600 : 120 + Math.round((me.T.end + 6) * 1000));   /* Reduce flashing and shaking: the still book for 2.6 s; otherwise only a safety net */
   try { glog('X', ['bd886', 'gift', key, tier, me.page]); } catch (e) {} try { track('binder_gift', { firework:key, rarity:tier, page:me.page }); } catch (e) {} }
 function bndGiftLite() { try { if (!/[?&]tut=lite\b/.test(location.search) || /[?&]mode=zd\b/.test(location.search) || seenIntro.has('tutBinder') || BND) return; if (document.hidden) { setTimeout(bndGiftLite, 700); return; }
@@ -35268,6 +35268,38 @@ function spkRisePose(P, t, G0, HS) { const T = BND.T; if (t < T.touch) { P.op = 
 function spkFlash(x, ex, ey, pop, b) { if (pop <= 0 || pop >= 1) return; const r = Math.max(24, (b.w || 60) * 0.8) * (0.55 + 0.6 * pop), g = x.createRadialGradient(ex, ey, 0, ex, ey, r);   /* the slot lights up where the spark lands */
   g.addColorStop(0, 'rgba(255,250,225,1)'); g.addColorStop(0.35, 'rgba(255,214,120,.75)'); g.addColorStop(1, 'rgba(255,170,60,0)'); x.globalAlpha = Math.pow(1 - pop, 1.6); x.fillStyle = g; x.beginPath(); x.arc(ex, ey, r, 0, 7); x.fill(); }
 // ===== END SPARK-FIX =====
+// ===== GIFT-CARDBACK (patch-gift-cardback.py; owner 11/26) =====
+// The tutorial gift book shows the painted card back. Owner: "So I think 1 second would be perfect, and then make the book close 0.5 seconds
+// sooner. I think the importance is: players know they keep the card -> bloom or boom card logo -> card being placed in binder -> card being
+// shown already placed in binder". "Yours to keep!" shows from the start; when the spark lands in the slot the card back slides up out of it
+// to the middle of the page, comes to life (a shimmer and a gold glow), flips to the front in its rarity frame and is placed into its slot,
+// rests a beat, and the book closes: 1.0 s more reveal, the book closes 0.5 s sooner after it (+0.5 s in all). It plays on its own; a tap
+// before the flip jumps to the flip, a tap during the flip jumps to the card placed, and only a tap after that closes the book. Reduce
+// flashing: no motion, shimmer or glow, the card back fades to the front in its slot. Level-win books are unchanged.
+var GCB = { r:0.22, l:0.44, f:0.28, s:0.30, beat:0.1 };
+(function () { try { if (document.getElementById('gcb886css')) return; const st = document.createElement('style'); st.id = 'gcb886css';
+  st.textContent = '#bnd885 .b5cback .gcbshine{position:absolute;top:-20%;bottom:-20%;left:-60%;width:70%;background:linear-gradient(105deg,rgba(255,240,200,0) 0,rgba(255,240,200,.15) 35%,rgba(255,246,220,.7) 50%,rgba(255,240,200,.15) 65%,rgba(255,240,200,0) 100%);transform:translateX(-80%) skewX(-12deg);pointer-events:none;mix-blend-mode:screen}#bnd885 .b5fly.gcb .b5cback{border-radius:5%}';
+  document.head.appendChild(st); } catch (e) {} })();
+function gcbTiming(b, T) { T.cbR = T.touch; T.cbL = T.cbR + GCB.r; T.cbF = T.cbL + GCB.l; T.cbS = T.cbF + GCB.f; T.land = T.cbS + GCB.s; T.seat = T.land + 0.14; T.rar = T.seat - 0.05; T.name = T.seat + 0.1;   /* the card back's four steps replace the 0.24 s pop */
+  T.slide = T.cbS; T.fly = T.touch; T.close = T.seat + GCB.beat; T.end = T.close + 0.4; T.where = Math.max(0.3, T.card - 0.25);   /* "Yours to keep!" from the start */
+  try { b.el.fly.classList.add('gcb'); if (b.el.cback && !b.el.gshine) { const sh = document.createElement('i'); sh.className = 'gcbshine'; b.el.cback.appendChild(sh); b.el.gshine = sh; } } catch (e) {} }
+function gcbPose(t) { const b = BND, T = b.T, P = { dx:0, dy:0, rot:0, sc:0.6, ry:0, face:false, op:0, sh:0, front:true }; let shine = -1, glow = 0;
+  if (t >= T.cbR) { P.op = 1;
+    let g = b.gcbG; if (!g || t < T.land) { try { const lr = document.getElementById('b5dest').getBoundingClientRect(), sr = b.el.slot.getBoundingClientRect(); g = b.gcbG = { dx:(lr.left + lr.width / 2) - (sr.left + sr.width / 2), dy:(lr.top + lr.height * 0.52) - (sr.top + sr.height / 2), S:Math.min(1.75, lr.height * 0.72 / Math.max(1, sr.height)) }; } catch (e) { g = b.gcbG = { dx:0, dy:-b.h * 0.4, S:1.4 }; } }   /* the middle of the page */
+    if (t < T.cbL) { const u = bndCl((t - T.cbR) / (T.cbL - T.cbR)), k = bndOut(u); P.dx = g.dx * k; P.dy = g.dy * k - 10 * Math.sin(Math.PI * u); P.sc = 0.6 + (g.S - 0.6) * k; P.op = bndCl(u * 4); P.sh = k; glow = 0.35 * k; }   /* slides up out of the slot */
+    else if (t < T.cbF) { const u = bndCl((t - T.cbL) / (T.cbF - T.cbL)); P.dx = g.dx; P.dy = g.dy - 4 * Math.sin(Math.PI * u); P.sc = g.S * (1 + 0.035 * Math.sin(Math.PI * u)); P.rot = 1.5 * Math.sin(2 * Math.PI * u); P.sh = 1; shine = u; glow = 0.35 + 0.65 * Math.sin(Math.PI * u); }   /* comes to life */
+    else if (t < T.cbS) { const u = bndCl((t - T.cbF) / (T.cbS - T.cbF)), ang = 180 * bndEase(u); P.face = ang >= 90; P.ry = P.face ? ang - 180 : ang; P.dx = g.dx; P.dy = g.dy; P.sc = g.S * (1 + 0.05 * Math.sin(Math.PI * u)); P.sh = 1; glow = 0.35 * (1 - u); }   /* flips to the front */
+    else { const u = bndCl((t - T.cbS) / (T.land - T.cbS)), q = bndEase(u); P.face = true; P.dx = g.dx * (1 - q); P.dy = g.dy * (1 - q) - 8 * Math.sin(Math.PI * u); P.sc = g.S + (1 - g.S) * q; P.sh = 1 - q; P.front = u < 0.9;   /* placed into its slot */
+      if (t >= T.land) { P.dx = 0; P.dy = 0; P.sc = 1; P.front = false; P.sh = 0; } } }
+  if (!reduced) { if (b.el.gshine) b.el.gshine.style.transform = 'translateX(' + (shine < 0 ? -80 : -80 + 300 * shine) + '%) skewX(-12deg)'; if (b.el.cback) b.el.cback.style.boxShadow = glow > 0.01 ? '0 0 ' + Math.round(22 * glow) + 'px ' + Math.round(7 * glow) + 'px rgba(255,205,110,' + (0.85 * glow).toFixed(2) + ')' : 'none'; }
+  return P; }
+function gcbAfter(b, t, rm) { try { const T = b.T, el = b.el; el.where.style.opacity = String((rm ? 1 : bndEase((t - T.where) / 0.3)) * (1 - bndEase((t - T.close) / 0.2)));   /* "Yours to keep!" from the start */
+    el.slot.classList.toggle('spkgot', rm || t >= T.land - 0.12);   /* the locked tile stays as the destination until the card is placed */
+    const cb = el.cback; if (rm && cb) { cb.style.display = 'flex'; cb.style.boxShadow = 'none'; if (!b.gcbRm) { b.gcbRm = 1; cb.style.opacity = '1'; void cb.offsetWidth; cb.style.transition = 'opacity .35s linear .9s'; cb.style.opacity = '0'; } } } catch (e) {} }   /* Reduce flashing: the card back fades to the front in its slot */
+function gcbTap(b) { try { if (!b || b.dying || reduced || !b.T || b.T.cbR == null) return false; if (performance.now() - (b.start || 0) <= 600) return true;   /* a touch carried over from the tutorial is still ignored */     if ((b.gcbTaps || 0) >= 1) return false;   /* GIFT-2TAP (owner): the second tap skips the rest - the caller closes the gift */
+    const t = bndCur(performance.now()), T = b.T; if (t < T.cbF) b.jump += T.cbF - t; else if (t < T.land) b.jump += T.land - t; else return false;   /* before the flip: to the flip; during it: to the card placed; after: closes as before */
+    b.gcbTaps = (b.gcbTaps || 0) + 1; bndKick(); return true; } catch (e) { return false; } }
+// ===== END GIFT-CARDBACK =====
 
 // ===== END COLL-WORKSHOP =====
 // ===== COLL-WISHLIST (patch-coll-wishlist.py; review v1.5; handoff F-12) =====
