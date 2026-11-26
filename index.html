@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.10', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.11', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -11616,7 +11616,8 @@ const fwCatalog = () => Object.keys(FIREWORKS).filter(k => !FIREWORKS[k].retired
 const fwPassHeld = k => k === 'starry' || PASS_ITEMS.has('firework:' + k) || (!!FIREWORKS[k].storeId && PASS_ITEMS.has(FIREWORKS[k].storeId));
 const fwPool = (passOn = passLive()) => fwCatalog().filter(k => !FIREWORKS[k].collect && !(passOn && fwPassHeld(k)));   /* F-04 + owner 11/17 (C11): every firework of the live season pass (Starry Night included) joins when the pass ends; collection prizes are earned on their own track, never pulled */
 const FW_EQUIPPED_AT = 25;   /* owner 11/17 (C10): the Equipped show mode opens at this many owned fireworks. Version 785 (owner 11/18): 25 for the playtest (was 50) */
-function fwHas(key) { const x = FIREWORKS[key]; return !!x && (key === 'peony' || fwDisc.discovered.includes(key) || fwDisc.legacy.includes(key) || fwDisc.granted.includes(key) || bought.has('firework:' + key) || (!!x.storeId && bought.has(x.storeId))); }
+function fwDevAll() { try { return !RELEASE_BUILD && devMode() && !$('tLocks').checked; } catch (e) { return false; } }   /* owner 11/26: Developer mode owns every firework (Show feature locks = the real collection); never in a release build */
+function fwHas(key) { const x = FIREWORKS[key]; return !!x && (fwDevAll() || key === 'peony' || fwDisc.discovered.includes(key) || fwDisc.legacy.includes(key) || fwDisc.granted.includes(key) || bought.has('firework:' + key) || (!!x.storeId && bought.has(x.storeId))); }
 const fwAllOwned = () => fwCatalog().filter(fwHas);
 function fwPresentKey() { return G && G.showFw && FIREWORKS[G.showFw] ? G.showFw : pick.firework; }   /* the firework this show uses; pick.firework stays the equipped one */
 function fwRollTier(keys, tiers = keys.map(fwTier)) { const by = Object.keys(FW_DISCOVERY_ODDS).filter(r => FW_DISCOVERY_ODDS[r] > 0 && tiers.includes(r)); if (!by.length) return null; let w = fwRng() * by.reduce((n, r) => n + FW_DISCOVERY_ODDS[r], 0); for (const r of by) { w -= FW_DISCOVERY_ODDS[r]; if (w < 0) return r; } return by[by.length - 1]; }   /* an empty rarity drops out and the rest keep their ratio */
@@ -11801,15 +11802,15 @@ function bndStart() { try { if (!bndWants()) return; if (BND) { clearInterval(BN
     G.bndSeen885 = true; bndBuild(); BND.raf = requestAnimationFrame(bndLoop); const me = BND; me.watch = setInterval(() => { if (BND !== me) { clearInterval(me.watch); return; } if (!me.dying && !bndActive()) bndKill(); }, 40);   /* Next level / exit tears down even while the page rests (no frame loop running) */
     try { try { glog('X', ['bd886', 'show', key, tier, BND.page, BND.first ? 1 : 0]); } catch (e) {} track('binder_show', { level_id:G.level, firework:key, rarity:tier, page:BND.page, first:BND.first ? 1 : 0 }); } catch (e) {} } catch (e) { console.error('bnd885', e); BND = null; } }
 function bndKill(now) { if (!BND) return; if (!BND.dying) { clearInterval(BND.watch); BND.dying = now || performance.now(); if (BND.root) BND.root.style.transition = 'opacity .15s'; if (BND.root) BND.root.style.opacity = '0'; if (BND.root) BND.root.style.pointerEvents = 'none';   /* 0.886.7: a closing book never catches touches */ setTimeout(() => { if (BND && BND.dying) { cancelAnimationFrame(BND.raf); if (BND.root) BND.root.remove(); BND = null; } }, 170); } }
-function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) { const st = document.createElement('style'); st.id = 'bnd885css'; st.textContent = BND_CSS; document.head.appendChild(st); }
+function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) { const st = document.createElement('style'); st.id = 'bnd885css'; st.textContent = BND_CSS; document.head.appendChild(st); } bndBookCss();   /* BINDER-BOOKS: the Workshop book look */
   const root = document.createElement('div'); root.id = 'bnd885'; b.root = root; const tc = BND_TIERC[b.tier]; root.style.setProperty('--tc', tc);
-  [['--b5cov', 'cover'], ['--b5ins', 'inside'], ['--b5pg', 'page'], ['--b5spn', 'spine']].forEach(([v, k]) => root.style.setProperty(v, 'url("' + BNDART886[k] + '")'));   /* 0.886.2 */
+  [['--b5cov', 'cover'], ['--b5ins', 'inside'], ['--b5pg', BNDART886.book ? 'book' : 'page' /* BINDER-BOOKS */], ['--b5spn', 'spine']].forEach(([v, k]) => root.style.setProperty(v, 'url("' + BNDART886[k] + '")'));   /* 0.886.2 */
   root.innerHTML = '<div class="b5dim"></div><div class="b5top"><div class="b5table"></div><div class="b5halo"></div><div class="b5shadow"></div><div class="b5book"><div class="b5back"></div><div class="b5rings"><b></b><b></b><b></b></div><div class="b5leaf" id="b5dest"><div class="b5hd"></div><div class="b5grid"></div></div><div id="b5pgs"></div><div class="b5flicks"></div><div class="b5cover"><div class="b5seal"></div><div class="b5emb">Firework<br>Binder</div></div></div><div class="b5where"></div></div><canvas class="b5fx"></canvas><div class="b5ibar"><button type="button"></button></div>';
   document.body.appendChild(root); const q = s => root.querySelector(s); b.el = { top:q('.b5top'), table:q('.b5table'), halo:q('.b5halo'), shadow:q('.b5shadow'), book:q('.b5book'), cover:q('.b5cover'), pgs:q('#b5pgs'), flicks:q('.b5flicks'), grid:q('.b5grid'), hd:q('.b5hd'), where:q('.b5where'), dim:q('.b5dim'), fx:q('.b5fx'), ibar:q('.b5ibar'), rings:q('.b5rings') };
   b.el.halo.style.setProperty('--tc', tc); b.el.hd.textContent = t('Page {n}', { n:b.page });
-  const tile = k => { if (!k) return ''; const x = FIREWORKS[k], has = fwHas(k) && k !== b.key; let src = ''; if (has) { try { src = itemIcon({ x, kind:'firework', key:k }); } catch (e) {} } return has ? '<div class="b5card" style="--tier:' + (BND_TIERC[fwTier(k)] || '#c9a14a') + '"><img alt="" src="' + src + '"><div class="b5nm">' + fwEsc(t(x.name)) + '</div></div>' : '<div class="b5num">' + (b.cat.indexOf(k) + 1) + '</div>'; };
+  const tile = k => { if (!k) return ''; const x = FIREWORKS[k], has = fwHas(k) && k !== b.key; let src = ''; if (has) { try { src = itemIcon({ x, kind:'firework', key:k }); } catch (e) {} } return has ? '<div class="b5card" style="--tier:' + (BND_TIERC[fwTier(k)] || '#c9a14a') + '"><img alt="" src="' + src + '"><div class="b5nm">' + fwEsc(t(x.name)) + '</div></div>' : bndLockedTile(k, b.cat.indexOf(k) + 1, true); };   /* BINDER-BOOKS: name engraved + faint picture (was the number) */
   const first = (b.page - 1) * 4; for (let k = 0; k < 4; k++) { const key = b.cat[first + k], s = document.createElement('div'); s.className = 'b5slot';
-    if (k === b.slot) { s.className = 'b5slot dest'; s.innerHTML = '<div class="b5num">' + (first + k + 1) + '</div><div class="b5fly"><canvas class="b5art"></canvas><div class="b5tag"></div><div class="b5foot"><div class="b5name"></div></div>' + (b.R.pre ? '<div class="b5cback"></div>' : '') + '</div><div class="b5pocket"><i class="b5shine"></i></div>'; b.el.slot = s; }
+    if (k === b.slot) { s.className = 'b5slot dest'; s.innerHTML = bndLockedTile(key, first + k + 1, false) /* BINDER-BOOKS */ + '<div class="b5fly"><canvas class="b5art"></canvas><div class="b5tag"></div><div class="b5foot"><div class="b5name"></div></div>' + (b.R.pre ? '<div class="b5cback"></div>' : '') + '</div><div class="b5pocket"><i class="b5shine"></i></div>'; b.el.slot = s; }
     else s.innerHTML = (key ? tile(key) : '') + '<div class="b5pocket"></div>'; b.el.grid.appendChild(s); }
   b.el.fly = q('.b5fly'); b.el.art = q('.b5art'); b.el.tag = q('.b5tag'); b.el.name = q('.b5name'); b.el.cback = q('.b5cback'); if (b.el.cback) { try { const im = new Image(); im.alt = ''; im.decoding = 'async'; im.draggable = false; im.src = CARDBACK886; if (im.decode) im.decode().catch(() => {}); b.el.cback.appendChild(im); } catch (e) {} }   /* 0.886.1: the owner's card back, decoded before it shows */ b.el.pocket = b.el.slot.querySelector('.b5pocket'); b.el.shine = q('.b5shine');
   b.el.fly.style.setProperty('--tier', tc); b.el.tag.textContent = t(TIERS[b.tier] ? TIERS[b.tier].name : b.tier); b.el.name.textContent = t(FIREWORKS[b.key].name);
@@ -11821,6 +11822,7 @@ function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) 
   leaves.forEach((L, i) => { let inner; if (L.title) inner = '<div class="b5hd">' + fwEsc(t('My Fireworks')) + '</div>';   /* 0.886.2: on the plaque */ else if (L.ghost) inner = '<div class="b5grid">' + [0, 1, 2, 3].map(() => '<div class="b5slot"><div class="b5pocket"></div></div>').join('') + '</div>';
     else { const f0 = (L.page - 1) * 4; inner = '<div class="b5hd">' + fwEsc(t('Page {n}', { n:L.page })) + '</div><div class="b5grid">' + [0, 1, 2, 3].map(k => '<div class="b5slot">' + tile(b.cat[f0 + k]) + '<div class="b5pocket"></div></div>').join('') + '</div>'; }
     b.el.flicks.insertAdjacentHTML('beforeend', '<div class="b5leaf b5flick" style="z-index:' + (25 - i) + '">' + inner + '<div class="b5shade"></div></div>'); });
+  bndEngPaint(b);   /* BINDER-BOOKS: the faint pictures, once, before the animation */
   // timing
   const R = b.R, fx = FIREWORKS[b.key]; b.steps = fx.icon || (fx.themed ? 45 : 30); const bloom = b.steps * 0.035;
   const T = { pick:0.1, open:0.45, flick:0.75, leaves };
@@ -34259,7 +34261,7 @@ function bwsPrint(k, S) { const id = k + ':' + S; if (BWS_ART.has(id)) return BW
   try { fx.burst(L, 0, 0, fxGrid(), 60, 0.45); if (L.th && L.th.whale) L.th.whale.target = 0.9; const n = fx.icon || (fx.themed ? 45 : 30); for (let i = 0; i < n; i++) { if (fx.themed) clock += 0.035; stepSparks(L, 0.035); }
     const z = (fx.iconZoom || 0.46) * S / 96; c.setTransform(z, 0, 0, z, S / 2, S * 46 / 96); drawSparks(c, L); } catch (e) { /* a picture that can't be drawn stays plain */ } finally { clock = c0; c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; }
   BWS_ART.set(id, cv); return cv; }
-function bwsEngrave(k, S) { const id = 'e:' + k + ':' + S; if (BWS_ART.has(id)) return BWS_ART.get(id); const src = bwsPrint(k, S), out = { d:document.createElement('canvas'), h:document.createElement('canvas') };
+function bwsEngrave(k, S) { const id = 'e:' + k + ':' + S; if (BWS_ART.has(id)) return BWS_ART.get(id); const src = bwsPrintCPU(k, S) /* BINDER-BOOKS: processor canvas, fast read-back */, out = { d:document.createElement('canvas'), h:document.createElement('canvas') };
   try { const p = src.getContext('2d').getImageData(0, 0, S, S).data, n = S * S, dk = new ImageData(S, S), lt = new ImageData(S, S);
     for (let i = 0; i < n; i++) { const v = Math.max(p[i * 4], p[i * 4 + 1], p[i * 4 + 2]) / 255 * p[i * 4 + 3] / 255; let q = (v - 0.17) / 0.55; q = q < 0 ? 0 : q > 1 ? 1 : Math.pow(q, 0.85);   /* bright parts = the shape; dark backdrops fall away */
       dk.data[i * 4] = 92; dk.data[i * 4 + 1] = 54; dk.data[i * 4 + 2] = 20; dk.data[i * 4 + 3] = Math.min(255, 255 * q * 1.15); lt.data[i * 4] = 255; lt.data[i * 4 + 1] = 243; lt.data[i * 4 + 2] = 215; lt.data[i * 4 + 3] = Math.min(255, 255 * q * 1.1); }
@@ -34343,6 +34345,33 @@ function bwsClick(e) { const b = BWS; if (!b) return; const el = e.target.closes
   if (a === 'watch') { const pg = b.page; bwsClose(true); previewItem('firework', k); if (!G) return; BWS_RESUME = { scr:'card', key:k, page:pg };   /* back from the preview: the same card again */
     const t0 = Date.now(), iv = setInterval(() => { if (!BWS_RESUME || Date.now() - t0 > 900000) { clearInterval(iv); return; } const sc = $('custom'); if (G || !sc || sc.hidden) return; clearInterval(iv); if ($('fwZone').hidden) { BWS_RESUME = null; return; } fwRenderWorkshop(); }, 300); } }
 // ===== END BINDER-WS =====
+// ===== BINDER-BOOKS (patch-binder-books.py; owner 11/25: the level-win book and the tutorial gift book get the Workshop book look) =====
+// Same behaviour and timing; only the look: the page is the size of the cover (BNDART886.book), no rings, a soft spine shadow. A slot
+// not found yet shows its name engraved, its number and the rarity gem. Only the page the card lands on gets the faint pressed pictures,
+// made once in bndBuild before the animation starts, within a time budget (gift 50 ms, level-win 120 ms); a slot over budget keeps its
+// name and gem. Riffled pages show names only; the landing slot shows its name only (the card covers it).
+var BNDB_CSS = `
+#bnd885 .b5rings{display:none}
+#bnd885 .b5back::before{left:-8%;width:9%;border-radius:10px 3px 3px 10px}
+#bnd885 .b5leaf{inset:1.1% 1.6%;border-radius:4px 8px 8px 4px;box-shadow:0 0 0 1px rgba(90,52,18,.35),0 2px 6px rgba(0,0,0,.4)}
+#bnd885 #b5dest{box-shadow:0 0 0 1px rgba(90,52,18,.35),0 2px 6px rgba(0,0,0,.4)}
+#bnd885 .b5leaf::after{content:'';position:absolute;left:0;top:0;bottom:0;width:8%;border-radius:inherit;background:linear-gradient(90deg,rgba(60,30,8,.42),rgba(60,30,8,.12) 45%,rgba(60,30,8,0));pointer-events:none;z-index:5}
+#bnd885 #b5pgs{inset:1.1% 1.6%;border-radius:4px 8px 8px 4px}
+#bnd885 .b5lk{position:absolute;inset:0;cursor:default}
+`;
+function bndBookCss() { try { bwsCss(); if (document.getElementById('bnd886bcss')) return; const st = document.createElement('style'); st.id = 'bnd886bcss'; st.textContent = BNDB_CSS; document.head.appendChild(st); } catch (e) {} }
+function bndLockedTile(k, n, art) { try { const x = FIREWORKS[k], r = fwTier(k), tag = bwsTag(k), wish = !tag && fwDisc.wishlist[r] === k;
+    return `<div class="bwsslot bwslk b5lk" style="--tier:${bwsTC(r)}">${art ? `<div class="bwsart"><canvas class="h" data-bk="${fwEsc(k)}" data-w="h"></canvas><canvas class="d" data-bk="${fwEsc(k)}" data-w="d"></canvas></div>` : ''}<div class="bwsno">No. ${n}</div><div class="bwseng">${fwEsc(t(x.name))}</div><i class="bwsgem"></i>${tag ? `<span class="bwstag">${tag}</span>` : wish ? '<i class="bwswish">★</i>' : ''}</div>`; }
+  catch (e) { return '<div class="b5num">' + n + '</div>'; } }
+function bndEngPaint(b) { try { const t0 = performance.now(), budget = b.gift ? -1 : 120;   /* 0.886.11: the gift book draws no faint pictures (it plays during the Android start-up stall) */
+    b.el.flicks.querySelectorAll('.b5lk .bwsart').forEach(a => a.remove());   /* riffled pages: names only */
+    b.el.grid.querySelectorAll('canvas[data-bk]').forEach(cv => { const k = cv.dataset.bk; if (!BWS_ART.has('e:' + k + ':128') && performance.now() - t0 > budget) { const a = cv.closest('.bwsart'); if (a) a.remove(); return; }
+      const e = bwsEngrave(k, 128), src = e && e[cv.dataset.w]; if (!src || !src.width) return; cv.width = cv.height = 128; cv.getContext('2d').drawImage(src, 0, 0); }); } catch (e) {} }
+function bwsPrintCPU(k, S) { const cv = document.createElement('canvas'); cv.width = cv.height = S; const c = cv.getContext('2d', { willReadFrequently:true }), fx = FIREWORKS[k], L = [], c0 = clock;   /* read back for the engraving, so drawn on the processor */
+  try { fx.burst(L, 0, 0, fxGrid(), 60, 0.45); if (L.th && L.th.whale) L.th.whale.target = 0.9; const n = fx.icon || (fx.themed ? 45 : 30); for (let i = 0; i < n; i++) { if (fx.themed) clock += 0.035; stepSparks(L, 0.035); }
+    const z = (fx.iconZoom || 0.46) * S / 96; c.setTransform(z, 0, 0, z, S / 2, S * 46 / 96); drawSparks(c, L); } catch (e) {} finally { clock = c0; c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; }
+  return cv; }
+// ===== END BINDER-BOOKS =====
 
 // ===== END COLL-WORKSHOP =====
 // ===== COLL-WISHLIST (patch-coll-wishlist.py; review v1.5; handoff F-12) =====
