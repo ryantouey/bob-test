@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.21', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.22', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -35241,6 +35241,35 @@ function bwsWinClick886(e) { const b = BWS; if (!b || !b.win) return false; cons
   if (!el && !(e.target.closest && e.target.closest('.bwsbk,.bwsbig,.bwsmeta,.bwspager,.bwstop,[data-slot],button'))) { if (b.scr === 'card') { bwsBack(); return true; } bwsClose(false, 'outside'); return true; }   /* a tap outside the book: from a big card back to the pages, else close */
   return false; }
 // ===== END S1-RESULT =====
+// ===== BOOK-TEL (patch-game-bwtel.py; owner 11/26: events for the level-win book, on each firework spot) =====
+// Measurement only. Level-win book (where 'win'): game log X rows bwt886 / bwk886 / bwa886 / bwm886 / bwe886 (also v2 milestones via telX886).
+// Workshop book (where 'ws'): the same rows plus bwo886 open/close, telemetry v2 only. Wraps the book functions by name.
+var BWT886 = { miss:0 };
+function bwTel886(where, code, v) { try { if (where === 'win') glog('X', [code, where].concat(v)); else if (typeof BOBTEL !== 'undefined' && BOBTEL) BOBTEL.ev('ms', { m:'x:' + code, v:[where].concat(v).slice(0, 6) }); } catch (e) {} }
+function bwHow886() { try { const e = window.event; return !e ? 'code' : e.type === 'pointerup' ? 'swipe' : e.type === 'keydown' ? 'key' : e.type === 'click' ? 'tap' : String(e.type || ''); } catch (e) { return ''; } }
+function bwTag886(k) { try { const r = fwTier(k), tag = bwsTag(k), wish = !tag && fwDisc.wishlist[r] === k; return r + (tag ? ':' + String(tag).toLowerCase() : wish ? ':wish' : ''); } catch (e) { return ''; } }
+{ const T0 = bwsTurn; bwsTurn = function (d) { const b = BWS; if (!b) return T0.apply(this, arguments); let cat = [], scr = b.scr, i0 = 0; try { cat = bndOrder(); i0 = scr === 'card' ? cat.indexOf(b.key) : b.page; } catch (e) {}
+    const r = T0.apply(this, arguments);
+    try { const i1 = scr === 'card' ? cat.indexOf(b.key) : b.page, h = bwHow886(); bwTel886(b.win ? 'win' : 'ws', 'bwt886', [scr, d > 0 ? 1 : -1, i1 + 1, h === 'tap' ? 'arrow' : h, i1 !== i0 ? 1 : 0]); } catch (e) {} return r; }; }
+{ const C0 = bwsClick; bwsClick = function (e) { const b = BWS; if (!b) return C0.apply(this, arguments); let where = b.win ? 'win' : 'ws', scr = b.scr, page = b.page, key = b.key, tg = null, el = null, a = '', slot = null, cat = [];
+    try { tg = e && e.target && e.target.closest ? e.target : null; el = tg && tg.closest('[data-bws],[data-slot]'); a = el && el.dataset ? el.dataset.bws || '' : ''; slot = el && el.dataset && el.dataset.slot != null ? +el.dataset.slot : null; cat = bndOrder(); } catch (e2) {}
+    const r = C0.apply(this, arguments);
+    try { if (slot != null && scr === 'page') { const k = cat[slot]; if (k) bwTel886(where, 'bwk886', [k, Math.floor(slot / 4) + 1, slot % 4 + 1, fwHas(k) ? 1 : 0, bwTag886(k)]); }
+      else if (key && (a === 'fav' || a === 'wish' || a === 'use' || a === 'watch')) bwTel886(where, 'bwa886', [a, key, a === 'fav' ? (fwDisc.favorites.includes(key) ? 1 : 0) : a === 'wish' ? (fwDisc.wishlist[fwTier(key)] === key ? 1 : 0) : 1, scr]);
+      else if ((!el || (slot != null && scr === 'card')) && tg && BWS === b && b.scr === scr && b.page === page && b.key === key && BWT886.miss < 12) {   /* the big card holds a [data-slot] that does nothing */
+        const zone = tg.closest('.bwsbig') ? 'big-card' : tg.closest('.bwsslot.empty') ? 'empty-spot' : tg.closest('.bwsbk') ? 'page' : tg.closest('.bwspager') ? 'pager' : tg.closest('.bwstop') ? 'top-bar' : tg.closest('.bwsmeta') ? 'card-info' : '';
+        if (zone) { BWT886.miss++; bwTel886(where, 'bwm886', [scr, zone, scr === 'card' ? cat.indexOf(key) + 1 : page + 1, scr === 'card' ? key : '']); } } } catch (e2) {}
+    return r; }; }
+{ const B0 = bwsBack; bwsBack = function () { const b = BWS; if (!b || b.scr !== 'card') return B0.apply(this, arguments); const key = b.key; let how = '';
+    try { const h = bwHow886(), e = window.event, tg = e && e.target && e.target.closest ? e.target : null; how = h === 'key' ? 'key' : tg && tg.closest('[data-bws="back"]') ? 'button' : h === 'tap' ? 'outside' : h; } catch (e) {}
+    const r = B0.apply(this, arguments); bwTel886(b.win ? 'win' : 'ws', 'bwa886', ['back', key || '', how, 'card']); return r; }; }
+{ const O0 = bwsOpen; bwsOpen = function () { const had = BWS; const r = O0.apply(this, arguments); try { if (BWS && BWS !== had) { BWT886.miss = 0; if (!BWS.win) bwTel886('ws', 'bwo886', ['open', BWS.page + 1, BWS.scr]); } } catch (e) {} return r; }; }
+{ const X0 = bwsClose; bwsClose = function (now, how) { const b = BWS; let h = how; try { if (!h) { const e = window.event, tg = e && e.target && e.target.closest ? e.target : null; h = tg && tg.closest('[data-bws="close"]') ? 'button' : tg && tg.closest('[data-bws="watch"]') ? 'watch' : bwHow886() === 'key' ? 'key' : 'other'; } } catch (e) {}
+    const r = X0.apply(this, arguments);
+    try { if (b && !b.win && BWS !== b) bwTel886('ws', 'bwo886', ['close', h || 'other', Math.round((performance.now() - (b.t0 || performance.now())) / 100) / 10, b.turns || 0, b.cards || 0]); } catch (e) {} return r; }; }
+{ const W0 = bndWinTap886; bndWinTap886 = function (b, t, e) { const r = W0.apply(this, arguments);
+    try { if (!r && b && !b.gift && !b.early886 && !b.INS && !b.RO && !b.FB && G && G.phase === 'result' && !BWS) { const T = b.T, closing = isFinite(T.close) && t >= T.close; if (t < T.seat + 0.25 || closing) { b.early886 = 1; bwTel886('win', 'bwe886', [closing ? 'closing' : 'before-seat', Math.round(t * 10)]); } } } catch (e2) {} return r; }; }
+// ===== END BOOK-TEL =====
 // ===== S1-BACK-BL (patch-s1-back-bl.py; owner 11/26) =====
 // Owner: "Can we just put the back button in bottom left, the spacing got messed up". The Stage 1 back bubble is bottom left, the mirror of
 // Share (left 12 px, bottom 18 px + the safe area); the book keeps the top, and the Boracay road sits above the bubble row.
