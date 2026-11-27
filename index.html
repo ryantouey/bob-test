@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.25', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.26', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -11651,7 +11651,7 @@ const fwDisc = (() => { const d = saved.fwDiscovery && typeof saved.fwDiscovery 
 let fwKeyMap = null;
 const fwKeyOf = x => { if (!fwKeyMap) fwKeyMap = new Map(Object.entries(FIREWORKS).map(([k, v]) => [v, k])); return (x && fwKeyMap.get(x)) || null; };
 let fwIdx = null;   /* key -> catalogue index; every firework exists before the first pull (the table is filled by about line 15,900) */
-const fwTier = key => { if (!fwIdx) fwIdx = new Map(Object.keys(FIREWORKS).map((k, i) => [k, i])); const i = fwIdx.has(key) ? fwIdx.get(key) : -1; return i < 0 ? 'common' : rarityOf(FIREWORKS[key], i); };
+const fwTier = key => { if (typeof FEST_SOON !== 'undefined' && FEST_SOON[key] && !FIREWORKS[key]) return FEST_SOON[key].tier;   /* FESTIVAL-SETS: a Coming Soon card */ if (!fwIdx) fwIdx = new Map(Object.keys(FIREWORKS).map((k, i) => [k, i])); const i = fwIdx.has(key) ? fwIdx.get(key) : -1; return i < 0 ? 'common' : rarityOf(FIREWORKS[key], i); };
 const fwCatalog = () => Object.keys(FIREWORKS).filter(k => !FIREWORKS[k].retired && !FIREWORKS[k].cand);   /* what can be collected */
 const fwPassHeld = k => k === 'starry' || PASS_ITEMS.has('firework:' + k) || (!!FIREWORKS[k].storeId && PASS_ITEMS.has(FIREWORKS[k].storeId));
 const fwPool = (passOn = passLive()) => fwCatalog().filter(k => !FIREWORKS[k].collect && !(passOn && fwPassHeld(k)));   /* F-04 + owner 11/17 (C11): every firework of the live season pass (Starry Night included) joins when the pass ends; collection prizes are earned on their own track, never pulled */
@@ -11677,10 +11677,10 @@ function fwPrepareShow(success) {
   const id = String(G.level), old = fwDisc.pulls[id];
   if (old && FIREWORKS[old.key]) { if (old.isNew) fwShowSet([old.key]); else fwShowSet(fwMyShow()); G.fwPull = old; return; }   /* SHOW-SLOTS */   /* F-02: a stored pull is reused (reload mid-show) */
   /* S1POOL886 (0.886.4, owner 11/25): in Stage 1 a win draws only Commons and Rares, to keep the pace high */ const s1 = stageOf(G.level) === 1, cr = k => { const r = fwTier(k); return r === 'common' || r === 'rare'; }, base0 = fwPool(), base = s1 && base0.some(cr) ? base0.filter(cr) : base0;
-  const intro = intro886(), unowned = intro ? base.filter(k => !fwHas(k)) : null, key = unowned && unowned.length ? fwDraw(unowned) : fwDraw(base), rarity = fwTier(key), isNew = !fwHas(key), pull = { key, rarity, isNew, at:Date.now(), v:CONFIG.analytics.appVersion, intro:intro ? 1 : 0 };   /* 0.886: Levels 1-5 always find a new one */
-  fwDisc.pulls[id] = pull; if (isNew) fwDisc.discovered.push(key);   /* F-05: a duplicate adds nothing */
+  const intro = intro886(), unowned = intro ? base.filter(k => !fwHas(k)) : null, key = festPullKey(unowned && unowned.length ? fwDraw(unowned) : fwDraw(base), base), rarity = fwTier(key), isNew = !fwHas(key), pull = { key, rarity, isNew, at:Date.now(), v:CONFIG.analytics.appVersion, intro:intro ? 1 : 0 };   /* 0.886: Levels 1-5 always find a new one */
+  fwDisc.pulls[id] = pull; if (isNew) fwDisc.discovered.push(key); else festStamp(1);   /* FESTIVAL-SETS: a duplicate gives a set stamp */   /* F-05: a duplicate adds nothing */
   if (fwDisc.wishlist[rarity] === key) fwDisc.wishlist[rarity] = '';
-  if (isNew) fwShowSet([key]); else fwShowSet(fwMyShow()); G.fwPull = pull; saveAll();   /* SHOW-SLOTS: a new firework gets the whole show; a duplicate plays My show */   /* saved before the rockets fly */
+  if (isNew) fwShowSet([key]); else fwShowSet(fwMyShow()); G.fwPull = pull; festAfterFind(key); saveAll();   /* SHOW-SLOTS: a new firework gets the whole show; a duplicate plays My show */   /* saved before the rockets fly */
   try { track('firework_first_pull', { level_id:G.level, firework:key, rarity, new_discovery:isNew, duplicate:!isNew }); } catch (e) {} try { glog('p', [+G.level || 0, key, rarity, isNew ? 1 : 0, intro ? 1 : 0]); } catch (e) {} }   /* 0.866: level firework wins reach the dashboard */
 function fwOwnedReal(x, i) { const k = fwKeyOf(x); if (!k) return ownedRealLegacy(x, i); if (x.retired) return false; return fwHas(k) || (!fwDisc.migrated && ownedRealLegacy(x, i)); }
 function fwSyncGrants() { try { if (devMode() || !ownedAt(1)) return 0;   /* Version 793: was !done.has(rewardAt(1)) */ let n = 0; Object.keys(FIREWORKS).forEach((k, i) => { const x = FIREWORKS[k]; if (slotOf(x, i) === 1 && !x.lv && !x.retired && !notLevelReward(x) && !fwDisc.granted.includes(k)) { fwDisc.granted.push(k); n++; } }); return n; } catch (e) { return 0; } }   /* the starter set's firework (slot 1), as live */
@@ -11836,7 +11836,7 @@ function bndActive() { return !!BND && (BND.gift ? true : (!!G && BND.g === G &&
 function bndHolding() { return bndActive() && !BND.closed; }   /* while true, the old reveal card and the speed curve wait */
 function bndWants() { return !!G && G.won && G.phase === 'result' && !!G.fwPull && G.fwPull.isNew && !!FIREWORKS[G.fwPull.key] && !G.run && !G.tut && !G.preview && !G.sky && !G.daily && !G.trap && !G.door; }
 function bndStart() { try { if (!bndWants()) return; if (BND) { clearInterval(BND.watch); if (BND.root) BND.root.remove(); } const key = G.fwPull.key, tier = G.fwPull.rarity || fwTier(key), cat = bndOrder() /* BINDER-WS: the one binder order */, idx = Math.max(0, cat.indexOf(key));
-    const own = fwAllOwned(), tot = cat.filter(k => fwTier(k) === tier).length, ownT = own.filter(k => fwTier(k) === tier).length, before = Math.max(0, ownT - 1);
+    const own = fwAllOwned(), tot = cat.filter(k => k && FIREWORKS[k] && fwTier(k) === tier).length, ownT = own.filter(k => fwTier(k) === tier).length, before = Math.max(0, ownT - 1);
     BND = { g:G, key, tier, R:BND_RAR[tier] || BND_RAR.common, cat, idx, page:Math.floor(idx / 4) + 1, slot:idx % 4, tot, before, first:before === 0 && (tier === 'epic' || tier === 'legendary'),
       t0:performance.now() + Math.max(0, (G.fwRevealAt != null ? G.fwRevealAt - clock : 0)) * 1000, jump:0, closed:false, INS:null, RO:null, FB:null, tilt:{ x:0, y:0 }, dying:0, lastPaint:'' };
     G.bndSeen885 = true; bndBuild(); BND.raf = requestAnimationFrame(bndLoop); const me = BND; me.watch = setInterval(() => { if (BND !== me) { clearInterval(me.watch); return; } if (!me.dying && !bndActive()) bndKill(); }, 40);   /* Next level / exit tears down even while the page rests (no frame loop running) */
@@ -11847,7 +11847,7 @@ function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) 
   [['--b5cov', 'cover'], ['--b5ins', 'inside'], ['--b5pg', BNDART886.book ? 'book' : 'page' /* BINDER-BOOKS */], ['--b5spn', 'spine']].forEach(([v, k]) => root.style.setProperty(v, 'url("' + BNDART886[k] + '")'));   /* 0.886.2 */
   root.innerHTML = '<div class="b5dim"></div><div class="b5top"><div class="b5table"></div><div class="b5halo"></div><div class="b5shadow"></div><div class="b5book"><div class="b5back"></div><div class="b5rings"><b></b><b></b><b></b></div><div class="b5leaf" id="b5dest"><div class="b5hd"></div><div class="b5grid"></div></div><div id="b5pgs"></div><div class="b5flicks"></div><div class="b5cover"><div class="b5seal"></div><div class="b5emb">Firework<br>Binder</div></div></div><div class="b5where"></div></div><canvas class="b5fx"></canvas><div class="b5ibar"><button type="button"></button></div>';
   document.body.appendChild(root); const q = s => root.querySelector(s); b.el = { top:q('.b5top'), table:q('.b5table'), halo:q('.b5halo'), shadow:q('.b5shadow'), book:q('.b5book'), cover:q('.b5cover'), pgs:q('#b5pgs'), flicks:q('.b5flicks'), grid:q('.b5grid'), hd:q('.b5hd'), where:q('.b5where'), dim:q('.b5dim'), fx:q('.b5fx'), ibar:q('.b5ibar'), rings:q('.b5rings') };
-  b.el.halo.style.setProperty('--tc', tc); b.el.hd.textContent = t('Page {n}', { n:b.page });
+  b.el.halo.style.setProperty('--tc', tc); festBookMain(b);   /* FESTIVAL-SETS: the themed set banner */
   const tile = k => { if (!k) return ''; const x = FIREWORKS[k], has = fwHas(k) && k !== b.key; let src = ''; if (has) { try { src = itemIcon({ x, kind:'firework', key:k }); } catch (e) {} } return has ? fcCard(k, { art:'bp' }) /* CARD-FRAMES */ : bndLockedTile(k, b.cat.indexOf(k) + 1, true); };   /* BINDER-BOOKS: name engraved + faint picture (was the number) */
   const first = (b.page - 1) * 4; for (let k = 0; k < 4; k++) { const key = b.cat[first + k], s = document.createElement('div'); s.className = 'b5slot';
     if (k === b.slot) { s.className = 'b5slot dest'; s.innerHTML = bndLockedTile(key, first + k + 1, false) /* BINDER-BOOKS */ + '<div class="b5fly"><canvas class="b5art"></canvas><div class="b5tag"></div><div class="b5foot"><div class="b5name"></div></div>' + (b.R.pre || b.gift ? '<div class="b5cback"></div>' : '') + '</div><div class="b5pocket"><i class="b5shine"></i></div>'; b.el.slot = s; }
@@ -11860,7 +11860,7 @@ function bndBuild() { const b = BND; if (!document.getElementById('bnd885css')) 
   const leaves = []; if (b.page === 1) leaves.push({ title:true }); else if (b.page - 1 <= 2) for (let p = 1; p < b.page; p++) leaves.push({ page:p }); else { leaves.push({ page:1 }); for (let i = 0; i < Math.min(4, b.page - 3); i++) leaves.push({ ghost:true }); leaves.push({ page:b.page - 1 }); }
   if (b.gift) leaves.length = 0;   /* 0.886.7 */ let ts = 0; leaves.forEach(L => { L.t = ts; L.d = L.ghost ? 0.12 : 0.28; ts += L.ghost ? 0.055 : 0.2; }); const fEnd = leaves.length ? leaves[leaves.length - 1].t + leaves[leaves.length - 1].d : 0;
   leaves.forEach((L, i) => { let inner; if (L.title) inner = '<div class="b5hd">' + fwEsc(t('My Fireworks')) + '</div>';   /* 0.886.2: on the plaque */ else if (L.ghost) inner = '<div class="b5grid">' + [0, 1, 2, 3].map(() => '<div class="b5slot"><div class="b5pocket"></div></div>').join('') + '</div>';
-    else { const f0 = (L.page - 1) * 4; inner = '<div class="b5hd">' + fwEsc(t('Page {n}', { n:L.page })) + '</div><div class="b5grid">' + [0, 1, 2, 3].map(k => '<div class="b5slot">' + tile(b.cat[f0 + k]) + '<div class="b5pocket"></div></div>').join('') + '</div>'; }
+    else { const f0 = (L.page - 1) * 4; inner = festBookHd(L.page - 1, b.cat, L.page) + '<div class="b5grid">' + [0, 1, 2, 3].map(k => '<div class="b5slot">' + tile(b.cat[f0 + k]) + '<div class="b5pocket"></div></div>').join('') + '</div>'; }
     b.el.flicks.insertAdjacentHTML('beforeend', '<div class="b5leaf b5flick" style="z-index:' + (25 - i) + '">' + inner + '<div class="b5shade"></div></div>'); });
   bndOwnPaint(b); bndEngPaint(b);   /* BINDER-BOOKS + CARD-FRAMES: the card pictures, once, before the animation */
   // timing
@@ -12017,7 +12017,7 @@ function detSpeed885() { try { const c = pkCurveOf(); if (!c) return ''; const p
   return '<p style="font-size:18px;font-weight:800;margin:8px 0 4px;color:' + rk[2] + '">' + detEsc(t(rk[1])) + ' · ' + detEsc(t('{n} s', { n:pt.toFixed(1) })) + '</p><p style="margin:0 0 10px">' + detEsc(p >= 10 ? t('Faster than {p}% of players', { p }) : t('Most players take about {n} s', { n:Math.round(c[0]) })) + '</p>'; } catch (e) { return ''; } }
 /* 0.886.7 (owner 11/25): the tutorial firework's one-time quick Binder, as the game opens */
 function bndGiftStart(key) { if (BND) { clearInterval(BND.watch); cancelAnimationFrame(BND.raf); if (BND.root) BND.root.remove(); BND = null; }
-  const tier = fwTier(key), cat = bndOrder() /* BINDER-WS: the one binder order */, idx = Math.max(0, cat.indexOf(key)), own = fwAllOwned(), tot = cat.filter(k => fwTier(k) === tier).length, ownT = own.filter(k => fwTier(k) === tier).length, before = Math.max(0, ownT - 1);
+  const tier = fwTier(key), cat = bndOrder() /* BINDER-WS: the one binder order */, idx = Math.max(0, cat.indexOf(key)), own = fwAllOwned(), tot = cat.filter(k => k && FIREWORKS[k] && fwTier(k) === tier).length, ownT = own.filter(k => fwTier(k) === tier).length, before = Math.max(0, ownT - 1);
   BND = { g:G, gift:true, key, tier, R:BND_RAR.common, cat, idx, page:Math.floor(idx / 4) + 1, slot:idx % 4, tot, before, first:false, t0:performance.now() + 120, jump:0, closed:false, INS:null, RO:null, FB:null, tilt:{ x:0, y:0 }, dying:0, lastPaint:'' };
   bndBuild(); const me = BND, rt = me.root; me.raf = requestAnimationFrame(bndLoop); me.watch = setInterval(() => { if (BND !== me) clearInterval(me.watch); }, 250);
   rt.style.background = 'rgba(8,6,28,.74)'; rt.style.transition = 'opacity .18s'; rt.style.pointerEvents = 'auto';   /* a dark backdrop over Level 1; touches stay off the board */
@@ -12267,7 +12267,7 @@ const passInto = () => ((pass.sp % PASS.tierSparks) / PASS.tierSparks);
 const passTimeLeft = () => { const h = Math.max(0, Math.floor((passEnd(passSeason()) - nowT()) / 36e5)); return t('{d}d {h}h', { d:Math.floor(h / 24), h:h % 24 }); };
 /* Version 687 (owner): the free track's coins add up to exactly PASS_FREE_COINS, each tier keeping its share of the curve */
 const PASS_FREE_COINS = 3000; { const free = PASS_REWARDS.filter(r => r[0] && r[0].coins), sum = free.reduce((a, r) => a + r[0].coins, 0); let tot = 0; free.forEach(r => { r[0].coins = Math.max(5, Math.round(r[0].coins * PASS_FREE_COINS / sum / 5) * 5); tot += r[0].coins; }); if (free.length) free[free.length - 1][0].coins += PASS_FREE_COINS - tot; }
-const PASS_ITEMS = new Set(PASS_REWARDS.flatMap(r => [r[0].item, r[1].item]).filter(Boolean)), passHeld = id => passLive() && PASS_ITEMS.has(id), passItem = id => STORE_ROTATION.find(u => u.x.storeId === id);
+if (FIREWORKS.snowglobe) PASS_REWARDS[9][1] = { item:'firework:snowglobe' }; if (FIREWORKS.reindeer) PASS_REWARDS[29][1] = { item:'firework:reindeer' };   /* FESTIVAL-SETS (owner 11/27): the season set's two new fireworks replace the premium Cosmetic Spins once they exist */ const PASS_ITEMS = new Set(PASS_REWARDS.flatMap(r => [r[0].item, r[1].item]).filter(Boolean)), passHeld = id => passLive() && PASS_ITEMS.has(id), passItem = id => STORE_ROTATION.find(u => u.x.storeId === id);
 const passTop = () => PASS_REWARDS[PASS.tiers - 1][1].item;
 const PASS_MILES = [5, 15, 25, 35, 45, 55], CSPIN_NAME = { rare:'Rare or better', epic:'Epic or better' };
 // Version 400 (owner): the tier-30 Cosmetic Spin is a fixed Epic 85% / Legendary 15%; a minimum without an entry uses the wheel's own chances
@@ -34919,7 +34919,7 @@ $('wsCosmetics').onclick = () => setTab('launchers');
 // ?bws=0 shows the old gallery.
 var BINDER_ORDER = null;   /* an array of firework keys fixes the binder order; null = the catalogue order (fwCatalog) */
 var BND_SORT887 = { key:'', list:null };   /* 0.886.15 (owner): rarity first (Common -> Legendary), then A-Z by the shown name */
-function bndOrder() { const cat = fwCatalog(); if (!Array.isArray(BINDER_ORDER)) { const lang = (typeof pick !== 'undefined' && pick && pick.language) || 'en', key = lang + '|' + cat.length + '|' + cat[0] + '|' + cat[cat.length - 1]; if (BND_SORT887.key !== key || !BND_SORT887.list) { const rk = k => { const r = RARITY_ORDER[fwTier(k)]; return r == null ? 9 : r; }, nm = k => { try { return String(t(FIREWORKS[k].name || k)); } catch (e) { return String(k); } }; BND_SORT887.list = cat.slice().sort((a, b) => (rk(a) - rk(b)) || (function () { try { return nm(a).localeCompare(nm(b), lang, { sensitivity:'base' }); } catch (e) { return nm(a) < nm(b) ? -1 : nm(a) > nm(b) ? 1 : 0; } })()); BND_SORT887.key = key; } return BND_SORT887.list.slice(); } const o = BINDER_ORDER.filter((k, i, a) => cat.includes(k) && a.indexOf(k) === i); cat.forEach(k => { if (!o.includes(k)) o.push(k); }); return o; }
+function bndOrder() { if (typeof festOn === 'function' && festOn()) return festOrder();   /* FESTIVAL-SETS: set order */ const cat = fwCatalog(); if (!Array.isArray(BINDER_ORDER)) { const lang = (typeof pick !== 'undefined' && pick && pick.language) || 'en', key = lang + '|' + cat.length + '|' + cat[0] + '|' + cat[cat.length - 1]; if (BND_SORT887.key !== key || !BND_SORT887.list) { const rk = k => { const r = RARITY_ORDER[fwTier(k)]; return r == null ? 9 : r; }, nm = k => { try { return String(t(FIREWORKS[k].name || k)); } catch (e) { return String(k); } }; BND_SORT887.list = cat.slice().sort((a, b) => (rk(a) - rk(b)) || (function () { try { return nm(a).localeCompare(nm(b), lang, { sensitivity:'base' }); } catch (e) { return nm(a) < nm(b) ? -1 : nm(a) > nm(b) ? 1 : 0; } })()); BND_SORT887.key = key; } return BND_SORT887.list.slice(); } const o = BINDER_ORDER.filter((k, i, a) => cat.includes(k) && a.indexOf(k) === i); cat.forEach(k => { if (!o.includes(k)) o.push(k); }); return o; }
 function bwsOn() { return !/[?&]bws=0(&|$)/.test(location.search); }
 var BWS = null, BWS_PG = 0, BWS_RESUME = null, BWS_ART = new Map(), BWS_FIT = false;
 var BWS_BA = 0.685, BWS_FR = { x:50.2, y:96, w:196.5, h:261, pw:476, ph:695 };   /* the painted cover's shape; slot 1 on the page picture (476 x 695) */
@@ -35016,14 +35016,14 @@ function bwsEngrave(k, S) { const id = 'e:' + k + ':' + S; if (BWS_ART.has(id)) 
 function bwsPaint(root) { root.querySelectorAll('canvas[data-k]').forEach(cv => { const k = cv.dataset.k, w = cv.clientWidth || 100, S = w > 200 ? 512 : 256, d = Math.min(2, devicePixelRatio || 1), px = Math.max(64, Math.round(w * d));
   if (cv.width !== px) { cv.width = cv.height = px; } const c = cv.getContext('2d'); c.clearRect(0, 0, px, px); const src = cv.dataset.w === 'p' ? bwsPrint(k, S) : bwsEngrave(k, S)[cv.dataset.w]; if (src && src.width) c.drawImage(src, 0, 0, px, px); }); }
 // ---- slots and pages ----
-function bwsSlot(cat, i) { if (i >= cat.length) return '<div class="bwsslot empty"></div>'; const k = cat[i], x = FIREWORKS[k], r = fwTier(k), nm = fwEsc(t(x.name));   /* CARD-FRAMES: framed cards */
+function bwsSlot(cat, i) { if (i >= cat.length || !cat[i]) return '<div class="bwsslot empty"></div>'; if (!FIREWORKS[cat[i]]) return festSoonSlot(cat, i);   /* FESTIVAL-SETS */ const k = cat[i], x = FIREWORKS[k], r = fwTier(k), nm = fwEsc(t(x.name));   /* CARD-FRAMES: framed cards */
   if (fwHas(k)) return `<div class="bwsslot" data-slot="${i}" role="button" tabindex="0" aria-label="${nm}, ${fwEsc(bwsTN(r))}">${fcCard(k, { art:true, fresh:!bwsSeen().includes(k), fav:fwDisc.favorites.includes(k) })}</div>`;
   const tag = bwsTag(k), wish = !tag && fwDisc.wishlist[r] === k;
   return `<div class="bwsslot" data-slot="${i}" role="button" tabindex="0" aria-label="${nm}, ${fwEsc(bwsTN(r))}, ${fwEsc(t('not found yet'))}">${fcCard(k, { lock:true, n:i + 1, art:true, tag, wish })}</div>`; }
 var bwsPageInner = (cat, p) => `<div class="bwshd">${fwEsc(t('Page {n}', { n:p + 1 }))}</div><div class="bwsgrid">${[0, 1, 2, 3].map(j => bwsSlot(cat, p * 4 + j)).join('')}</div>`;
 var bwsChev = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d < 0 ? 'M15.5 4.5L8 12l7.5 7.5' : 'M8.5 4.5L16 12l-7.5 7.5'}" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 var bwsArrow = (d, dis, lab) => `<button type="button" class="bub bwsarrow" data-bws="${d < 0 ? 'prev' : 'next'}" aria-label="${fwEsc(lab)}"${dis ? ' disabled' : ''}>${bwsChev(d)}</button>`;
-function bwsTiers(cat) { const o = {}; cat.forEach(k => { const r = fwTier(k); o[r] = o[r] || [0, 0]; o[r][1]++; if (fwHas(k)) o[r][0]++; }); return `<div class="bwstiers">${['legendary', 'epic', 'rare', 'common'].filter(r => o[r]).map(r => `<span style="--c:${bwsTC(r)}" aria-label="${fwEsc(bwsTN(r))} ${o[r][0]} / ${o[r][1]}"><i></i>${o[r][0]}/${o[r][1]}</span>`).join('')}</div>`; }
+function bwsTiers(cat) { const o = {}; cat.forEach(k => { if (!k || !FIREWORKS[k]) return; const r = fwTier(k); o[r] = o[r] || [0, 0]; o[r][1]++; if (fwHas(k)) o[r][0]++; }); return `<div class="bwstiers">${['legendary', 'epic', 'rare', 'common'].filter(r => o[r]).map(r => `<span style="--c:${bwsTC(r)}" aria-label="${fwEsc(bwsTN(r))} ${o[r][0]} / ${o[r][1]}"><i></i>${o[r][0]}/${o[r][1]}</span>`).join('')}</div>`; }
 // ---- the Fireworks tab: show modes, the closed binder on the table, counts by rarity ----
 function bwsRenderTab() { const box = $('fwShowControls'), zone = $('fwZone'); bwsCss(); zone.classList.add('fwgalmode', 'bwsmode'); zone.classList.remove('fwfav'); if (fwDisc.mode === 'set') fwDisc.mode = 'surprise';
   const cat = bndOrder(), own = cat.filter(fwHas), n = own.length; if ((fwDisc.mode === 'favorites' && n < 2) || (fwDisc.mode === 'equipped' && n < FW_EQUIPPED_AT)) fwDisc.mode = 'surprise';
@@ -35057,19 +35057,20 @@ function bwsLayout() { if (BWS.win) { const r = ($('app') || document.body).getB
 function bwsRender() { const b = BWS; if (!b) return; const { W, H } = bwsLayout(), cat = bndOrder(), pages = Math.max(1, Math.ceil(cat.length / 4)), calm = bwsCalm(), owned = cat.filter(fwHas).length; let h;
   if (b.scr === 'card' && cat.indexOf(b.key) < 0) b.scr = 'page';
   if (b.scr === 'page') { b.page = Math.max(0, Math.min(b.page, pages - 1)); const bw = Math.round(Math.min(W * 0.892, (H - 66 - 108) * BWS_BA)), bh = Math.round(bw / BWS_BA), extra = Math.max(0, H - 66 - 108 - bh), top = 62 + Math.round(extra / 3), left = Math.round(W / 2 - 0.46 * bw), p = b.page, last = Math.min(cat.length, p * 4 + 4);
-    h = `<div class="bwstop"><button type="button" class="bub back" data-bws="close">‹ ${fwEsc(t('Workshop'))}</button><h3>${fwEsc(t('My Fireworks'))}</h3>${b.win ? bwsX886() : ''}<span class="bwscnt">${owned} / ${cat.length}</span></div><div class="bwsglow" style="left:-10%;top:12%;width:120%;height:70%"></div>
+    h = `<div class="bwstop"><button type="button" class="bub back" data-bws="close">‹ ${fwEsc(t('Workshop'))}</button><h3>${fwEsc(t('My Fireworks'))}</h3>${b.win ? bwsX886() : ''}<span class="bwscnt">${owned} / ${festTotal(cat)}</span></div><div class="bwsglow" style="left:-10%;top:12%;width:120%;height:70%"></div>
       <div class="bwsbk${b.arrive && !calm ? ' arrive' : ''}" style="left:${left}px;top:${top}px;width:${bw}px;height:${bh}px"><div class="bwsback"></div><div class="bwsleaf" data-leaf>${bwsPageInner(cat, p)}</div>${b.arrive && !calm ? '<div class="bwscov open"></div>' : ''}</div>
-      <div class="bwspager" style="top:${top + bh + 14}px">${bwsArrow(-1, p === 0, t('Previous page'))}<div class="bwspl">${fwEsc(t('Page {n} of {m}', { n:p + 1, m:pages }))}</div>${bwsArrow(1, p === pages - 1, t('Next page'))}</div>
-      <div class="bwshint" style="top:${top + bh + 86}px">${fwEsc(t('Tap a card to see it big · swipe or use the arrows'))}</div>`;
+      <div class="bwspager" style="top:${top + bh + 14}px">${bwsArrow(-1, p === 0, t('Previous page'))}<div class="bwspl">${festPager(p, pages, cat)}</div>${bwsArrow(1, p === pages - 1, t('Next page'))}</div>
+      ${festStrip(cat, p, top + bh + 82)}`;
     bwsMarkSeen(cat.slice(p * 4, p * 4 + 4)); }
+  else if (!FIREWORKS[b.key]) h = festSoonView(b, cat, W, H, owned);   /* FESTIVAL-SETS: a Coming Soon card */
   else { const i = cat.indexOf(b.key), k = b.key, x = FIREWORKS[k], r = fwTier(k), has = fwHas(k), tag = bwsTag(k), wish = fwDisc.wishlist[r] === k, fav = fwDisc.favorites.includes(k), sel = pick.firework === k, F = BWS_FR;
     const w = Math.round(Math.min(W * 0.7, (H - 290) * F.w / F.h)), s = w / F.w, ch = Math.round(F.h * s), pad = Math.round(14 * s), bg = has ? '' : `background-size:${Math.round(F.pw * s)}px ${Math.round(F.ph * s)}px;background-position:${Math.round(-F.x * s + pad)}px ${Math.round(-F.y * s + pad)}px`;
     const btns = has ? `<div class="bwsrow"><button type="button" class="bub" data-bws="watch">▶ ${fwEsc(t('Watch'))}</button><button type="button" class="bub" data-bws="fav" aria-pressed="${fav}">${fav ? '♥' : '♡'} ${fwEsc(t('Favorite'))}</button>${mysCardBtn(k)}</div>`
       : tag ? `<div class="bwsrow"><button type="button" class="bub" data-bws="preview">&#9654; ${fwEsc(t('Preview show'))}</button></div><p class="bwsnote">${fwEsc(tag === 'PASS' ? t('Comes with the season pass.') : t('A collection prize, never found in a level.'))}</p>`
       : `<div class="bwsrow"><button type="button" class="bub${wish ? ' bwswished' : ''}" data-bws="wish"${fwWishChoices(r).includes(k) ? '' : ' disabled'}>${wish ? '★ ' + fwEsc(t('Your wish')) : '☆ ' + fwEsc(t('Make it my wish'))}</button><button type="button" class="bub" data-bws="preview">&#9654; ${fwEsc(t('Preview show'))}</button></div><p class="bwsnote">${fwEsc(t('Win a new level to find it.'))} ${fwEsc(t('A wish is picked {p}% of the time when that rarity comes up.', { p:Math.round(FW_WISH_CHANCE * 100) }))}</p>`;
-    h = `<div class="bwstop"><button type="button" class="bub back" data-bws="back">‹ ${fwEsc(t('Page {n}', { n:Math.floor(i / 4) + 1 }))}</button><h3>${has ? fwEsc(t(x.name)) : fwEsc(t('Not found yet'))}</h3>${b.win ? bwsX886() : ''}<span class="bwscnt">${owned} / ${cat.length}</span></div><div class="bwsglow" style="left:-10%;top:10%;width:120%;height:70%"></div>
+    h = `<div class="bwstop"><button type="button" class="bub back" data-bws="back">‹ ${fwEsc(festOn() ? festPageName(Math.floor(i / 4), cat) : t('Page {n}', { n:Math.floor(i / 4) + 1 }))}</button><h3>${has ? fwEsc(t(x.name)) : fwEsc(t('Not found yet'))}</h3>${b.win ? bwsX886() : ''}<span class="bwscnt">${owned} / ${festTotal(cat)}</span></div><div class="bwsglow" style="left:-10%;top:10%;width:120%;height:70%"></div>
       <div class="bwsbig${has ? '' : ' parch'} ${calm ? '' : b.anim}" style="top:70px;width:${w + pad * 2}px;height:${ch + pad * 2}px;${bg}"><div style="position:absolute;left:${pad}px;top:${pad}px;width:${w}px;height:${ch}px">${bwsSlot(cat, i)}</div></div>
-      <div class="bwsmeta" style="top:${70 + ch + pad * 2 + 14}px"><div style="display:flex;gap:8px;align-items:center;font:800 .8rem var(--display);color:#adafd6"><span class="bwschip" style="--c:${bwsTC(r)}">${fwEsc(bwsTN(r))}</span>${has ? '' : fwEsc(t(x.name))}</div>${btns}</div>
+      <div class="bwsmeta" style="top:${70 + ch + pad * 2 + 14}px"><div style="display:flex;gap:8px;align-items:center;font:800 .8rem var(--display);color:#adafd6"><span class="bwschip" style="--c:${bwsTC(r)}">${fwEsc(bwsTN(r))}</span>${has ? '' : fwEsc(t(x.name))}</div>${btns}${festCardExtra(k, has, tag)}</div>
       <div class="bwspager" style="top:${H - 72}px">${bwsArrow(-1, i === 0, t('Previous card'))}<div class="bwspl">${fwEsc(t('Card {n} of {m}', { n:i + 1, m:cat.length }))}<small>${fwEsc(has ? t('Found') : t('Not found yet'))}</small></div>${bwsArrow(1, i === cat.length - 1, t('Next card'))}</div>`;
     bwsMarkSeen([k]); }
   b.ov.innerHTML = h + (b.win ? bwsKeep886() : '') + mysBanner(b); bwsPaint(b.ov); bwmStart(b);   /* BINDER-MOTION */ const cov = b.ov.querySelector('.bwscov.open'); if (cov) { const gone = () => cov.remove(); cov.addEventListener('animationend', gone, { once:true }); setTimeout(gone, 900); }   /* the timer covers an animation that never ends (app hidden mid-swing) */
@@ -35083,8 +35084,10 @@ function bwsTurn(d) { const b = BWS; if (!b) return; b.turns = (b.turns || 0) + 
   ov.addEventListener('animationend', fin, { once:true }); setTimeout(fin, 650); }   /* the timer covers a turn that never ends */
 function bwsClick(e) { const b = BWS; if (!b) return; if (bwsWinClick886(e)) return; if (mysClick(e)) return;   /* SHOW-SLOTS */ const el = e.target.closest('[data-bws],[data-slot]'); if (!el || el.disabled || !b.ov.contains(el)) return; const a = el.dataset.bws, cat = bndOrder();
   if (a === 'next') return bwsTurn(1); if (a === 'prev') return bwsTurn(-1); if (a === 'close' || a === 'back') return bwsBack();
+  if (a === 'festclaim') return festClaim(+el.dataset.set);   /* FESTIVAL-SETS */
   if (el.dataset.slot != null && b.scr === 'page') { b.key = cat[+el.dataset.slot]; if (!b.key) return; b.cards = (b.cards || 0) + 1; b.scr = 'card'; b.anim = ''; bwsRender(); try { track('binder_ws_card', { firework:b.key, owned:fwHas(b.key) ? 1 : 0 }); } catch (e2) {} return; }
   const k = b.key; if (!k || b.scr !== 'card') return; const r = fwTier(k);
+  if (a === 'festfill') return festFill(k);   /* FESTIVAL-SETS */
   if (a === 'fav') { fwDisc.favorites = fwDisc.favorites.includes(k) ? fwDisc.favorites.filter(q => q !== k) : [...new Set([...fwDisc.favorites, k])]; saveAll(); bwsRender(); return; }
   if (a === 'wish') { if (!fwWishChoices(r).includes(k)) return; fwDisc.wishlist[r] = fwDisc.wishlist[r] === k ? '' : k; saveAll(); try { track('firework_wishlist', { rarity:r, firework:fwDisc.wishlist[r] || null }); } catch (e2) {} bwsRender(); return; }
   if (a === 'use') { const card = [...$('fireworks').querySelectorAll('.opt')].find(o => o.dataset.v === k); if (card) card.click(); else { pick.firework = k; saveAll(); } bwsRender(); return; }
@@ -35151,7 +35154,7 @@ function fcCss() { if (document.getElementById('fc886css')) return; const st = d
   st.textContent = Object.keys(FCGEO).map(r => { const g = FCGEO[r], ah = g.aw * g.asp; return `.fc-${r}{--al:${g.al}%;--at:${g.at}%;--aw:${g.aw}%;--ah:${ah.toFixed(2)}%;--mpx:${(g.al / (100 - g.aw) * 100).toFixed(2)}%;--mpy:${(g.at / (100 - ah) * 100).toFixed(2)}%;--nb:${g.nb}%;--nc:${g.nc};--frm:url("${CARDFRAME886[r]}")}`; }).join(' ') + FC_CSS;
   document.head.appendChild(st); }
 function fcTier(r) { return FCGEO[r] ? r : 'common'; }
-function fcCard(k, o) { o = o || {}; const x = FIREWORKS[k], r = fcTier(fwTier(k)), nm = fwEsc(t(x.name)), at = o.attr || 'data-k';
+function fcCard(k, o) { o = o || {}; if (!FIREWORKS[k]) return festSoonCard(k);   /* FESTIVAL-SETS */ const x = FIREWORKS[k], r = fcTier(fwTier(k)), nm = fwEsc(t(x.name)), at = o.attr || 'data-k';
   if (!o.lock) { const art = o.art === 'img' ? `<img alt="" src="${o.src || ''}">` : o.art === 'bp' ? `<canvas data-bp="${fwEsc(k)}"></canvas>` : o.art ? `<canvas data-k="${fwEsc(k)}" data-w="p"></canvas>` : '';
     return `<div class="fcc fc-${r}"><div class="fcfrm"></div><div class="fcart">${art}</div><div class="fcnm">${nm}</div>${o.fresh ? `<i class="fcnew">${fwEsc(t('NEW'))}</i>` : ''}${o.fav ? '<i class="fcfav">♥</i>' : ''}</div>`; }
   return `<div class="fcc fclk fc-${r}${o.cls ? ' ' + o.cls : ''}" style="--tier:${bwsTC(fwTier(k))}">${o.art ? `<div class="fcart bwsart"><canvas class="h" ${at}="${fwEsc(k)}" data-w="h"></canvas><canvas class="d" ${at}="${fwEsc(k)}" data-w="d"></canvas></div>` : ''}<div class="fcnm">${nm}</div><div class="fcdiv"><i>✦</i></div><i class="fcgem"></i>${o.tag ? `<span class="fctag">${o.tag}</span>` : o.wish ? '<i class="fcwish">★</i>' : ''}</div>`; }
@@ -35246,6 +35249,163 @@ function bwmBuild(M, t1) { for (const c of M.cards) { while (!c.done && performa
       if (c.fr.length > had && bwmJudge(M, c, performance.now() - a)) return; }
     if (performance.now() - t1 >= BWM_CFG.budget) break; } }
 // ===== END BINDER-MOTION-LITE =====
+// ===== FESTIVAL-SETS (patch-festival-sets.py; owner 11/27) =====
+// The binder is 19 Festival sets of 4 plus the season set; a page is a set. Fireworks not built yet are "Coming Soon..." cards that are
+// never pulled or counted. Duplicates give set stamps; a duplicate pull is drawn again once; Stage 1 pulls are fixed. ?fest=0 turns it off.
+var FEST_SOON = { sampaguita:{ tier:'common' }, wattle:{ tier:'common' }, silverfern:{ tier:'common' }, bungaraya:{ tier:'common' }, goldfish:{ tier:'common' },
+  kangaroo:{ tier:'rare' }, kea:{ tier:'rare' }, orangutan:{ tier:'rare' }, hamster:{ tier:'rare' }, snowglobe:{ tier:'rare' }, reindeer:{ tier:'epic' }, newyear:{ tier:'epic' } };
+var FEST_R = { a:{ coins:200, hints:2 }, b:{ coins:400, freezes:2 }, c:{ coins:600, skips:1 } };
+var FEST_SETS = [
+  { id:'classic', name:'Classic Show', key:'kamuro', cards:['peony', 'willow', 'palm', 'kamuro'], r:'a' },
+  { id:'garden', name:'Garden Party', key:'blossomtree', cards:['blossom', 'dandelion', 'firefly', 'blossomtree'], r:'a' },
+  { id:'wings', name:'Wings', key:'peacock', cards:['butterfly', 'flock', 'phoenix', 'peacock'], r:'a' },
+  { id:'party', name:'Party Time', key:'carousel', cards:['cake', 'notes', 'balloons', 'carousel'], r:'a', item:'launcher:cupcake' },
+  { id:'pets', name:'Pets', key:'goodboy', cards:['catface', 'goldfish', 'hamster', 'goodboy'], r:'b' },
+  { id:'lunar', name:'Lunar Festival', key:'dragons', cards:['koi', 'lanterns', 'rabbit', 'dragons'], r:'b', item:'launcher:dragon' },
+  { id:'spooky', name:'Spooky Night', key:'witching', cards:['skull', 'bats', 'bigsteps', 'witching'], r:'b', item:'launcher:cauldron' },
+  { id:'masquerade', name:'Masquerade Ball', key:'masks', cards:['crown', 'rose', 'slipper', 'masks'], r:'b', item:'launcher:carriage' },
+  { id:'malaysia', name:'Malaysia', key:'waubulan', cards:['bungaraya', 'orangutan', 'kenyalang', 'waubulan'], r:'b' },
+  { id:'philislands', name:'Philippine Islands', key:'sarimanok', cards:['sampaguita', 'vinta', 'bayanihan', 'sarimanok'], r:'b' },
+  { id:'nz', name:'Aotearoa New Zealand', key:'kiwinight', cards:['silverfern', 'kea', 'tui', 'kiwinight'], r:'b' },
+  { id:'australia', name:'Australia', key:'kookaburra', cards:['wattle', 'kangaroo', 'platypus', 'kookaburra'], r:'b' },
+  { id:'gameday', name:'Game Day', key:'buzzer', cards:['fieldgoal', 'golazo', 'sixer', 'buzzer'], r:'c', item:'launcher:mascot' },
+  { id:'scifi', name:'Sci-Fi Night', key:'contact', cards:['picture', 'hyperspace', 'neon', 'contact'], r:'c', item:'launcher:ufo' },
+  { id:'nightsky', name:'Night Sky', key:'galaxy', cards:['shooting', 'constellation', 'aurora', 'galaxy'], r:'c', item:'launcher:treehouse' },
+  { id:'holidays', name:'Holidays', key:'newyear', cards:['heart', 'cupid', 'diwali', 'newyear'], r:'c', item:'launcher:teddy' },
+  { id:'water', name:'Water Wonders', key:'whale', cards:['lotus', 'jellyfish', 'mermaid', 'whale'], r:'c', item:'launcher:kraken' },
+  { id:'philfiesta', name:'Philippine Fiesta', key:'skyjeepney', cards:['parol', 'pahiyas', 'higantes', 'skyjeepney'], r:'c', item:'launcher:becak' },
+  { id:'lightshow', name:'Light Show', key:'storm', cards:['concert', 'skywriter', 'prism', 'storm'], r:'c', item:'launcher:robot' },
+  { id:'s1', name:'Starry Nights', key:'starry', cards:['xmastree', 'snowglobe', 'reindeer', 'starry'], season:1, r:{ coins:500 } },
+];
+var FEST_EXTRA = ['trophy', 'wonders'];   /* the two collection prizes: a last page of their own */
+var FEST_FIXED = { 1:'willow', 3:'palm', 5:'kamuro' };   /* owner 11/27: Stage 1 pulls are fixed */
+var FEST_FILL = { common:10, rare:10, epic:30 }, FEST_NEWS = [], FEST_ORD = null;
+function festOn() { return typeof FEST_SETS !== 'undefined' && Array.isArray(FEST_SETS) && !/[?&]fest=0(&|$)/.test(location.search); }   /* false until this block has run */
+function festOrder() { const cat = fwCatalog(), sig = cat.length + '|' + cat[cat.length - 1]; if (FEST_ORD && FEST_ORD.sig === sig) return FEST_ORD.list.slice();
+  const o = []; FEST_SETS.forEach(st => st.cards.forEach(k => { if (!o.includes(k)) o.push(k); })); cat.forEach(k => { if (!o.includes(k) && !FEST_EXTRA.includes(k)) o.push(k); });   /* a firework added later and in no set yet */
+  FEST_EXTRA.forEach(k => { if (cat.includes(k) && !o.includes(k)) o.push(k); }); FEST_ORD = { sig, list:o }; return o.slice(); }
+const festTotal = cat => cat.filter(k => k && FIREWORKS[k]).length, festMain = () => FEST_SETS.filter(st => !st.season);
+const festSetOf = k => FEST_SETS.find(st => st.cards.includes(k)) || null, festHave = st => st.cards.filter(k => FIREWORKS[k] && fwHas(k)).length, festDone = st => st.cards.every(k => FIREWORKS[k] && fwHas(k));
+const festClaimed = st => (fwDisc.festClaimed || []).includes(st.id), festDoneCount = () => festMain().filter(festDone).length;
+function festReward(st) { const r = Object.assign({}, typeof st.r === 'string' ? FEST_R[st.r] : st.r); if (st.item) r.items = [st.item]; return r; }
+function festPageName(p, cat) { const st = FEST_SETS[p]; if (st) return t(st.name); cat = cat || bndOrder(); return cat.slice(p * 4, p * 4 + 4).some(k => FEST_EXTRA.includes(k)) ? t('Prizes') : t('Page {n}', { n:p + 1 }); }
+function festSoonCard() { return `<div class="fcc fclk fc-common fcsoon"><div class="fcq">?</div><div class="fcnm">${fwEsc(t('Coming Soon...'))}</div><div class="fcdiv"><i>✦</i></div></div>`; }
+function festSoonSlot(cat, i) { return `<div class="bwsslot fsoon" data-slot="${i}" role="button" tabindex="0" aria-label="${fwEsc(t('Coming Soon...'))}">${festSoonCard()}</div>`; }
+// The page plaque becomes a ribbon banner themed per set (owner 11/27: "use flexibility on the plaque to express creativity, while keeping
+// the rest of the book as is ... if its a nationality, the plaque+font color should be the country flag colors"). It covers the painted plaque.
+const fsStar = (cx, cy, R, r, n, fill, stroke, sw) => { let d = ''; for (let i = 0; i < n * 2; i++) { const a = -Math.PI / 2 + i * Math.PI / n, q = i % 2 ? r : R; d += (i ? 'L' : 'M') + (cx + q * Math.cos(a)).toFixed(2) + ' ' + (cy + q * Math.sin(a)).toFixed(2); } return `<path d="${d}Z" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"` : ''}/>`; };
+const fsSvg = (vb, inner) => `<svg viewBox="${vb}" aria-hidden="true">${inner}</svg>`;
+const fsSun = (cx, cy, s, c) => { let d = ''; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux; d += `M${(cx + ux * 4.6 * s + px * 1.5 * s).toFixed(2)} ${(cy + uy * 4.6 * s + py * 1.5 * s).toFixed(2)}L${(cx + ux * 10 * s).toFixed(2)} ${(cy + uy * 10 * s).toFixed(2)}L${(cx + ux * 4.6 * s - px * 1.5 * s).toFixed(2)} ${(cy + uy * 4.6 * s - py * 1.5 * s).toFixed(2)}Z`; } return `<path d="${d}" fill="${c}"/><circle cx="${cx}" cy="${cy}" r="${(4 * s).toFixed(2)}" fill="${c}"/>`; };
+const FS_ART = {
+  dot:c => fsSvg('0 0 24 24', fsStar(12, 12, 9, 3.4, 4, c)),
+  blossom:() => fsSvg('0 0 24 24', [0, 1, 2, 3, 4].map(k => `<circle cx="${(12 + 5.6 * Math.cos(-Math.PI / 2 + k * 1.2566)).toFixed(2)}" cy="${(12 + 5.6 * Math.sin(-Math.PI / 2 + k * 1.2566)).toFixed(2)}" r="4.4" fill="#f7a8c8"/>`).join('') + '<circle cx="12" cy="12" r="3.2" fill="#ffe08a"/>'),
+  paw:c => fsSvg('0 0 24 24', `<ellipse cx="12" cy="15.5" rx="5.2" ry="4.4" fill="${c}"/><circle cx="5.8" cy="9.6" r="2.2" fill="${c}"/><circle cx="9.6" cy="5.8" r="2.2" fill="${c}"/><circle cx="14.4" cy="5.8" r="2.2" fill="${c}"/><circle cx="18.2" cy="9.6" r="2.2" fill="${c}"/>`),
+  moon:c => fsSvg('0 0 24 24', `<path d="M15 3a9 9 0 1 0 6 15.6A7.2 7.2 0 0 1 15 3z" fill="${c}"/>`),
+  lantern:() => fsSvg('0 0 24 24', '<rect x="10.6" y="1.5" width="2.8" height="3" fill="#ffd96b"/><ellipse cx="12" cy="12" rx="7" ry="7.2" fill="#ffd96b"/><ellipse cx="12" cy="12" rx="4.2" ry="7.2" fill="none" stroke="#c8102e" stroke-width="1.2"/><rect x="10.6" y="19" width="2.8" height="3.5" fill="#ffd96b"/>'),
+  mask:c => fsSvg('0 0 24 24', `<path d="M2 8c3-2 6-2 10 0c4-2 7-2 10 0c0 5-3 8-6 8c-2 0-3-2-4-2s-2 2-4 2c-3 0-6-3-6-8z" fill="${c}"/><ellipse cx="7.4" cy="10.6" rx="2.2" ry="1.5" fill="#2c1446"/><ellipse cx="16.6" cy="10.6" rx="2.2" ry="1.5" fill="#2c1446"/>`),
+  wave:c => fsSvg('0 0 24 24', `<path d="M1 14c3-4 5-4 7.5 0s5 4 7.5 0s5-4 7.5 0" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/><path d="M1 19c3-4 5-4 7.5 0s5 4 7.5 0s5-4 7.5 0" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" opacity=".6"/>`),
+  ball:c => fsSvg('0 0 24 24', `<circle cx="12" cy="12" r="9" fill="none" stroke="${c}" stroke-width="2"/><path d="M12 3v18M3 12h18M5.6 5.6c3 3 3 9.8 0 12.8M18.4 5.6c-3 3-3 9.8 0 12.8" fill="none" stroke="${c}" stroke-width="1.4"/>`),
+  my:() => fsSvg('0 0 30 24', '<path d="M11 3a9 9 0 1 0 0 18a10.5 10.5 0 0 1 0-18z" fill="#FFCC00"/>' + fsStar(20.4, 12, 4.8, 2.1, 14, '#FFCC00')),
+  myStar:() => fsSvg('0 0 24 24', fsStar(12, 12, 8, 3.4, 14, '#FFCC00')),
+  phSun:() => fsSvg('0 0 24 24', fsSun(12, 12, 1, '#FCD116')),
+  phHoist:() => `<svg class="fbh" viewBox="0 0 26 24" preserveAspectRatio="xMinYMid meet" aria-hidden="true"><path d="M0 0L24 12L0 24Z" fill="#fff"/>${fsSun(8.2, 12, 0.42, '#FCD116')}${fsStar(2.6, 3.4, 1.7, 0.7, 5, '#FCD116')}${fsStar(2.6, 20.6, 1.7, 0.7, 5, '#FCD116')}${fsStar(19.4, 12, 1.7, 0.7, 5, '#FCD116')}</svg>`,
+  nzCross:() => fsSvg('0 0 40 24', [[20, 4.6, 3.7], [12.5, 12, 3.4], [27, 10.5, 3.2], [20, 19.6, 3.9]].map(([x, y, r]) => fsStar(x, y, r, r * 0.42, 5, '#C8102E', '#ffffff', 1.1)).join('')),
+  auCross:() => fsSvg('0 0 40 24', [[20, 3.8, 3.4], [12, 11.4, 3.4], [28.4, 9.6, 3.4], [20, 20, 3.6]].map(([x, y, r]) => fsStar(x, y, r, r * 0.45, 7, '#ffffff')).join('') + fsStar(24.2, 14, 1.8, 0.8, 5, '#ffffff')),
+  auStar:() => fsSvg('0 0 24 24', fsStar(12, 12, 10, 4.4, 7, '#ffffff')),
+  star:c => fsSvg('0 0 24 24', fsStar(12, 12, 10, 4.2, 5, c)),
+};
+const FEST_TH = {
+  classic:{ bg:'linear-gradient(#24346f,#101a45)', edge:'#d9a94c', ink:'#ffd36b', L:FS_ART.dot('#ffd36b'), R:FS_ART.dot('#ffd36b') },
+  garden:{ bg:'linear-gradient(#4f9442,#2b6328)', edge:'#f4a9c6', ink:'#fff0f6', L:FS_ART.blossom(), R:FS_ART.blossom() },
+  wings:{ bg:'linear-gradient(#6cbaf0,#2f73b8)', edge:'#eaf6ff', ink:'#ffffff', L:FS_ART.dot('#ffffff'), R:FS_ART.dot('#ffffff') },
+  party:{ bg:'radial-gradient(circle at 18% 28%,#ffd84a 0 1.6%,transparent 2%),radial-gradient(circle at 72% 74%,#4fd1ff 0 1.6%,transparent 2%),radial-gradient(circle at 40% 80%,#7dff8a 0 1.4%,transparent 1.8%),radial-gradient(circle at 86% 22%,#ffffff 0 1.3%,transparent 1.7%),radial-gradient(circle at 60% 18%,#ffd84a 0 1.2%,transparent 1.6%),linear-gradient(#e2448f,#a01f63)', edge:'#ffd84a', ink:'#fff36b', L:FS_ART.star('#ffd84a'), R:FS_ART.star('#4fd1ff') },
+  pets:{ bg:'linear-gradient(#cc8848,#8a531f)', edge:'#f3cf9a', ink:'#fff4e0', L:FS_ART.paw('#fff4e0'), R:FS_ART.paw('#fff4e0') },
+  lunar:{ bg:'linear-gradient(#d8152f,#8f0a1f)', edge:'#ffd96b', ink:'#ffd96b', L:FS_ART.lantern(), R:FS_ART.lantern() },
+  spooky:{ bg:'linear-gradient(#2c1444,#110818)', edge:'#ff9a1f', ink:'#ff9a1f', L:FS_ART.moon('#ff9a1f'), R:FS_ART.moon('#ff9a1f') },
+  masquerade:{ bg:'linear-gradient(#5b2f82,#2c1446)', edge:'#d9a94c', ink:'#f2c46a', L:FS_ART.mask('#f2c46a'), R:FS_ART.mask('#f2c46a') },
+  malaysia:{ bg:'#010066', edge:'repeating-linear-gradient(90deg,#CC0001 0 6%,#ffffff 6% 12%)', ink:'#FFCC00', L:FS_ART.my(), R:FS_ART.myStar(), cls:'wl' },   /* Jalur Gemilang: blue, yellow crescent and star, red and white stripes */
+  philislands:{ bg:'linear-gradient(#0038A8 50%,#CE1126 50%)', edge:'#FCD116', ink:'#ffffff', hoist:FS_ART.phHoist(), R:FS_ART.phSun(), cls:'ph' },   /* the Philippine flag: blue over red, the white triangle with the sun and three stars */
+  nz:{ bg:'#012169', edge:'#C8102E', ink:'#ffffff', R:FS_ART.nzCross(), L:FS_ART.star('#C8102E'), cls:'wr' },   /* New Zealand flag: blue, red Southern Cross stars edged white */
+  australia:{ bg:'#00008B', edge:'#ffffff', ink:'#ffffff', L:FS_ART.auStar(), R:FS_ART.auCross(), cls:'wr' },   /* Australian flag: blue, white Commonwealth Star and Southern Cross */
+  gameday:{ bg:'repeating-linear-gradient(90deg,#2f8f3c 0 10%,#39a548 10% 20%)', edge:'#ffffff', ink:'#ffffff', L:FS_ART.ball('#ffffff'), R:FS_ART.ball('#ffffff') },
+  scifi:{ bg:'linear-gradient(#0b0f2a,#1d0a3c)', edge:'#ff4fd8', ink:'#5cf2ff', L:FS_ART.dot('#ff4fd8'), R:FS_ART.dot('#ff4fd8'), cls:'neon' },
+  nightsky:{ bg:'radial-gradient(circle at 15% 30%,#fff 0 .5%,transparent .8%),radial-gradient(circle at 34% 72%,#fff 0 .4%,transparent .7%),radial-gradient(circle at 66% 25%,#fff 0 .45%,transparent .75%),radial-gradient(circle at 84% 66%,#fff 0 .5%,transparent .8%),linear-gradient(#0d1748,#060a24)', edge:'#9fb3ff', ink:'#e8eeff', L:FS_ART.moon('#e8eeff'), R:FS_ART.star('#e8eeff') },
+  holidays:{ bg:'linear-gradient(#b8142f,#7d0b20)', edge:'#3fa45b', ink:'#ffe08a', L:FS_ART.star('#ffe08a'), R:FS_ART.star('#ffe08a') },
+  water:{ bg:'linear-gradient(#22b3c7,#0b6a8c)', edge:'#c7f6ff', ink:'#ffffff', L:FS_ART.wave('#c7f6ff'), R:FS_ART.wave('#c7f6ff') },
+  philfiesta:{ bg:'linear-gradient(#CE1126,#9e0d1d)', edge:'#0038A8', ink:'#FCD116', L:FS_ART.phSun(), R:FS_ART.phSun(), cls:'fiesta' },   /* fiesta red and sun yellow, blue trim, banderitas */
+  lightshow:{ bg:'#07050e', edge:'linear-gradient(90deg,#ff4f6d,#ffb84f,#f9f871,#5cf27a,#4fc3ff,#b16bff)', ink:'#ffffff', L:FS_ART.dot('#4fc3ff'), R:FS_ART.dot('#ff4f6d'), cls:'rainbow' },
+  s1:{ bg:'linear-gradient(135deg,#1b3a73,#2d5fa8 45%,#1b3a73)', edge:'#f6d860', ink:'#f6d860', L:FS_ART.moon('#f6d860'), R:FS_ART.star('#f6d860') },
+  prizes:{ bg:'linear-gradient(#e2ab2c,#a8740f)', edge:'#fff1b8', ink:'#fff8e0', L:FS_ART.star('#fff8e0'), R:FS_ART.star('#fff8e0') },
+};
+function festBand(p, cat) { const st = FEST_SETS[p], nm = st ? t(st.name) : festPageName(p, cat), th = FEST_TH[st ? st.id : 'prizes'] || FEST_TH.classic, done = st && festDone(st);
+  const pill = st ? `<i class="${done ? 'ok' : ''}">${done ? '✓ ' + fwEsc(t('COMPLETE')) : (st.season ? fwEsc(t('SEASON')) + ' · ' : '') + festHave(st) + ' / 4'}</i>` : '';
+  return `<div class="fband${th.cls ? ' ' + th.cls : ''}" style="--fe:${th.edge};--fb:${th.bg};--fi:${th.ink}"><div class="fbin">${th.hoist || ''}${th.L ? `<span class="fbm l">${th.L}</span>` : ''}<b class="${nm.length > 15 ? 'l2' : ''}">${fwEsc(nm)}</b>${pill}${th.R ? `<span class="fbm r">${th.R}</span>` : ''}</div></div>`; }
+function festBookHd(p, cat, n) { return typeof festOn === 'function' && festOn() && (FEST_SETS[p] || festPageName(p, cat) === t('Prizes')) ? festBand(p, cat) : '<div class="b5hd">' + fwEsc(t('Page {n}', { n })) + '</div>'; }
+function festBookMain(b) { try { if (!festOn()) { b.el.hd.textContent = t('Page {n}', { n:b.page }); return; } b.el.hd.textContent = ''; b.el.hd.insertAdjacentHTML('beforebegin', festBand(b.page - 1, b.cat)); } catch (e) { b.el.hd.textContent = t('Page {n}', { n:b.page }); } }
+var festPageInner0 = bwsPageInner;
+bwsPageInner = (cat, p) => { if (!festOn()) return festPageInner0(cat, p); const st = FEST_SETS[p];
+  return festBand(p, cat) + `<div class="bwsgrid">${[0, 1, 2, 3].map(j => { const i = p * 4 + j, h = bwsSlot(cat, i); return st && cat[i] === st.key && h.endsWith('</div>') ? h.slice(0, -6) + `<span class="fkey">★ ${fwEsc(t('KEY'))}</span></div>` : h; }).join('')}</div>`; };
+function festPager(p, pages, cat) { if (!festOn()) return fwEsc(t('Page {n} of {m}', { n:p + 1, m:pages })); const st = FEST_SETS[p], n = festMain().length;
+  if (st && !st.season) return fwEsc(t('Set {n} of {m}', { n:p + 1, m:n })) + `<small>${fwEsc(t('{n} of {m} sets complete', { n:festDoneCount(), m:n }))}</small>`;
+  return fwEsc(st ? t('Season set') : festPageName(p, cat)) + `<small>${fwEsc(t('Page {n} of {m}', { n:p + 1, m:pages }))}</small>`; }
+function festStrip(cat, p, y) { const st = festOn() && FEST_SETS[p]; if (!st) return `<div class="bwshint" style="top:${y + 4}px">${fwEsc(t('Tap a card to see it big · swipe or use the arrows'))}</div>`;
+  const done = festDone(st), got = festClaimed(st), soon = st.cards.some(k => !FIREWORKS[k]);
+  const right = got ? `<span class="fsok">✓ ${fwEsc(t('Claimed'))}</span>` : done ? `<button type="button" class="bub fsclaim" data-bws="festclaim" data-set="${p}">${fwEsc(t('Claim'))}</button>` : soon ? `<span class="fssoon">${fwEsc(t('Coming Soon...'))}</span>` : `<span class="fsn2">${festHave(st)}/4</span>`;
+  return `<div class="fstrip${done && !got ? ' gold' : ''}" style="top:${y}px"><div class="fsl"><b>${fwEsc(done ? (got ? t('Set complete') : t('Set complete!')) : st.season ? t('Finish the season set') : t('Finish the set'))}</b><span class="fsr">${rewardChips(festReward(st))}</span></div>${right}</div>`; }
+function festSoonView(b, cat, W, H, owned) { const i = cat.indexOf(b.key), F = BWS_FR, w = Math.round(Math.min(W * 0.7, (H - 290) * F.w / F.h)), s = w / F.w, ch = Math.round(F.h * s), pad = Math.round(14 * s), st = festSetOf(b.key), calm = bwsCalm();
+  const bg = `background-size:${Math.round(F.pw * s)}px ${Math.round(F.ph * s)}px;background-position:${Math.round(-F.x * s + pad)}px ${Math.round(-F.y * s + pad)}px`;
+  return `<div class="bwstop"><button type="button" class="bub back" data-bws="back">‹ ${fwEsc(festPageName(Math.floor(i / 4), cat))}</button><h3>${fwEsc(t('Coming Soon...'))}</h3>${b.win ? bwsX886() : ''}<span class="bwscnt">${owned} / ${festTotal(cat)}</span></div><div class="bwsglow" style="left:-10%;top:10%;width:120%;height:70%"></div>
+    <div class="bwsbig parch ${calm ? '' : b.anim}" style="top:70px;width:${w + pad * 2}px;height:${ch + pad * 2}px;${bg}"><div style="position:absolute;left:${pad}px;top:${pad}px;width:${w}px;height:${ch}px">${bwsSlot(cat, i)}</div></div>
+    <div class="bwsmeta" style="top:${70 + ch + pad * 2 + 14}px">${st ? `<div style="font:800 .8rem var(--display);color:#adafd6">${fwEsc(t(st.season ? 'Season set: {set}' : 'Set: {set}', { set:t(st.name) }))}</div>` : ''}<p class="bwsnote">${fwEsc(t('A new firework for this set is on its way.'))}</p></div>
+    <div class="bwspager" style="top:${H - 72}px">${bwsArrow(-1, i === 0, t('Previous card'))}<div class="bwspl">${fwEsc(t('Card {n} of {m}', { n:i + 1, m:cat.length }))}<small>${fwEsc(t('Coming Soon...'))}</small></div>${bwsArrow(1, i === cat.length - 1, t('Next card'))}</div>`; }
+function festFillCost(k) { if (!festOn() || !FIREWORKS[k] || fwHas(k) || !fwPool().includes(k)) return 0; return FEST_FILL[fwTier(k)] || 0; }   /* never a Legendary, a prize or a live pass firework */
+function festCardExtra(k, has, tag) { if (!festOn()) return ''; const st = festSetOf(k); let h = st ? `<p class="bwsnote fsof">${fwEsc(t(st.season ? 'Season set: {set} ({n}/4)' : 'Set: {set} ({n}/4)', { set:t(st.name), n:festHave(st) }))}${st.key === k ? ' · ★ ' + fwEsc(t('key card')) : ''}</p>` : '';
+  const c = !has && !tag ? festFillCost(k) : 0, n = fwDisc.stamps || 0; if (c) h += `<div class="bwsrow"><button type="button" class="bub fsfill" data-bws="festfill"${n >= c ? '' : ' disabled'}>✉ ${fwEsc(t('Use {c} stamps (you have {n})', { c, n }))}</button></div>`; return h; }
+function festStamp(n) { fwDisc.stamps = Math.max(0, (fwDisc.stamps || 0) + n); }
+function festFixed() { try { if (!festOn() || !G || stageOf(G.level) !== 1) return null; const k = FEST_FIXED[levelNo(G.level)]; return k && FIREWORKS[k] && !fwHas(k) ? k : null; } catch (e) { return null; } }
+function festPullKey(k, base) { const f = festFixed(); if (f) return f; if (!festOn() || !k || !fwHas(k)) return k; const r = fwTier(k), alt = base.filter(q => fwTier(q) === r); return alt.length ? fwPickInTier(r, alt) : k; }   /* the duplicate shield: drawn again once, same rarity */
+function festAfterFind(k, how) { try { if (!festOn()) return; const st = festSetOf(k); if (!st || !festDone(st)) return; fwDisc.festSeen = fwDisc.festSeen || []; if (fwDisc.festSeen.includes(st.id)) return; fwDisc.festSeen.push(st.id); FEST_NEWS.push(st.id);
+  track('fest_set_complete', { set:st.id, season:st.season ? 1 : 0, via:how || 'pull', level_id:!how && G ? G.level : null, sets_done:festDoneCount() }); } catch (e) {} }
+function festClaim(p) { const st = FEST_SETS[p]; if (!st || !festDone(st) || festClaimed(st)) return; fwDisc.festClaimed = [...(fwDisc.festClaimed || []), st.id]; const r = festReward(st);
+  try { grantReward(r); if (r.coins) stats.earned += r.coins; } catch (e) {} saveAll(); try { paid(); } catch (e) {} try { track('fest_reward_claim', { set:st.id, season:st.season ? 1 : 0 }); } catch (e) {}
+  try { showToast(t('{set}: reward claimed!', { set:t(st.name) })); } catch (e) {} bwsRender(); }
+function festFill(k) { const c = festFillCost(k); if (!c || (fwDisc.stamps || 0) < c) return; fwDisc.stamps -= c; fwDisc.granted.push(k); saveAll(); try { track('fest_stamp_fill', { firework:k, rarity:fwTier(k), cost:c }); } catch (e) {}
+  festAfterFind(k, 'stamps'); try { showToast(t('{name} is in your binder!', { name:t(FIREWORKS[k].name) })); } catch (e) {} bwsRender(); }
+(function () { if (typeof show !== 'function' || show.__fest) return; const f = show; show = function (id) { const r = f.apply(this, arguments);
+  try { if ((id === 'home' || id === 'custom') && FEST_NEWS.length) { const st = FEST_SETS.find(q => q.id === FEST_NEWS[0]); FEST_NEWS.length = 0; if (st) setTimeout(() => showToast(t('{set} set complete! Claim your reward in My Fireworks.', { set:t(st.name) })), 450); } } catch (e) {} return r; }; show.__fest = true; })();
+try { [['firework:whale', 'legendary'], ['firework:storm', 'legendary']].forEach(([id, tier]) => { const [kind, key] = id.split(':'), x = FIREWORKS[key]; if (!x) return; x.tier = tier; const u = STORE_ROTATION.find(v => v.kind === kind && v.key === key); if (u) { u.tier = tier; x.coins = TIERS[tier].coins; } }); } catch (e) {}   /* owner 11/27: Sky Whale and Storm God move up to Legendary (after the older rarity tables) */
+try { [['blossomtree', { z:0.42, cy:-6 }], ['flock', { z:0.66 }], ['platypus', { z:0.66, cy:-30 }]].forEach(([k, v]) => { if (BWS_FRAME886[k]) Object.assign(BWS_FRAME886[k], v); }); } catch (e) {}   /* picture fixes (owner 11/27) */
+(function () { const st = document.createElement('style'); st.textContent = `
+#bws886{--fu:1cqw} #bnd885{--fu:.49cqw}
+.fband{position:absolute;left:6.5%;right:6.5%;top:2%;height:10.9%;z-index:3;background:var(--fe);clip-path:polygon(0 0,100% 0,96.6% 50%,100% 100%,0 100%,3.4% 50%);pointer-events:none}
+.fband .fbin{position:absolute;inset:calc(.85 * var(--fu));background:var(--fb);clip-path:polygon(0 0,100% 0,96.3% 50%,100% 100%,0 100%,3.7% 50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(.45 * var(--fu));overflow:hidden}
+.fband b{position:relative;z-index:2;font:700 calc(4.4 * var(--fu))/1.05 Georgia,'Times New Roman',serif;color:var(--fi);letter-spacing:.07em;text-transform:uppercase;text-align:center;white-space:nowrap;padding:0 calc(11 * var(--fu));text-shadow:0 calc(.3 * var(--fu)) 0 rgba(0,0,0,.55)}
+.fband b.l2{font-size:calc(3.55 * var(--fu));letter-spacing:.035em}
+.fband i{position:relative;z-index:2;font:800 calc(2.7 * var(--fu))/1.5 var(--display,system-ui);font-style:normal;color:var(--fi);padding:0 calc(2.2 * var(--fu));border-radius:99px;background:rgba(0,0,0,.34);letter-spacing:.05em}
+.fband i.ok{color:#d6ffe0;background:rgba(40,130,70,.9)}
+.fband .fbm{position:absolute;top:50%;transform:translateY(-50%);width:calc(6.6 * var(--fu));height:calc(6.6 * var(--fu));z-index:1;display:flex}
+.fband .fbm svg{width:100%;height:100%}
+.fband .fbm.l{left:calc(4.6 * var(--fu))} .fband .fbm.r{right:calc(4.6 * var(--fu))}
+.fband.wr .fbm.r,.fband.wl .fbm.l{width:calc(10.4 * var(--fu))}
+.fband.wl .fbin{inset:calc(1.25 * var(--fu))}
+.fband.ph .fbh{position:absolute;left:0;top:0;height:100%;width:auto;z-index:1}
+.fband.ph b{text-shadow:0 calc(.3 * var(--fu)) 0 rgba(0,0,0,.6),0 0 calc(1.2 * var(--fu)) rgba(0,0,0,.45)}
+.fband.neon b{text-shadow:0 0 calc(1.4 * var(--fu)) #5cf2ff,0 0 calc(.4 * var(--fu)) #5cf2ff}
+.fband.rainbow b{background:linear-gradient(90deg,#ff4f6d,#ffb84f,#f9f871,#5cf27a,#4fc3ff,#b16bff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.fband.fiesta .fbin::before{content:'';position:absolute;left:0;right:0;top:0;height:22%;background:linear-gradient(135deg,transparent 50%,#0038A8 50%) 0 0/calc(4 * var(--fu)) 100%,linear-gradient(225deg,transparent 50%,#0038A8 50%) 0 0/calc(4 * var(--fu)) 100%;opacity:.9}
+.fband.fiesta .fbin::after{content:'';position:absolute;left:calc(2 * var(--fu));right:0;top:0;height:22%;background:linear-gradient(135deg,transparent 50%,#ffffff 50%) 0 0/calc(8 * var(--fu)) 100%,linear-gradient(225deg,transparent 50%,#ffffff 50%) 0 0/calc(8 * var(--fu)) 100%;opacity:.85}
+.bwsslot .fkey{position:absolute;left:50%;top:-5%;transform:translateX(-50%);z-index:6;padding:.25em .75em;border-radius:99px;white-space:nowrap;background:linear-gradient(#ffd86c,#f29a1f);color:#5a2d0c;font:900 7.5cqw/1.25 var(--display,system-ui);box-shadow:0 .6cqw 0 #9a4f06,0 0 3cqw rgba(255,190,80,.7);pointer-events:none}
+.fcc.fcsoon .fcq{position:absolute;left:0;right:0;top:15%;text-align:center;font:700 46cqw/1 Georgia,'Times New Roman',serif;color:rgba(92,55,20,.5);text-shadow:0 1px 0 rgba(255,246,222,.7),0 -1px 0 rgba(60,32,10,.28)}
+#bws886 .fstrip{position:absolute;left:14px;right:14px;z-index:30;display:flex;align-items:center;gap:10px;min-height:40px;padding:5px 8px 5px 12px;box-sizing:border-box;border-radius:14px;background:rgba(20,16,70,.8);box-shadow:inset 0 0 0 1.5px #4b3f99}
+#bws886 .fstrip.gold{background:linear-gradient(#5a3a10,#3a2508);box-shadow:inset 0 0 0 2px #ffc94a,0 0 16px rgba(255,190,80,.45)}
+#bws886 .fstrip .fsl{flex:1;min-width:0} #bws886 .fstrip .fsl b{display:block;font:900 .72rem var(--display,system-ui);color:#ffc94a;margin-bottom:2px}
+#bws886 .fstrip .fsr{display:flex;flex-wrap:wrap;gap:4px} #bws886 .fstrip .mailchip{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:99px;background:rgba(255,255,255,.1);font:800 .64rem/1.5 var(--display,system-ui);color:#fff}
+#bws886 .fstrip .mailchip svg{width:12px;height:12px}
+#bws886 .fsclaim{padding:7px 16px!important;font-size:.85rem!important;min-height:0!important;flex:0 0 auto}
+#bws886 .fsok{font:900 .75rem var(--display,system-ui);color:#7fe39a;flex:0 0 auto} #bws886 .fssoon,#bws886 .fsn2{font:900 .72rem var(--display,system-ui);color:#e4defe;flex:0 0 auto}
+#bws886 .bwsnote.fsof{margin-top:6px;color:#ffd86c} #bws886 .fsfill{margin-top:2px}
+`; document.head.appendChild(st); })();
+// ===== END FESTIVAL-SETS =====
 // ===== SHOW-SLOTS (patch-show-slots.py; owner 11/27) =====
 // Owner: "When players pull a new firework, that firework is the one that shows. Otherwise use their selected firework ... players unlock
 // firework thresholds (ie 10 unlocks the 1st spot, 25 unlocks the 2nd, 50 unlocks the 3rd), they can then combine their fireworks to build
