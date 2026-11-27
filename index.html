@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.26', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.27', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -13209,14 +13209,38 @@ function emailCard(extra) { if (!CLOUD || cloudEmail() || !$('infoSheet').hidden
     finish(); };
   return true; }
 /* Version 769 (owner): Save your progress at the top of Settings, for players who tapped Not now on the email ask */
-function emailPanel() { const p = $('emailPanel'); if (!p) return; const on = CLOUD && !cloudEmail() && pfGet('emAsk') != null && pfGet('emAsk') !== 'done'; p.hidden = !on; if (!on) return;
+function emailPanel() { const p = $('emailPanel'); if (!p) return; const on = CLOUD && !cloudEmail() && pfGet('emAsk') !== 'done';   /* COMMUNITY-JOIN: Save your progress stays in Settings for everyone, now that nothing asks */ p.hidden = !on; if (!on) return;
   $('emailPanelNote').textContent = t('Save your progress with your email, then pick up where you left off on any phone.');   /* Version 774: no Rice Cooker line */ $('emailPanelGo').textContent = t('Save your progress');
   $('emailPanelGo').onclick = () => { try { glog('t', ['options', 'emailPanel', '']); } catch (e) {} if (emailCard(null)) { const iv = setInterval(() => { if ($('infoSheet').hidden) { clearInterval(iv); emailPanel(); } }, 400); } }; }
 /* the menu / map cards in order: the email after Stage 1 Level 2; from the second return after Stage 1, the install card (with the second email ask) */
+/* ===== COMMUNITY-JOIN (patch-community-join.py, 11/27): the email ask becomes a Join the community card on a win ===== */
+const CM_FIRST = levelId(1, 4), CM_GAP = 6;
+function openOut(url) { try { const C = window.Capacitor, B = C && C.Plugins && C.Plugins.Browser; if (B && B.open) { B.open({ url }); return; } } catch (e) {} try { window.open(url, '_blank', 'noopener'); } catch (e) {} }
+function communityCard(where) { if (!$('infoSheet').hidden || pfGet('cmTap')) return false; const n = (pfGet('cmAsk') | 0) + 1, ic = d => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="flex:none;width:22px;height:22px;max-width:22px;margin:0"><path fill="currentColor" d="${d}"/></svg>`,
+    btn = (id, label, d) => `<button type="button" class="bub" id="${id}" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin:8px 0 0">${ic(d)}<span>${label}</span></button>`;
+  const html = btn('cmDc', 'Discord', 'M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.3a18.3 18.3 0 0 0-5.5 0L8.6 3a19.7 19.7 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.9 19.9 0 0 0 6 3l1.3-2a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.8 19.8 0 0 0 6-3c.5-5.2-.9-9.7-3.6-13.7zM8 15.3c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.5 8 10.5s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z')
+    + (COMMUNITY_FB ? btn('cmFb', 'Facebook', 'M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.3l-.5 3.5h-2.8v8.4A12 12 0 0 0 24 12z') : '');
+  if (!keepCard('Join the community', t('Chat with other players, get tips and sneak peeks, and tell us what to build next.'), html)) return false;
+  pfSet('cmAsk', n); pfSet('cmW0', pfGet('cmW') | 0); subEv('cm_shown', '', where); try { track('cm_shown', { where, n }); } catch (e) {}
+  const dn = $('infoDone'), dnTxt = dn.textContent, dnGold = dn.classList.contains('gold'); dn.textContent = t('Not now'); dn.classList.remove('gold'); let tapped = false;
+  const go = (ch, url) => () => { if (!tapped) { tapped = true; pfSet('cmTap', ch); subEv(ch === 'discord' ? 'cm_dc' : 'cm_fb', '', where); try { track('cm_tap', { ch, where }); } catch (e) {} saveAll(); } openOut(url); setTimeout(() => { try { if (!$('infoSheet').hidden) dn.click(); } catch (e) {} }, 250); };
+  $('cmDc').onclick = go('discord', COMMUNITY_URL); if ($('cmFb')) $('cmFb').onclick = go('facebook', COMMUNITY_FB);
+  const iv = setInterval(() => { if ($('infoSheet').hidden) { clearInterval(iv); dn.textContent = dnTxt; if (dnGold) dn.classList.add('gold'); if (!tapped) subEv('cm_skip', '', where); } }, 300);
+  return true; }
+/* the win-screen check: a new level win counts once; the card waits ~1.5 s for the win screen to settle and for nothing else to be up */
+/* the win screen's binder book stays up after its pull: only its animation (not yet printed, or closing) and an opened binder count as busy;
+   the card waits for 1 s of nothing busy */
+let cmSeen = null, cmT0 = 0, cmOk = 0;
+function cmTick() { try { if (!G || G.zd || G.tut || G.phase !== 'result' || !G.won) { cmT0 = 0; cmOk = 0; return; } if (cmSeen !== G) { cmSeen = G; cmT0 = Date.now(); cmOk = 0; pfSet('cmW', (pfGet('cmW') | 0) + 1); }
+    if (pfGet('cmTap') || (pfGet('cmAsk') | 0) >= 2 || !cmT0 || Date.now() - cmT0 < 1500) return;
+    const busy = (BND && (BND.dying || !BND.print || (BND.stepsDone | 0) < (BND.steps | 0))) || BWS || !$('infoSheet').hidden; if (busy) { cmOk = 0; return; } if (!cmOk) { cmOk = Date.now(); return; } if (Date.now() - cmOk < 1000) return;
+    const n = pfGet('cmAsk') | 0, due = n === 0 ? done.has(CM_FIRST) : (pfGet('cmW') | 0) >= (pfGet('cmW0') | 0) + CM_GAP; if (!due) return;
+    cmT0 = 0; communityCard('win:' + G.level); } catch (e) {} }
+setInterval(cmTick, 500);
 function playCards() { if (G || !tutDone || !$('infoSheet').hidden) return;
-  if (emPending()) { if (emailCard(null)) { try { glog('j', ['shown', SCREENS.find(k => !$(k).hidden) || '']); } catch (e) {} } return; }   /* Version 808 (owner): after Stage 2 Level 1 (was Stage 1 Level 3) */   /* Version 769: after Stage 1 Level 3 */
+  /* COMMUNITY-JOIN: the automatic email ask is gone (the Join the community card shows on a win instead) */   /* Version 808 (owner): after Stage 2 Level 1 (was Stage 1 Level 3) */   /* Version 769: after Stage 1 Level 3 */
   if ((pfGet('backN') || 0) < 2) return;
-  if (CLOUD && !cloudEmail() && pfGet('emAsk') === 1 && (pfGet('backN') || 0) >= (pfGet('emAskB') || 0) + 3) { if (emailCard(null)) return; }   /* Version 826 (owner): never straight after the first ask */   /* Version 757: no install steps in the email ask */
+  /* COMMUNITY-JOIN: no second email ask */   /* Version 826 (owner): never straight after the first ask */   /* Version 757: no install steps in the email ask */
   a2hsCard(); }
 async function cloudBackup(beacon, rid) { if (!CLOUD || (!tutDone && pfGet('zdLink') !== 1)) return null;   /* Version 735 */ const em = cloudEmail(); if (!em) return null; let code = null; try { code = await saveCodeMake(); } catch (e) {} if (!code) { if (rid) subEv('bk_fail', rid, 'code'); return { ok:false, err:'code' }; } if (code === cloudSt.last) return { ok:true, same:true }; cloudSt.at = Date.now();
   const body = { email:em, code, v:CONFIG.analytics && CONFIG.analytics.appVersion, did:CLOUD_DID }; if (beacon) { cloudSt.last = code; cloudPost('save', body, true); return null; }
@@ -30293,7 +30317,7 @@ function openLegal(kind) { const L = LEGAL[kind], was = SCREENS.find(k => !$(k).
 $('privacyBtn').onclick = () => openLegal('privacy');
 $('termsBtn').onclick = () => openLegal('terms');
 $('backLegal').onclick = () => show(legalBack || 'options');
-const COMMUNITY_URL = 'https://discord.gg/gPeBkveSpg';   /* 0.886.9 (owner 11/25): the community Discord (public invite, never expires); opens outside the game */
+const COMMUNITY_URL = 'https://discord.gg/gPeBkveSpg', COMMUNITY_FB = '';   /* COMMUNITY-JOIN: the Facebook link ('' = no Facebook button) */   /* 0.886.9 (owner 11/25): the community Discord (public invite, never expires); opens outside the game */
 $('communityBtn').onclick = () => { try { const C = window.Capacitor, B = C && C.Plugins && C.Plugins.Browser; if (B && B.open) { B.open({ url:COMMUNITY_URL }); return; } } catch (e) {} try { window.open(COMMUNITY_URL, '_blank', 'noopener'); } catch (e) {} };
 $('supportBtn').onclick = () => openInfo('Support', `${t('Need help? Send us your Player ID: {id}', { id:playerId() })}\n\n${SUPPORT_EMAIL || t('Support contact details will be added here before launch.')}`);
 $('fbBtn').onclick = () => showToast(t('Coming soon'));   // Version 196: Google backup instead of Facebook (owner); not built yet
@@ -34726,7 +34750,7 @@ function zdFinish(won, reason) { const K = G.zd, R = K.R, real = K.start <= 1;
   if (!G.charged) { G.charged = true; spendStamina(); } zdBank(K, won, reason || (won ? 'won' : 'launcher'));
   const next = survItems().find(x => x.surv > stats.survBest), prev = survItems().filter(x => x.surv <= stats.survBest).pop();
   K.res = { won, reason:K.banked, emb:K.emb ? Object.assign({}, K.emb) : null, gold:K.gold || 0, first:zdState().runs <= 1, round:R.round, cleared:R.cleared, kills:R.kills, combo:R.bestCombo + 1, dmg:Math.round(K.dealt || 0), fire:R.mode === 'drop' ? R.board.reduce((a, c) => a + (c && !c.rk ? c.v : 0), 0) : null, secs:R.T, merges:R.mode === 'drop' ? R.dMerges || 0 : null, big:R.mode === 'drop' ? R.board.reduce((a, c) => Math.max(a, c && c.v || 0), 0) : 0, fired:R.fired, clean:R.clean, part:Math.round(zdRoundPart(R) * 100), best:real && R.cleared > K.best0, bosses:Math.floor(R.cleared / 5),   /* round 12b: the same count as the Embers line and the Defeat-a-boss achievements (a boss round is only cleared once its boss pops; a run saved before round 12 has no boss counter) */ pures:R.pures || 0, best0:K.best0 || 0, next:next ? { name:next.name, type:Object.values(SMOKES).includes(next) ? 'Smoke' : Object.values(LAUNCHERS).includes(next) ? 'Launchers' : 'Explosions', at:next.surv, from:prev ? prev.surv : 0 } : null, at:clock, burstT:0 };
-  G.phase = 'zdres'; K.over = null; K.drag = null; K.perk = null; K.tip = null; if (zdLinkOn()) { track('zd_link_run', { cleared:R.cleared, won:!!won, run:zdState().runs }); if (CLOUD && !cloudEmail() && pfGet('emAsk') == null && (R.cleared || 0) >= 3 && reason !== 'ended') setTimeout(() => { if (G && G.phase === 'zdres') emailCard(null); }, 1600); }   /* 0.828 (owner): only after a real run (3+ rounds), never after an auto-ended one */   /* Version 735 */
+  G.phase = 'zdres'; K.over = null; K.drag = null; K.perk = null; K.tip = null; if (zdLinkOn()) { track('zd_link_run', { cleared:R.cleared, won:!!won, run:zdState().runs }); if (pfGet('cmAsk') == null && !pfGet('cmTap') && (R.cleared || 0) >= 3 && reason !== 'ended') setTimeout(() => { if (G && G.phase === 'zdres') communityCard('zd'); }, 1600);   /* COMMUNITY-JOIN */ }   /* 0.828 (owner): only after a real run (3+ rounds), never after an auto-ended one */   /* Version 735 */
   $('topstrip').hidden = true; renderStamina(); if (real) { const un = survUnlocks(K.best0, stats.survBest);   /* owner 11/14: no coin strip on the recap */ if (un.length) showUnlocks(un); } }
 /* leaving through leaveLevel (owner 11/13, BLO-88): a saved run stays saved, as Save and exit. A run that cannot be saved (a test
    run from a later round) or is already over ends as before: a quit is losing on this round, a night already won counts as won. */
