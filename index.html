@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.29', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.30', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -35081,7 +35081,7 @@ function bwsLayout() { if (BWS.win) { const r = ($('app') || document.body).getB
   ov.style.height = Math.max(300, bottom) + 'px'; const W = ov.clientWidth, H = ov.clientHeight; return { W, H }; }
 function bwsRender() { const b = BWS; if (!b) return; const { W, H } = bwsLayout(), cat = bndOrder(), pages = Math.max(1, Math.ceil(cat.length / 4)), calm = bwsCalm(), owned = cat.filter(fwHas).length; let h;
   if (b.scr === 'card' && cat.indexOf(b.key) < 0) b.scr = 'page';
-  if (b.scr === 'page') { b.page = Math.max(0, Math.min(b.page, pages - 1)); const bw = Math.round(Math.min(W * 0.892, (H - 66 - 108) * BWS_BA)), bh = Math.round(bw / BWS_BA), extra = Math.max(0, H - 66 - 108 - bh), top = 62 + Math.round(extra / 3), left = Math.round(W / 2 - 0.46 * bw), p = b.page, last = Math.min(cat.length, p * 4 + 4);
+  if (b.scr === 'page') { b.page = Math.max(0, Math.min(b.page, pages - 1)); const bw = Math.round(Math.min(W * 0.892, (H - 66 - 108) * BWS_BA, bwsFitBk886())), bh = Math.round(bw / BWS_BA), extra = Math.max(0, H - 66 - 108 - bh), top = 62 + Math.round(extra / 3), left = Math.round(W / 2 - 0.46 * bw), p = b.page, last = Math.min(cat.length, p * 4 + 4);
     h = `<div class="bwstop"><button type="button" class="bub back" data-bws="close">‹ ${fwEsc(t('Workshop'))}</button><h3>${fwEsc(t('My Fireworks'))}</h3>${b.win ? bwsX886() : ''}<span class="bwscnt">${owned} / ${festTotal(cat)}</span></div><div class="bwsglow" style="left:-10%;top:12%;width:120%;height:70%"></div>
       <div class="bwsbk${b.arrive && !calm ? ' arrive' : ''}" style="left:${left}px;top:${top}px;width:${bw}px;height:${bh}px"><div class="bwsback"></div><div class="bwsleaf" data-leaf>${bwsPageInner(cat, p)}</div>${b.arrive && !calm ? '<div class="bwscov open"></div>' : ''}</div>
       <div class="bwspager" style="top:${top + bh + 14}px">${bwsArrow(-1, p === 0, t('Previous page'))}<div class="bwspl">${festPager(p, pages, cat)}</div>${bwsArrow(1, p === pages - 1, t('Next page'))}</div>
@@ -35136,6 +35136,24 @@ function bwsFit886(b) { const ov = b.ov; try {
     try { if (!b.fitSent) { b.fitSent = 1; track('binder_card_fit', { h:innerHeight, cut:Math.round(n), note:b.fitNote ? 1 : 0, win:b.win ? 1 : 0 }); } } catch (e) {}
     return true; } catch (e) { console.error('bwsFit886', e); b.fitPass = false; b.fitMax = 0; return false; } }
 // ===== END FIX-CARD-FIT =====
+// ===== FIX-PAGE-FIT (patch-page-fit.py; 11/27) =====
+// Book page on short screens: the Festival reward strip ran under the tab bar (Workshop) or into Keep playing (after a level). After drawing,
+// measure it; if it does not fit, draw once more with a smaller book. The book's top moves down by a third of what it loses (top = 62 +
+// extra / 3), so the strip rises by two thirds of it: the book loses 1.5x the overrun.
+function bwsFitBk886() { const b = BWS; return b && b.fitBk ? b.fitBk * BWS_BA : 1e9; }   /* book width whose height is fitBk */
+function bwsFitPage886(b) { const ov = b.ov; try {
+    if (b.pagePass) { b.pagePass = false; b.fitBk = 0; return false; }   /* the second drawing, with the smaller book */
+    b.fitBk = 0; if (b.scr !== 'page') return false;
+    const bk = ov.querySelector('.bwsbk'), st = ov.querySelector('.fstrip') || ov.querySelector('.bwshint'); if (!bk || !st) return false;
+    let lim = Math.min(innerHeight, ov.getBoundingClientRect().bottom); const kp = ov.querySelector('.bwskeep'), tb = $('tabbar');
+    if (kp) lim = Math.min(lim, kp.getBoundingClientRect().top);
+    if (!b.win && tb && !tb.hidden && tb.getBoundingClientRect().height) lim = Math.min(lim, tb.getBoundingClientRect().top);
+    const n = st.getBoundingClientRect().bottom + 8 - lim; if (n <= 0) return false;
+    b.fitBk = Math.max(160, bk.offsetHeight - Math.ceil(n * 1.5) - 2); b.pagePass = true;
+    try { if (!b.pageFitSent) { b.pageFitSent = 1; track('binder_page_fit', { h:innerHeight, cut:Math.round(n), win:b.win ? 1 : 0 }); } } catch (e) {}
+    return true; } catch (e) { console.error('bwsFitPage886', e); b.pagePass = false; b.fitBk = 0; return false; } }
+{ const f0 = bwsFit886; bwsFit886 = function (b) { return bwsFitPage886(b) || f0(b); }; }   /* the page first; the card screen's own fit after */
+// ===== END FIX-PAGE-FIT =====
 // ===== FIX-WIN-PREVIEW (patch-win-preview.py; owner 11/27) =====
 // After a level the stage is busy (previewItem returns while G is set), so Preview show / Watch in the book play the firework in a card on the
 // preview sheet over the book. Back closes the sheet and keeps the book open, without the sheet's usual follow-ups (queued wheel, tour).
@@ -35452,7 +35470,7 @@ try { [['blossomtree', { z:0.42, cy:-6 }], ['flock', { z:0.66 }], ['platypus', {
 #bws886 .fstrip .fsl{flex:1;min-width:0} #bws886 .fstrip .fsl b{display:block;font:900 .72rem var(--display,system-ui);color:#ffc94a;margin-bottom:2px}
 #bws886 .fstrip .fsr{display:flex;flex-wrap:wrap;gap:4px} #bws886 .fstrip .mailchip{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:99px;background:rgba(255,255,255,.1);font:800 .64rem/1.5 var(--display,system-ui);color:#fff}
 #bws886 .fstrip .mailchip svg{width:12px;height:12px}
-#bws886 .fsclaim{padding:7px 16px!important;font-size:.85rem!important;min-height:0!important;flex:0 0 auto}
+#bws886 .fsclaim{padding:7px 16px!important;font-size:.85rem!important;min-height:0!important;flex:0 0 auto}/* FIX-CLAIM-FIT: Claim, its lip and its shadow inside the gold strip */#bws886 .fstrip.gold{padding:7px 11px 12px 12px}#bws886 .fstrip .fsclaim{box-shadow:0 5px 0 var(--lip),0 6px 6px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.4),inset 0 -2px 0 rgba(0,0,0,.14)}#bws886 .fstrip .fsclaim:active{transform:translateY(4px);box-shadow:0 1px 0 var(--lip),0 2px 3px rgba(0,0,0,.3),inset 0 2px 0 rgba(255,255,255,.4),inset 0 -2px 0 rgba(0,0,0,.14)}
 #bws886 .fsok{font:900 .75rem var(--display,system-ui);color:#7fe39a;flex:0 0 auto} #bws886 .fssoon,#bws886 .fsn2{font:900 .72rem var(--display,system-ui);color:#e4defe;flex:0 0 auto}
 #bws886 .bwsnote.fsof{margin-top:6px;color:#ffd86c} #bws886 .fsfill{margin-top:2px}
 `; document.head.appendChild(st); })();
