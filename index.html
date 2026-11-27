@@ -2839,7 +2839,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.27', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.28', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -35430,6 +35430,101 @@ try { [['blossomtree', { z:0.42, cy:-6 }], ['flock', { z:0.66 }], ['platypus', {
 #bws886 .bwsnote.fsof{margin-top:6px;color:#ffd86c} #bws886 .fsfill{margin-top:2px}
 `; document.head.appendChild(st); })();
 // ===== END FESTIVAL-SETS =====
+// ===== FESTIVAL-BANNERS-2 (patch-festival-banners2.py; owner 11/27) =====
+// Banner corrections after the tester round: bigger title and count everywhere; Australia green and gold; New Zealand silver fern; Malaysia
+// without imitation stripes; Philippine Fiesta without bunting; Party Time balloons; Holidays heart and sparkle; Game Day two balls; Prizes trophies.
+(function () { try {
+  const fern = c => { const B = t => { const u = 1 - t; return [u * u * u * 12 + 3 * u * u * t * 10.6 + 3 * u * t * t * 12.6 + t * t * t * 14.6, u * u * u * 23 + 3 * u * u * t * 16 + 3 * u * t * t * 8 + t * t * t * 1.4]; };
+    let s = `<path d="M12 23C10.6 16 12.6 8 14.6 1.4" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>`;
+    for (let i = 0; i < 11; i++) { const tt = 0.06 + i * 0.085, p = B(tt), q = B(tt + 0.01), dx = q[0] - p[0], dy = q[1] - p[1], m = Math.hypot(dx, dy) || 1, nx = -dy / m, ny = dx / m, L = 6.2 * (1 - tt * 0.82);
+      [1, -1].forEach(sd => { s += `<path d="M${p[0].toFixed(2)} ${p[1].toFixed(2)}Q${(p[0] + nx * L * 0.6 * sd + dx / m * 1.2).toFixed(2)} ${(p[1] + ny * L * 0.6 * sd + dy / m * 1.2).toFixed(2)} ${(p[0] + nx * L * sd - dx / m * 0.6).toFixed(2)} ${(p[1] + ny * L * sd - dy / m * 0.6).toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.15" stroke-linecap="round"/>`; }); }
+    return fsSvg('0 0 24 24', s); };
+  FS_ART.fern = () => fern('#e9f0f4');
+  FS_ART.balloons = () => fsSvg('0 0 24 24', '<path d="M8.5 13.5Q9.5 18 12 22M15.5 12.5Q14.6 17.6 12 22" fill="none" stroke="#fff6c8" stroke-width=".8"/><ellipse cx="8.5" cy="8.2" rx="4.2" ry="5.2" fill="#ffd84a"/><ellipse cx="15.6" cy="7.4" rx="4.2" ry="5.2" fill="#4fd1ff"/><ellipse cx="7.2" cy="6.4" rx="1" ry="1.6" fill="#fff" opacity=".6"/><ellipse cx="14.3" cy="5.6" rx="1" ry="1.6" fill="#fff" opacity=".6"/>');
+  FS_ART.heart = c => fsSvg('0 0 24 24', `<path d="M12 21C5 15.6 2.4 12.4 2.4 8.6A4.9 4.9 0 0 1 12 6.7a4.9 4.9 0 0 1 9.6 1.9c0 3.8-2.6 7-9.6 12.4z" fill="${c}"/>`);
+  FS_ART.sparkle = c => fsSvg('0 0 24 24', fsStar(12, 12, 10.5, 2.4, 8, c) + `<circle cx="12" cy="12" r="2.2" fill="${c}"/>`);
+  FS_ART.trophy = c => fsSvg('0 0 24 24', `<path d="M7 3h10v4.6c0 3.2-2.2 5.6-5 5.6s-5-2.4-5-5.6z" fill="${c}"/><path d="M7 5H3.6c0 3 1.4 4.6 3.8 4.8M17 5h3.4c0 3-1.4 4.6-3.8 4.8" fill="none" stroke="${c}" stroke-width="1.5"/><rect x="10.6" y="13" width="2.8" height="4" fill="${c}"/><rect x="7.4" y="17" width="9.2" height="3.2" rx="1" fill="${c}"/>`);
+  FS_ART.soccer = () => fsSvg('0 0 24 24', '<circle cx="12" cy="12" r="9.6" fill="#ffffff"/>' + fsStar(12, 12, 3.6, 3, 5, '#1a1a1a') + [0, 1, 2, 3, 4].map(k => { const a = -Math.PI / 2 + k * 1.2566, x = 12 + Math.cos(a) * 8.2, y = 12 + Math.sin(a) * 8.2; return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.9" fill="#1a1a1a"/>`; }).join('') + '<circle cx="12" cy="12" r="9.6" fill="none" stroke="#1a1a1a" stroke-width=".8"/>');
+  FS_ART.basket = () => fsSvg('0 0 24 24', '<circle cx="12" cy="12" r="9.6" fill="#f28a1e"/><path d="M12 2.4v19.2M2.4 12h19.2M5.4 5.2c3.4 3 3.4 10.6 0 13.6M18.6 5.2c-3.4 3-3.4 10.6 0 13.6" fill="none" stroke="#3a1a05" stroke-width="1.1"/>');
+  const W7 = (c) => fsSvg('0 0 24 24', fsStar(12, 12, 10, 4.4, 7, c));
+  Object.assign(FEST_TH.australia, { bg:'linear-gradient(#0d9a4b,#00602c)', edge:'#FFCD00', ink:'#FFCD00', L:W7('#ffffff'), R:FS_ART.auCross(), cls:'wr' });   /* green and gold, the national colours */
+  Object.assign(FEST_TH.nz, { bg:'#012169', edge:'#C8102E', ink:'#ffffff', L:FS_ART.fern(), R:FS_ART.nzCross(), cls:'wr' });
+  Object.assign(FEST_TH.malaysia, { bg:'linear-gradient(#0a0a7a,#010052)', edge:'#FFCC00', ink:'#FFCC00', L:FS_ART.my(), R:FS_ART.myStar(), cls:'wl' });
+  Object.assign(FEST_TH.philfiesta, { bg:'linear-gradient(#d8182d,#a00d1e)', edge:'#0038A8', ink:'#ffffff', L:FS_ART.phSun(), R:FS_ART.phSun(), cls:'' });
+  Object.assign(FEST_TH.party, { bg:'linear-gradient(#e2448f,#a01f63)', edge:'#ffd84a', ink:'#fff36b', L:FS_ART.balloons(), R:FS_ART.balloons() });
+  Object.assign(FEST_TH.holidays, { bg:'linear-gradient(#c4182f,#7d0b20)', edge:'#ffd96b', ink:'#ffe08a', L:FS_ART.heart('#ff9fbf'), R:FS_ART.sparkle('#ffe08a') });
+  Object.assign(FEST_TH.gameday, { L:FS_ART.soccer(), R:FS_ART.basket() });
+  Object.assign(FEST_TH.prizes, { L:FS_ART.trophy('#fff8e0'), R:FS_ART.trophy('#fff8e0') });
+  // round 2 (same testers, scored by category): give every theme a clear picture, and lift contrast where readability was low
+  const wing = (flip, c) => fsSvg('0 0 24 24', `<g transform="${flip ? 'translate(24 0) scale(-1 1)' : ''}"><path d="M22 6C15 5 7 7.5 2 13c4-1 7-1 9.5.2C7.6 15 5 17.6 4 21c4-3.2 9-5 14-5.4c2-2.6 3.6-6 4-9.6z" fill="${c}"/><path d="M21 7.2C16 7 10.6 9 6.6 12.6M20.6 9.6C16.4 10 12.6 11.8 9.6 14.4M19.6 12.2C16.2 12.8 13 14.2 10.4 16.4" fill="none" stroke="rgba(30,80,140,.45)" stroke-width=".9" stroke-linecap="round"/></g>`);
+  const cat = c => fsSvg('0 0 24 24', `<path d="M4 9L5 2.6L9.4 6.6Q12 5.8 14.6 6.6L19 2.6L20 9Q21.6 11.6 20.6 15C19.4 19.4 15.6 21.4 12 21.4S4.6 19.4 3.4 15Q2.4 11.6 4 9Z" fill="${c}"/><ellipse cx="8.8" cy="13" rx="1.4" ry="1.8" fill="#167a72"/><ellipse cx="15.2" cy="13" rx="1.4" ry="1.8" fill="#167a72"/><path d="M11 16.2h2l-1 1.2z" fill="#e8798f"/>`);
+  const dog = c => fsSvg('0 0 24 24', `<ellipse cx="12" cy="13.4" rx="7" ry="7.4" fill="${c}"/><path d="M5.4 7.4C3 7.6 1.8 11 2.6 15.4C4 14.6 5.2 12.6 5.8 10.4zM18.6 7.4C21 7.6 22.2 11 21.4 15.4C20 14.6 18.8 12.6 18.2 10.4z" fill="#c98a4a"/><ellipse cx="9.2" cy="12.4" rx="1.2" ry="1.5" fill="#167a72"/><ellipse cx="14.8" cy="12.4" rx="1.2" ry="1.5" fill="#167a72"/><ellipse cx="12" cy="16.2" rx="2" ry="1.4" fill="#3a2414"/>`);
+  const wattle = () => fsSvg('0 0 24 24', '<path d="M12 23C12 17 9 12 4 9M12 18C13.4 13.6 16.6 10.4 21 9" fill="none" stroke="#2f7d32" stroke-width="1.2"/><path d="M6.5 15.5C4.2 15 2.6 13.4 2.2 11.2C4.6 11.4 6.4 12.8 6.5 15.5zM17.6 15C19.8 14.4 21.4 12.8 21.8 10.6C19.4 10.8 17.6 12.2 17.6 15z" fill="#3e9a3f"/>' + [[5, 7.4, 2.4], [8.8, 5, 2.6], [12.6, 4.4, 2.5], [16.2, 5.6, 2.4], [19.4, 7.6, 2.2], [10.6, 8.6, 2.2], [14.6, 8.8, 2.2]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#FFCD00"/><circle cx="${x - r * 0.3}" cy="${y - r * 0.3}" r="${r * 0.35}" fill="#fff3a8"/>`).join(''));
+  const diya = () => fsSvg('0 0 24 24', '<path d="M12 2.4C14.6 6 15 8.4 12 11.4C9 8.4 9.4 6 12 2.4z" fill="#ffd23f"/><path d="M12 5.8C13.2 7.6 13.2 8.8 12 10.2C10.8 8.8 10.8 7.6 12 5.8z" fill="#fff6c8"/><path d="M2.4 13.4H21.6C20.8 18.4 16.8 21.4 12 21.4S3.2 18.4 2.4 13.4z" fill="#f28a1e"/><path d="M5 15.6h14" stroke="#ffd23f" stroke-width="1.1" stroke-linecap="round"/><circle cx="8" cy="18" r=".9" fill="#ffd23f"/><circle cx="12" cy="18.6" r=".9" fill="#ffd23f"/><circle cx="16" cy="18" r=".9" fill="#ffd23f"/>');
+  const moonBat = () => fsSvg('0 0 24 24', '<circle cx="12" cy="12" r="10" fill="#ffc35a"/><path transform="translate(4.6 10.2) scale(.92)" d="M0 0c2-2.4 4.6-2.4 6-.4c.6-1.6 1.4-2 2-1.2c.6-.8 1.4-.4 2 1.2c1.4-2 4-2 6 .4c-3.2-.2-4.6 1.4-5.6 3.6c-.8-.8-1.6-.6-2.4.6c-.8-1.2-1.6-1.4-2.4-.6c-1-2.2-2.4-3.8-5.6-3.6z" fill="#14081f"/>');
+  const constel = c => fsSvg('0 0 24 24', `<path d="M3 17L8.6 9.4L14 12.6L20.6 5" fill="none" stroke="${c}" stroke-width=".9" opacity=".75"/>` + [[3, 17, 1.7], [8.6, 9.4, 2], [14, 12.6, 1.6], [20.6, 5, 2.1]].map(([x, y, r]) => fsStar(x, y, r * 1.5, r * 0.55, 4, c)).join(''));
+  const bander = () => '<svg class="fbh2" viewBox="0 0 220 40" preserveAspectRatio="xMidYMin slice" aria-hidden="true"><path d="M0 1.2Q110 5 220 1.2" fill="none" stroke="#ffffff" stroke-width=".6" opacity=".9"/>' + Array.from({ length:22 }, (_, i) => { const x = 3 + i * 10, y = 1.4 + Math.sin(i / 21 * Math.PI) * 2.2; return `<path d="M${x} ${y.toFixed(2)}h7l-3.5 6.4z" fill="${['#FCD116', '#0038A8', '#ffffff', '#2fb34a', '#CE1126'][i % 5]}"/>`; }).join('') + '</svg>';
+  Object.assign(FEST_TH.wings, { bg:'linear-gradient(#64b6f2,#2a69b0)', edge:'#eaf6ff', ink:'#ffffff', L:wing(false, '#ffffff'), R:wing(true, '#ffffff'), cls:'bigi' });
+  Object.assign(FEST_TH.pets, { bg:'linear-gradient(#2bb3a3,#137266)', edge:'#ffe6c2', ink:'#ffffff', L:cat('#fff1dc'), R:dog('#fff1dc'), cls:'bigi' });
+  Object.assign(FEST_TH.spooky, { bg:'linear-gradient(#4b2077,#1a0a2b)', edge:'#ff9a1f', ink:'#ffb347', L:moonBat(), R:moonBat(), cls:'bigi spooky' });
+  Object.assign(FEST_TH.masquerade, { bg:'linear-gradient(#6b36a3,#271042)', edge:'#ffd86c', ink:'#ffd86c', L:FS_ART.mask('#ffd86c'), R:FS_ART.mask('#ffd86c'), cls:'' });   /* round 3: bigger masks crowded the long title (6.2 -> 5.2), back to normal size */
+  Object.assign(FEST_TH.nz, { L:fern('#f4f8fa'), cls:'wr bigi' });
+  Object.assign(FEST_TH.australia, { L:wattle(), cls:'wr bigi' });
+  Object.assign(FEST_TH.nightsky, { L:FS_ART.moon('#f2f5ff'), R:constel('#f2f5ff'), cls:'bigi' });
+  Object.assign(FEST_TH.holidays, { bg:'linear-gradient(#e2454f,#a3102b)', edge:'#ffd96b', ink:'#fff0b0', L:FS_ART.heart('#ffc2d6'), R:diya(), cls:'bigi' });
+  Object.assign(FEST_TH.philfiesta, { bg:'linear-gradient(#ea4c94,#a80f58)', edge:'#FCD116', ink:'#ffffff', hoist:bander(), L:FS_ART.phSun(), R:FS_ART.phSun(), cls:'bigi fiesta2' });
+  Object.assign(FEST_TH.prizes, { bg:'linear-gradient(#ffd75e,#d39410)', edge:'#fff3c4', ink:'#5a3200', L:FS_ART.trophy('#7a4a00'), R:FS_ART.trophy('#7a4a00'), cls:'bigi prz' });
+  // round 3 (second retest): Malaysia gets a flag hoist like the Philippines; Australia a kangaroo and a white title; Holidays one celebration
+  // theme; Prizes a dark band; brighter Garden and Wings; a bolder fern and redder Southern Cross for New Zealand
+  const roo = c => fsSvg('0 0 24 24', `<path d="M17.2 2.6c.4-.8 1.2-1.2 1.6-.8.2.4-.1 1-.5 1.3.8.3 1.4 1.1 1.2 1.9-.2.9-1.2 1.2-2 1-.5 1-1.3 1.8-2.2 2.3.5 1.4.4 3-.4 4.3l2.3 4.6c.3.6 1 .9 2.3.9v1.4h-3.9l-3.1-5.3c-.9.4-2 .5-3 .3L5.2 19.4C3.8 20.6 2.4 21 1 20.8l.2-1.2c1 .1 1.9-.3 2.6-.9l5.3-5.5c-.7-1.4-.6-3.2.4-4.5 1.2-1.7 3.3-2.4 5.2-2 .8-.9 1.7-1.7 2.5-3.1z" fill="${c}"/><path d="M12.6 10.4l-1.4 2.6M14.4 10.8l-.6 2.6" stroke="${c}" stroke-width="1" stroke-linecap="round"/>`);
+  const gift = () => fsSvg('0 0 24 24', '<rect x="3.4" y="10" width="17.2" height="11" rx="1.2" fill="#ffd96b"/><rect x="2.4" y="7" width="19.2" height="4" rx="1" fill="#ffe8a3"/><rect x="10.6" y="7" width="2.8" height="14" fill="#d6336c"/><path d="M12 7C10 3.6 6.4 3.4 6.6 5.6C6.8 7 9.6 7 12 7zM12 7C14 3.6 17.6 3.4 17.4 5.6C17.2 7 14.4 7 12 7z" fill="#d6336c"/>');
+  const burst = c => fsSvg('0 0 24 24', Array.from({ length:12 }, (_, k) => { const a = k * Math.PI / 6, x1 = 12 + Math.cos(a) * 3, y1 = 12 + Math.sin(a) * 3, x2 = 12 + Math.cos(a) * 10.5, y2 = 12 + Math.sin(a) * 10.5; return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${k % 2 ? '#ffc2d6' : c}" stroke-width="1.8" stroke-linecap="round"/><circle cx="${x2.toFixed(2)}" cy="${y2.toFixed(2)}" r="1.1" fill="${k % 2 ? '#ffc2d6' : c}"/>`; }).join('') + `<circle cx="12" cy="12" r="2.2" fill="${c}"/>`);
+  const myHoist = () => '<svg class="fbh" viewBox="0 0 30 24" preserveAspectRatio="xMinYMid meet" aria-hidden="true"><rect x="0" y="0" width="30" height="24" fill="#010066"/><path d="M11.4 4.6a7.4 7.4 0 1 0 0 14.8a8.8 8.8 0 0 1 0-14.8z" fill="#FFCC00"/>' + fsStar(19.6, 12, 4.6, 2, 14, '#FFCC00') + '</svg>';
+  const nzStars = () => fsSvg('0 0 40 24', [[20, 4.4, 4.1], [12, 12, 3.8], [27.6, 10.2, 3.5], [20, 19.8, 4.3]].map(([x, y, r]) => fsStar(x, y, r, r * 0.4, 5, '#D8102E', '#ffffff', 0.75)).join(''));
+  const auCross2 = () => fsSvg('0 0 40 24', [[20, 3.6, 3.8], [11.6, 11.4, 3.8], [28.6, 9.6, 3.8], [20, 20.2, 4]].map(([x, y, r]) => fsStar(x, y, r, r * 0.45, 7, '#ffffff')).join('') + fsStar(24.4, 14.2, 2, 0.9, 5, '#ffffff'));
+  Object.assign(FEST_TH.malaysia, { bg:'repeating-linear-gradient(180deg,#CC0001 0 7.143%,#ffffff 7.143% 14.286%)', edge:'#FFCC00', ink:'#FFCC00', hoist:myHoist(), L:'', R:'', cls:'my plate' });
+  Object.assign(FEST_TH.australia, { bg:'linear-gradient(#10a052,#006230)', edge:'#FFCD00', ink:'#ffffff', L:roo('#FFCD00'), R:auCross2(), cls:'wr bigi' });
+  Object.assign(FEST_TH.holidays, { bg:'linear-gradient(#e2454f,#a3102b)', edge:'#ffd96b', ink:'#fff0b0', L:gift(), R:burst('#ffd96b'), cls:'bigi' });
+  Object.assign(FEST_TH.prizes, { bg:'linear-gradient(#34206a,#160a34)', edge:'#ffd36b', ink:'#ffd36b', L:FS_ART.trophy('#ffd36b'), R:FS_ART.trophy('#ffd36b'), cls:'bigi' });
+  Object.assign(FEST_TH.garden, { bg:'linear-gradient(#62b84f,#2f7d2b)', edge:'#ffb3d1', ink:'#ffffff', cls:'bigi' });
+  Object.assign(FEST_TH.wings, { bg:'linear-gradient(#4aa3e8,#1d5699)' });
+  Object.assign(FEST_TH.nz, { L:fern('#ffffff'), R:nzStars() });
+  // round 4 (owner: "Apply and deploy"): flag cues as a small panel with the title on solid colour; a count on Prizes; clearer Wings,
+  // brighter Masquerade, a gold burst on Classic Show
+  const myPanel = () => '<svg class="fbh" viewBox="0 0 34 24" preserveAspectRatio="xMinYMid meet" aria-hidden="true">' + Array.from({ length:14 }, (_, i) => `<rect x="0" y="${(i * 24 / 14).toFixed(3)}" width="34" height="${(24 / 14 + 0.04).toFixed(3)}" fill="${i % 2 ? '#ffffff' : '#CC0001'}"/>`).join('') + '<rect x="0" y="0" width="19" height="13.72" fill="#010066"/><path d="M7.4 2.6a4.5 4.5 0 1 0 0 9a5.4 5.4 0 0 1 0-9z" fill="#FFCC00"/>' + fsStar(12.4, 7.1, 2.9, 1.25, 14, '#FFCC00') + '<rect x="33" y="0" width="1" height="24" fill="#FFCC00"/></svg>';
+  const butterfly = () => fsSvg('0 0 24 24', '<path d="M12 11C9 4 3.2 3 2.4 6.2C1.8 9 5.4 11.6 12 12z" fill="#ff9a3c"/><path d="M12 11C15 4 20.8 3 21.6 6.2C22.2 9 18.6 11.6 12 12z" fill="#ff9a3c"/><path d="M12 12.4C7 13 4.4 16.4 6 19C7.6 21 10.4 18.6 12 13.4z" fill="#ff6aa8"/><path d="M12 12.4C17 13 19.6 16.4 18 19C16.4 21 13.6 18.6 12 13.4z" fill="#ff6aa8"/><circle cx="5.4" cy="6.6" r="1.2" fill="#fff3c4"/><circle cx="18.6" cy="6.6" r="1.2" fill="#fff3c4"/><rect x="11.3" y="7.4" width="1.4" height="11" rx=".7" fill="#2a1a3a"/><path d="M11.6 7.6Q10.4 4.6 9 3.8M12.4 7.6Q13.6 4.6 15 3.8" fill="none" stroke="#2a1a3a" stroke-width=".7"/>');
+  const feather = () => fsSvg('0 0 24 24', '<path d="M5 22.4C8 17 11 12 16.6 5" fill="none" stroke="#f2e2b0" stroke-width="1"/><path d="M16.6 5C11 6 8 11 8.4 15.6C12.4 15 16.4 11.6 16.6 5z" fill="#1fa37a" opacity=".9"/><ellipse cx="13.4" cy="9.6" rx="3.4" ry="4.4" transform="rotate(38 13.4 9.6)" fill="#1f8fd6"/><ellipse cx="13.4" cy="9.6" rx="2.1" ry="2.8" transform="rotate(38 13.4 9.6)" fill="#ffd36b"/><ellipse cx="13.6" cy="9.4" rx="1.1" ry="1.5" transform="rotate(38 13.6 9.4)" fill="#13205a"/>');
+  const goldBurst = () => fsSvg('0 0 24 24', Array.from({ length:12 }, (_, k) => { const a = k * Math.PI / 6, x2 = 12 + Math.cos(a) * 10.5, y2 = 12 + Math.sin(a) * 10.5; return `<line x1="${(12 + Math.cos(a) * 3).toFixed(2)}" y1="${(12 + Math.sin(a) * 3).toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${k % 2 ? '#ffffff' : '#ffd36b'}" stroke-width="1.7" stroke-linecap="round"/><circle cx="${x2.toFixed(2)}" cy="${y2.toFixed(2)}" r="1.15" fill="${k % 2 ? '#ffffff' : '#ffd36b'}"/>`; }).join('') + '<circle cx="12" cy="12" r="2.3" fill="#ffd36b"/>');
+  Object.assign(FEST_TH.malaysia, { bg:'linear-gradient(#0c0c86,#02024f)', edge:'#FFCC00', ink:'#FFCC00', hoist:myPanel(), L:'', R:'', cls:'my' });
+  Object.assign(FEST_TH.wings, { L:butterfly(), R:feather(), cls:'bigi' });
+  Object.assign(FEST_TH.masquerade, { bg:'linear-gradient(#8e30a6,#43105a)', edge:'#ffd86c', ink:'#ffe08a', cls:'bigi' });
+  Object.assign(FEST_TH.classic, { L:goldBurst(), R:goldBurst(), cls:'bigi' });
+  FEST_SETS.forEach(st => { if (st.id === 'nz') st.short = 'Aotearoa NZ'; });   /* the banner shows the short name; the set keeps its full name */
+  if (!festBand.__short) { const fb0 = festBand; festBand = function (p, cat) { const st = FEST_SETS[p]; let h; if (st && st.short) { const n0 = st.name; st.name = st.short; try { h = fb0(p, cat); } finally { st.name = n0; } } else h = fb0(p, cat); const nm = st ? (st.short || st.name) : ''; if (nm.length > 13) h = h.replace('<b class="">', '<b class="l2">');
+    if (!st && h.indexOf('</b><i') < 0) { const n = FEST_EXTRA.filter(k => FIREWORKS[k] && fwHas(k)).length; h = h.replace('</b>', `</b><i class="${n >= FEST_EXTRA.length ? 'ok' : ''}">${n} / ${FEST_EXTRA.length}</i>`); }   /* Prizes gets a count too */
+    return h; }; festBand.__short = true; }   /* long names (14+ letters) take the smaller title size so they clear the side icons */
+} catch (e) {} })();
+(function () { const st = document.createElement('style'); st.textContent = `
+.fband b{font-size:calc(5 * var(--fu))}
+.fband b.l2{font-size:calc(4 * var(--fu));padding:0 calc(9.6 * var(--fu))}
+.fband i{font-size:calc(3.2 * var(--fu));color:#ffffff;background:rgba(0,0,0,.52);padding:0 calc(2.6 * var(--fu))}
+.fband i.ok{color:#ffffff;background:rgba(36,140,72,.95)}
+.fband.wl .fbin{inset:calc(.85 * var(--fu))}
+.fband.wr .fbm.r,.fband.wl .fbm.l{width:calc(11.2 * var(--fu))}
+.fband.bigi .fbm{width:calc(8.2 * var(--fu));height:calc(8.2 * var(--fu))}
+.fband.bigi.wr .fbm.r{width:calc(12.4 * var(--fu))}
+.fband.bigi .fbm.l{left:calc(4 * var(--fu))} .fband.bigi .fbm.r{right:calc(4 * var(--fu))}
+.fband.spooky b{text-shadow:0 calc(.3 * var(--fu)) 0 #000,0 0 calc(1.4 * var(--fu)) rgba(255,122,0,.75)}
+.fband.prz b{text-shadow:0 calc(.25 * var(--fu)) 0 rgba(255,250,220,.7)}
+.fband .fbh2{position:absolute;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.fband.fiesta2 .fbin{justify-content:flex-end;padding-bottom:calc(1.2 * var(--fu))}
+.fband.my .fbh{position:absolute;left:0;top:0;height:100%;width:auto;z-index:1}
+.fband.plate b{background:#010066;border-radius:calc(1.2 * var(--fu));padding:calc(.4 * var(--fu)) calc(2.8 * var(--fu));margin-left:calc(8 * var(--fu))}
+.fband.my i{margin-left:calc(8 * var(--fu))}
+.fband.my b{margin-left:calc(9 * var(--fu))}
+.fband.ph i,.fband.my i,.fband.fiesta2 i{background:#120d2e;box-shadow:0 0 0 calc(.3 * var(--fu)) rgba(255,255,255,.9)}
+`; document.head.appendChild(st); })();
+// ===== END FESTIVAL-BANNERS-2 =====
 // ===== SHOW-SLOTS (patch-show-slots.py; owner 11/27) =====
 // Owner: "When players pull a new firework, that firework is the one that shows. Otherwise use their selected firework ... players unlock
 // firework thresholds (ie 10 unlocks the 1st spot, 25 unlocks the 2nd, 50 unlocks the 3rd), they can then combine their fireworks to build
