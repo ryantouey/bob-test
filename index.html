@@ -2882,11 +2882,29 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.894', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.895', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
 let sendBatch = events => {};
+/* ===== TRACK-BRIDGE (owner 11/27): track() never leaves the phone (sendBatch is empty), so the collection book's and the world map's track()
+   events are copied into the game log as X rows ending in 886 (mirrored to telemetry v2 as ms x:<code>). ===== */
+const TB886 = { wmap_view:['wmv886', 'v'], wmap_locked:['wml886', 'stage', 'where'], wmap_tap:['wmt886', 'stage', 'ready', 'where'], wmap_hop:['wmh886', 'from', 'to', 'where'],
+  wmap_open:['wmo886', 'stage'], wmap_home:['wmhm886', 'stage'], binder_show:['bsh886', 'level_id', 'firework', 'rarity', 'page', 'first'], binder_inspect:['bin886', 'firework', 'from'],
+  binder_reopen:['bro886', 'firework'], binder_gift:['bgf886', 'firework', 'rarity', 'page'], binder_ws_open:['bwso886', 'owned', 'total'], binder_ws_card:['bwsc886', 'firework', 'owned'],
+  binder_card_fit:['bcf886', 'h', 'cut', 'note', 'win'], binder_page_fit:['bpf886', 'h', 'cut', 'win'], binder_preview_over:['bpv886', 'firework', 'owned', 'win'],
+  binder_motion_level:['bml886', 'level', 'ms'], binder_win_open:['bwio886', 'level_id', 'page', 'from'], binder_win_close:['bwic886', 'how', 'seconds', 'pages', 'cards'],
+  firework_show_slots:['fss886', 'slots', 'open', 'from'], firework_show_mode:['fsm886', 'mode'], cm_shown:['cms886', 'where', 'n'] };
+function tb886v(k, v) { if (k === 'slots' && typeof v === 'string') return v.split(',').filter(q => q && q !== '-').length;   /* My show: how many slots are filled */
+  return typeof v === 'number' ? Math.round(v) : typeof v === 'boolean' ? (v ? 1 : 0) : String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9_.:-]+/g, '-').slice(0, 16); }
+{ const tk0 = track; track = function (name, props) { try { const m = TB886[name]; if (m && typeof glog === 'function') glog('X', [m[0]].concat(m.slice(1).map(k => tb886v(k, props ? props[k] : null)))); } catch (e) {} return tk0.apply(this, arguments); }; }
+document.addEventListener('click', e => { try { const el = e.target; if (!el || !el.closest) return; const inn = el.closest('#wmIn'); if (!inn || el.closest('[data-n]')) return;
+  const r = inn.getBoundingClientRect(); glog('X', ['wmd886', 'campaign', Math.round((e.clientX - r.left) / Math.max(1, r.width) * 100), Math.round((e.clientY - r.top) / Math.max(1, r.height) * 100)]); } catch (e2) {} }, true);   /* a map tap that misses every stage */
+{ const S = {}; document.addEventListener('scroll', e => { try { const el = e.target, where = el && el.id === 'wmSc' ? 'campaign' : el && el.classList && el.classList.contains('wmhsc') ? 'home' : ''; if (!where) return;
+    const o = S[where] || (S[where] = { d:0, mx:0, last:null, t:0 }), x = el.scrollLeft; if (o.last != null) o.d += Math.abs(x - o.last); o.last = x; o.mx = Math.max(o.mx, (x + el.clientWidth) / Math.max(1, el.scrollWidth));
+    clearTimeout(o.t); o.t = setTimeout(() => { try { if (o.d >= 8) glog('X', ['wms886', where, Math.round(o.mx * 100), Math.round(o.d)]); } catch (e3) {} o.d = 0; o.mx = 0; o.last = null; }, 1500); } catch (e2) {} }, true); }   /* one row per map scroll burst */
+/* ===== END TRACK-BRIDGE ===== */
+
 const anOn = () => { try { return !!(CONFIG.analytics.enabled && CONFIG.analytics.consent && !setPreview); } catch (e) { return false; } };
 // Version 327 (playtest v0.323): a hook starts the analytics store if it isn't running yet (the first level after a relaunch lost its level_start)
 const anSafe = fn => (...a) => { try { if (!anOn()) return undefined; if (!an.ready) anInit(); return fn(...a); } catch (e) { return undefined; } };
@@ -13263,7 +13281,7 @@ function emailPanel() { const p = $('emailPanel'); if (!p) return; const on = CL
   $('emailPanelGo').onclick = () => { try { glog('t', ['options', 'emailPanel', '']); } catch (e) {} if (emailCard(null)) { const iv = setInterval(() => { if ($('infoSheet').hidden) { clearInterval(iv); emailPanel(); } }, 400); } }; }
 /* the menu / map cards in order: the email after Stage 1 Level 2; from the second return after Stage 1, the install card (with the second email ask) */
 /* ===== COMMUNITY-JOIN (patch-community-join.py, 11/27): the email ask becomes a Join the community card on a win ===== */
-const CM_FIRST = levelId(1, 4), CM_GAP = 6;
+const CM_FIRST = levelId(2, 5), CM_GAP = 6;   /* CM-LATER (owner 11/28): first from Stage 2 Level 5 (was Stage 1 Level 4), less friction early */
 function openOut(url) { try { const C = window.Capacitor, B = C && C.Plugins && C.Plugins.Browser; if (B && B.open) { B.open({ url }); return; } } catch (e) {} try { window.open(url, '_blank', 'noopener'); } catch (e) {} }
 function communityCard(where) { if (!$('infoSheet').hidden || pfGet('cmTap')) return false; const n = (pfGet('cmAsk') | 0) + 1, ic = d => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="flex:none;width:22px;height:22px;max-width:22px;margin:0"><path fill="currentColor" d="${d}"/></svg>`,
     btn = (id, label, d) => `<button type="button" class="bub" id="${id}" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin:8px 0 0">${ic(d)}<span>${label}</span></button>`;
