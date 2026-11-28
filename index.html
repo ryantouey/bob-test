@@ -2595,6 +2595,7 @@ var relaxBy = false;   /* Version 707: Relaxed chosen by the player */
 .wmspk { position:absolute; width:56px; height:56px; transform:translate(-50%,-78%); pointer-events:none; z-index:2; animation:wmBob 1.6s ease-in-out infinite; transition:left .9s cubic-bezier(.3,.7,.3,1), top .9s cubic-bezier(.3,.7,.3,1); }
 #wmHome .wmspk { width:46px; height:46px; }
 .wmg { transition:opacity .9s ease; }
+.wmtag.cmp { padding:2px; gap:2px; } .wmtag.cmp .wmk { margin-right:3px; }   /* WM-EXPLORE */
 .wmtag.wmpop { animation:wmPop .6s ease both; }
 .wmtag.wmshake { animation:wmShake .42s ease; }
 @keyframes wmPop { 0% { transform:translate(-50%,-50%) scale(.7); } 60% { transform:translate(-50%,-50%) scale(1.16); } 100% { transform:translate(-50%,-50%) scale(1); } }
@@ -2881,7 +2882,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.889', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.890', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -19573,6 +19574,7 @@ function wmLocked(inn, n, where) { try { track('wmap_locked', { stage:n, where }
   try { showToast(t('Finish Stage {n} first', { n:stageNo(Math.max(1, n - 1)) })); } catch (e) {} }
 function wmDraw(inn, H, o) { const k = H / WM_H, Wd = Math.round(WM_W * k), img = inn.querySelector('img'); inn.style.width = Wd + 'px'; if (img.getAttribute('src') !== WM_SRC) img.src = WM_SRC;
   inn.querySelectorAll('.wmg,.wmcell,.wmtag,.wmspk').forEach(e => e.remove());
+  const cmp = k < 0.4;   /* WM-EXPLORE: a small map (short screens) shows numbers only, the current stage keeps its name */
   const cur = wmCur(), X = v => Math.round(v * k), frag = document.createDocumentFragment(), all = Array.from({ length:40 }, (_, i) => i + 1);
   const cellOf = n => { const p = WM_PL[n - 1]; return { x0:p[3], y0:p[4], x1:p[5], y1:p[6] }; };
   let last = +pfGet('wmLast') || 0; if (!last) last = cur === 2 ? 1 : cur;   /* the first map view at Stage 2 hops from Kirby Park */
@@ -19587,11 +19589,11 @@ function wmDraw(inn, H, o) { const k = H / WM_H, Wd = Math.round(WM_W * k), img 
   for (let n = 1; n <= 40; n++) { const p = WM_PL[n - 1], g = STAGES[n - 1], c = cellOf(n), r = wmReady(n), fin = stageFinished(n), now = n === cur, nm = t((SCENES[g.theme] || { name:g.theme }).name);
     const cell = document.createElement('button'); cell.type = 'button'; cell.className = 'wmcell'; cell.dataset.n = n; cell.tabIndex = -1; cell.setAttribute('aria-hidden', 'true'); cell.style.cssText = `left:${X(c.x0)}px;top:${X(c.y0)}px;width:${X(c.x1) - X(c.x0)}px;height:${X(c.y1) - X(c.y0)}px`; frag.append(cell);
     const tag = document.createElement('button'); tag.type = 'button'; tag.className = 'wmtag' + (now ? ' now' : fin ? ' done' : r ? '' : ' lock'); tag.dataset.n = n; tag.setAttribute('aria-label', t('Stage {n}', { n:stageNo(n) }) + ': ' + nm);
-    tag.innerHTML = `<i class="wmn">${stageNo(n)}</i><span>${nm}</span>${now ? '' : fin ? `<i class="wmk">${TICK}</i>` : r ? '' : `<i class="wmk">${LOCK}</i>`}`;
+    if (cmp && !now) tag.classList.add('cmp'); tag.innerHTML = `<i class="wmn">${stageNo(n)}</i>${cmp && !now ? '' : `<span>${nm}</span>`}${now ? '' : fin ? `<i class="wmk">${TICK}</i>` : r ? '' : `<i class="wmk">${LOCK}</i>`}`;
     tag.style.left = X(WM_TAG[n - 1][0]) + 'px'; tag.style.top = X(WM_TAG[n - 1][1]) + 'px'; frag.append(tag); }
   const spot = n => [WM_TAG[n - 1][0], WM_TAG[n - 1][1] - 60], from = spot(hop ? last : cur), to = spot(cur), cv = document.createElement('canvas'); cv.className = 'wmspk'; cv.width = 112; cv.height = 112; cv.style.left = X(from[0]) + 'px'; cv.style.top = X(from[1]) + 'px'; frag.append(cv);
   inn.append(frag); try { const g2 = cv.getContext('2d'); g2.scale(2, 2); drawSparky(28, 32, 17, 'happy', g2); } catch (e) { cv.remove(); }
-  inn.onclick = e => { e.stopPropagation(); const b = e.target.closest('[data-n]'), n = b ? +b.dataset.n : 0; if (n && !wmReady(n)) { wmLocked(inn, n, o.where); return; } try { if (n) track('wmap_tap', { stage:n, ready:1, where:o.where }); } catch (e2) {} o.tap(n, cur); };
+  inn.onclick = e => { e.stopPropagation(); const b = e.target.closest('[data-n]'), n = b ? +b.dataset.n : 0; try { if (n) track('wmap_tap', { stage:n, ready:wmReady(n) ? 1 : 0, where:o.where }); } catch (e2) {} o.tap(n, cur); };   /* WM-EXPLORE (owner 11/28): a place not reached yet opens its walking map to explore, as the stage cards always did */
   const sc = o.sc, mid = p => Math.max(0, X(p[0]) - sc.clientWidth / 2); requestAnimationFrame(() => { sc.scrollLeft = mid(from); });
   if (hop) { pfSet('wmLast', cur); try { track('wmap_hop', { from:last, to:cur, where:o.where }); } catch (e) {}
     setTimeout(() => { try { cv.style.left = X(to[0]) + 'px'; cv.style.top = X(to[1]) + 'px'; try { sc.scrollTo({ left:mid(to), behavior:'smooth' }); } catch (e) { sc.scrollLeft = mid(to); } } catch (e) {} }, 550);
