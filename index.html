@@ -2882,7 +2882,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.902', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.903', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -35834,7 +35834,7 @@ function festSoonView(b, cat, W, H, owned) { const i = cat.indexOf(b.key), F = B
     <div class="bwspager" style="top:${H - 72}px">${bwsArrow(-1, i === 0, t('Previous card'))}<div class="bwspl">${fwEsc(t('Card {n} of {m}', { n:i + 1, m:cat.length }))}<small>${fwEsc(t('Coming Soon...'))}</small></div>${bwsArrow(1, i === cat.length - 1, t('Next card'))}</div>`; }
 function festFillCost(k) { if (!festOn() || !FIREWORKS[k] || fwHas(k) || !fwPool().includes(k)) return 0; return FEST_FILL[fwTier(k)] || 0; }   /* never a Legendary, a prize or a live pass firework */
 function festCardExtra(k, has, tag) { if (!festOn()) return ''; const st = festSetOf(k); let h = st ? `<p class="bwsnote fsof">${fwEsc(t(st.season ? 'Season set: {set} ({n}/4)' : 'Set: {set} ({n}/4)', { set:t(st.name), n:festHave(st) }))}${st.key === k ? ' · ★ ' + fwEsc(t('key card')) : ''}</p>` : '';
-  const c = !has && !tag ? festFillCost(k) : 0, n = fwDisc.stamps || 0; if (c) h += `<div class="bwsrow"><button type="button" class="bub fsfill" data-bws="festfill"${n >= c ? '' : ' disabled'}>✉ ${fwEsc(t('Use {c} stamps (you have {n})', { c, n }))}</button></div>`; return h; }
+  const c = !has && !tag ? festFillCost(k) : 0, n = fwDisc.stamps || 0; if (c) h += `<div class="bwsrow"><button type="button" class="bub fsfill" data-bws="festfill"${n >= c ? '' : ' disabled'}>✉ ${fwEsc(t('Use {c} spare duplicates (you have {n})', { c, n }))}</button></div>`; return h; }
 function festStamp(n) { fwDisc.stamps = Math.max(0, (fwDisc.stamps || 0) + n); }
 function festFixed() { try { if (!festOn() || !G || stageOf(G.level) !== 1) return null; const k = FEST_FIXED[levelNo(G.level)]; return k && FIREWORKS[k] && !fwHas(k) ? k : null; } catch (e) { return null; } }
 function festPullKey(k, base) { const f = festFixed(); if (f) return f; if (!festOn() || !k || !fwHas(k)) return k; const r = fwTier(k), alt = base.filter(q => fwTier(q) === r); return alt.length ? fwPickInTier(r, alt) : k; }   /* the duplicate shield: drawn again once, same rarity */
@@ -36076,6 +36076,97 @@ try { [['blossomtree', { z:0.42, cy:-6 }], ['flock', { z:0.66 }], ['platypus', {
     } catch (e) { console.error('fest-wipe book', e); } return r; };
 } catch (e) { console.error('FEST-WIPE', e); } })();
 // ===== END FEST-WIPE =====
+// ===== SWAP-SHOP (patch-swap-shop.py; owner 11/28: "Build option 2") =====
+// A Shop button in the book's top bar opens the Swap Shop: 4 daily picks (one each Common, Rare, Epic, Legendary not owned) for spare
+// duplicates (= set stamps). Two taps to swap. ?swap=0 turns it off.
+var SWAP_PRICE = { common:8, rare:10, epic:25, legendary:80 };
+(() => { try {
+  const off = (() => { try { return new URLSearchParams(location.search).get('swap') === '0'; } catch (e) { return false; } })(); if (off) return;
+  const css = document.createElement('style'); css.id = 'swapCss'; css.textContent = `
+#bws886 .swpbtn{position:relative;flex:none;display:inline-flex;align-items:center;gap:6px;padding:7px 12px 8px;border:0;border-radius:14px;cursor:pointer;background:linear-gradient(#ffe08f,#f0a020);box-shadow:0 4px 0 #a8650e,0 6px 12px rgba(0,0,0,.35);font:900 .86rem/1 var(--display,system-ui);color:#3a1d00;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+#bws886 .swpbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #a8650e}
+#bws886 .swpbtn i{position:absolute;right:-8px;top:-9px;padding:3px 6px;border-radius:99px;background:#ff4f6d;color:#fff;font:900 .62rem/1 var(--display,system-ui);font-style:normal;box-shadow:0 2px 0 #a8233c}
+#bws886.swpon:not(.bwswin) .bwstop .bwscnt{display:none}
+#bws886.bwswin .swpbtn{order:-1}
+#bws886 .swpdim{position:absolute;inset:0;z-index:60;background:rgba(8,6,30,.72)}
+#bws886 .swpsheet{position:absolute;left:12px;right:12px;top:58px;bottom:14px;z-index:61;border-radius:22px;background:linear-gradient(#262068,#17134a);box-shadow:inset 0 0 0 2px #4b3f99,0 16px 40px rgba(0,0,0,.6);overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:12px 14px 12px;color:#fff;font-family:var(--display,system-ui);touch-action:manipulation}
+#bws886.bwswin .swpsheet{bottom:92px}
+#bws886 .swphd{align-self:stretch;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+#bws886 .swphd .swpbal{justify-self:start}#bws886 .swphd .swpx{justify-self:end}
+#bws886 .swph{font:800 1.2rem/1 var(--display,system-ui);color:#fff;white-space:nowrap}
+#bws886 .swpsub{display:none}
+#bws886 .swptime{margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.07);font:800 .74rem/1.2 var(--display,system-ui);color:#c9c6f0;flex:none}
+#bws886 .swpgrid{margin-top:10px;align-self:stretch;flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,1fr);gap:10px 14px}
+#bws886 .swpcell{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0}
+#bws886 .swpcard{position:relative;flex:1;min-height:0;aspect-ratio:196.5/261;max-width:100%;container-type:size;cursor:pointer}
+#bws886 .swpcard .bwsslot{position:absolute;inset:0;cursor:pointer}
+#bws886 .swpcard .fcnew,#bws886 .swpcard .fkey{display:none!important}
+#bws886 .swptier{position:absolute;left:50%;top:-3%;transform:translateX(-50%);z-index:8;padding:1.2cqw 3cqw;border-radius:99px;background:var(--c,#2f2680);color:#fff;font:900 5.6cqw/1.2 var(--display,system-ui);letter-spacing:.06em;white-space:nowrap;text-transform:uppercase}
+#bws886 .swpbuy{flex:none;display:inline-flex;align-items:center;gap:5px;padding:6px 12px 7px;border:0;border-radius:13px;cursor:pointer;background:linear-gradient(#ffe08f,#f0a020);box-shadow:0 4px 0 #a8650e;font:900 .86rem/1 var(--display,system-ui);color:#3a1d00;white-space:nowrap}
+#bws886 .swpbuy:active{transform:translateY(3px);box-shadow:0 1px 0 #a8650e}
+#bws886 .swpbuy.no{background:linear-gradient(#d9d6ee,#a9a4cf);box-shadow:0 4px 0 #6b6696;color:#3c3866;cursor:default}
+#bws886 .swpbuy.ask{background:linear-gradient(#7cff8a,#2fbf55);box-shadow:0 4px 0 #1d7a36;color:#073615}
+#bws886 .swpbuy.got{background:none;box-shadow:none;color:#9df5b0;cursor:default}
+#bws886 .swpfoot{margin-top:10px;flex:none;font:700 .72rem/1.3 var(--display,system-ui);color:#9a97cc;text-align:center}
+#bws886 .swpbal{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 7px;border-radius:99px;background:#120f3c;box-shadow:inset 0 0 0 2px #4b3f99;font:900 1rem/1 var(--display,system-ui);color:#fff;white-space:nowrap}
+#bws886 .swpbal small{font:700 .66rem/1 var(--display,system-ui);color:#9a97cc;margin-left:2px}
+#bws886 .swpx{width:34px;height:34px;border:0;border-radius:50%;display:grid;place-items:center;font:900 1rem/1 var(--display,system-ui);color:#fff;background:linear-gradient(#8f80f0,#5a4bc4);box-shadow:0 3px 0 #2f2680;cursor:pointer}
+#bws886 .swpnone{margin:auto;padding:0 10px;text-align:center;font:800 .95rem/1.4 var(--display,system-ui);color:#c9c6f0}
+@media (max-height:620px){#bws886 .swpfoot{display:none}#bws886 .swptime{margin-top:7px}#bws886 .swpgrid{margin-top:8px;gap:6px 12px}#bws886 .swpbuy{padding:5px 10px 6px}}   /* short phones: more room for the cards */
+`; document.head.appendChild(css);
+  const ICON = s => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true" style="flex:none"><rect x="7.5" y="3" width="12" height="16" rx="2.6" fill="#7f70e6" stroke="#fff" stroke-width="1.6" transform="rotate(10 13.5 11)"/><rect x="4" y="5" width="12" height="16" rx="2.6" fill="#ffc94a" stroke="#fff" stroke-width="1.6" transform="rotate(-8 10 13)"/><path d="M8.2 13.6h4.6M10.5 11.3v4.6" stroke="#5a3a08" stroke-width="2" stroke-linecap="round" transform="rotate(-8 10 13)"/></svg>`;
+  try { Object.assign(TB886, { swap_open:['swo886', 'have', 'picks'], swap_buy:['swb886', 'firework', 'rarity', 'price', 'left'], swap_preview:['swp886', 'firework'] }); } catch (e) {}
+  const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  const seed = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return () => { h = (h + 0x6D2B79F5) >>> 0; let t2 = h; t2 = Math.imul(t2 ^ (t2 >>> 15), t2 | 1); t2 ^= t2 + Math.imul(t2 ^ (t2 >>> 7), t2 | 61); return ((t2 ^ (t2 >>> 14)) >>> 0) / 4294967296; }; };
+  const did = () => { try { return (typeof CLOUD_DID !== 'undefined' && CLOUD_DID) || ''; } catch (e) { return ''; } };
+  function swapToday() { const day = dayKey(); let S = fwDisc.swap;
+    if (!S || S.day !== day || !Array.isArray(S.picks)) { const rnd = seed(day + '|' + did()), extra = typeof FEST_EXTRA !== 'undefined' ? FEST_EXTRA : [];
+      const pool = fwPool().filter(k => FIREWORKS[k] && !fwHas(k) && !extra.includes(k)), picks = [];
+      ['common', 'rare', 'epic', 'legendary'].forEach(r => { const c = pool.filter(k => fwTier(k) === r); if (c.length) picks.push(c[Math.floor(rnd() * c.length)]); });
+      S = fwDisc.swap = { day, picks, bought:[], seen:0 }; try { saveAll(); } catch (e) {} }
+    return S; }
+  const left = () => { const n = new Date(), m = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1) - n, h = Math.floor(m / 3600000), mi = Math.floor(m % 3600000 / 60000); return t('New picks in {h}h {m}m', { h, m:mi }); };
+  const have = () => fwDisc.stamps || 0;
+  function sheetHtml(b) { const S = swapToday(), cat = bndOrder(), n = have(), picks = S.picks.filter(k => FIREWORKS[k]);
+    const f0 = fwHas; let cells = ''; fwHas = k => picks.includes(k) || f0(k);   /* the cards show their firework, like a shop window */
+    try { cells = picks.map(k => { const r = fwTier(k), p = SWAP_PRICE[r] || 20, got = S.bought.includes(k) || f0(k), i = cat.indexOf(k);
+        const slot = i >= 0 ? bwsSlot(cat, i).replace(/ data-slot="\d+"/, '') : '';
+        const btn = got ? `<span class="swpbuy got">✓ ${fwEsc(t('In your book'))}</span>` : `<button type="button" class="swpbuy${n < p ? ' no' : ''}" data-swk="${k}"${n < p ? ' disabled' : ''}>${ICON(16)} ${p}</button>`;
+        return `<div class="swpcell"><div class="swpcard" data-swv="${k}">${slot}<div class="swptier" style="--c:${bwsTC(r)}">${fwEsc(bwsTN(r))}</div></div>${btn}</div>`; }).join(''); } finally { fwHas = f0; }
+    return `<div class="swpdim" data-swx="1"></div><div class="swpsheet" role="dialog" aria-label="${fwEsc(t('Swap Shop'))}">`
+      + `<div class="swphd"><span class="swpbal" title="${fwEsc(t('spare duplicates'))}">${ICON(22)} ${n}<small>${fwEsc(t('spare'))}</small></span><div class="swph">${fwEsc(t('Swap Shop'))}</div><button type="button" class="swpx" data-swx="1" aria-label="${fwEsc(t('Close'))}">✕</button></div>`
+      + `<div class="swptime">⏱ ${fwEsc(left())}</div>`
+      + (cells ? `<div class="swpgrid">${cells}</div>` : `<div class="swpnone">${fwEsc(t('You have every firework in the shop. New picks tomorrow!'))}</div>`)
+      + `<div class="swpfoot">${fwEsc(t('Every duplicate you find adds 1 spare. Trade spares for fireworks you are missing.'))}</div></div>`; }
+  function paintSheet(b) { const old = b.ov.querySelector('.swpwrap'); if (old) old.remove(); const w = document.createElement('div'); w.className = 'swpwrap'; w.innerHTML = sheetHtml(b); b.ov.appendChild(w);
+    const S = swapToday(), f0 = fwHas; fwHas = k => S.picks.includes(k) || f0(k); try { bwsPaint(w); } catch (e) {} finally { fwHas = f0; }
+    ['click', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'wheel'].forEach(ev => w.addEventListener(ev, e => { e.stopPropagation(); if (ev === 'click') onClick(e, b); }, { passive:ev !== 'click' })); }
+  function openSheet(b) { const S = swapToday(); b.swapOpen = 1; b.fwpBusy = 1;   /* FEST-WIPE waits until the sheet closes */
+    if (!S.seen) { S.seen = 1; try { saveAll(); } catch (e) {} }
+    try { track('swap_open', { have:have(), picks:S.picks.length }); } catch (e) {}
+    paintSheet(b); const nb = b.ov.querySelector('.swpbtn i'); if (nb) nb.remove();
+    clearInterval(b.swapTick); b.swapTick = setInterval(() => { if (BWS !== b || !b.swapOpen) { clearInterval(b.swapTick); return; } const tm = b.ov.querySelector('.swptime'); if (tm) tm.textContent = '⏱ ' + left(); if (swapToday().day !== S.day) paintSheet(b); }, 30000); }
+  function closeSheet(b) { b.swapOpen = 0; clearInterval(b.swapTick); const w = b.ov.querySelector('.swpwrap'); if (w) w.remove(); b.fwpBusy = 0; bwsRender(); }
+  function buy(b, k, btn) { const S = swapToday(), r = fwTier(k), p = SWAP_PRICE[r] || 20; if (!S.picks.includes(k) || S.bought.includes(k) || fwHas(k) || have() < p) return;
+    if (!btn.classList.contains('ask')) { btn.classList.add('ask'); btn.textContent = t('Tap to swap'); clearTimeout(btn._t); btn._t = setTimeout(() => { if (btn.isConnected) { btn.classList.remove('ask'); btn.innerHTML = ICON(16) + ' ' + p; } }, 3000); return; }
+    fwDisc.stamps = have() - p; fwDisc.granted.push(k); S.bought.push(k); try { saveAll(); } catch (e) {}
+    try { track('swap_buy', { firework:k, rarity:r, price:p, left:have() }); } catch (e) {}
+    try { festAfterFind(k, 'swap'); } catch (e) {} try { showToast(t('{name} is in your binder!', { name:t(FIREWORKS[k].name) })); } catch (e) {}
+    bwsRender(); }   /* the render puts the sheet back (swapOpen) with the swap shown as done */
+  function onClick(e, b) { const x = e.target.closest('[data-swx]'), bt = e.target.closest('[data-swk]'), cv = e.target.closest('[data-swv]');
+    if (x) { closeSheet(b); return; } if (bt) { if (!bt.disabled) buy(b, bt.dataset.swk, bt); return; }
+    if (cv) { const k = cv.dataset.swv; try { track('swap_preview', { firework:k }); } catch (e2) {} try { if (typeof bwsPreviewOver === 'function') bwsPreviewOver(k); } catch (e2) {} } }
+  const R0 = bwsRender; bwsRender = function () { const r = R0.apply(this, arguments); try { const b = BWS; if (!b || !festOn()) return r;
+      b.ov.classList.add('swpon');
+      if (b.scr === 'page') { const top = b.ov.querySelector('.bwstop'); if (top && !top.querySelector('.swpbtn')) { const S = swapToday(), btn = document.createElement('button'); btn.type = 'button'; btn.className = 'swpbtn';
+          btn.innerHTML = ICON(18) + '<span>' + fwEsc(t('Shop')) + '</span>' + (S.seen ? '' : '<i>' + fwEsc(t('NEW')) + '</i>'); btn.setAttribute('aria-label', t('Swap Shop'));
+          const cnt = top.querySelector('.bwscnt'); if (cnt) top.insertBefore(btn, cnt); else top.appendChild(btn);
+          btn.addEventListener('click', e => { e.stopPropagation(); openSheet(b); }); btn.addEventListener('pointerdown', e => e.stopPropagation()); } }
+      if (b.swapOpen) { if (b.scr === 'page') paintSheet(b); else { b.swapOpen = 0; b.fwpBusy = 0; } }
+    } catch (e) { console.error('swap-shop', e); } return r; };
+  window.swapToday886 = swapToday;
+} catch (e) { console.error('SWAP-SHOP', e); } })();
+// ===== END SWAP-SHOP =====
 // ===== SHOW-SLOTS (patch-show-slots.py; owner 11/27) =====
 // Owner: "When players pull a new firework, that firework is the one that shows. Otherwise use their selected firework ... players unlock
 // firework thresholds (ie 10 unlocks the 1st spot, 25 unlocks the 2nd, 50 unlocks the 3rd), they can then combine their fireworks to build
