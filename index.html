@@ -2882,7 +2882,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.893', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.894', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -35919,6 +35919,19 @@ try { [['blossomtree', { z:0.42, cy:-6 }], ['flock', { z:0.66 }], ['platypus', {
 .fband.ph i,.fband.my i,.fband.fiesta2 i{background:#120d2e;box-shadow:0 0 0 calc(.3 * var(--fu)) rgba(255,255,255,.9)}
 `; document.head.appendChild(st); })();
 // ===== END FESTIVAL-BANNERS-2 =====
+// ===== FIX-BND-FU (patch-bnd-fu.py; owner 11/27) =====
+// After-find book: the banner's --fu came from the whole layer (#bnd885{--fu:.49cqw}, the screen width), not from its page, so on short
+// screens (smaller book) the banner's title and icons were too big and collided. Wrap the banner in a page-sized size container; --fu = 1cqw.
+(() => { try {
+  const css = document.createElement('style'); css.id = 'bndFuCss';
+  css.textContent = '#bnd885 .fbwrap{position:absolute;inset:0;z-index:3;container-type:inline-size;pointer-events:none}#bnd885 .fbwrap .fband{--fu:1cqw}';
+  document.head.appendChild(css);
+  if (typeof festBookMain === 'function' && !festBookMain.__fu) { const F0 = festBookMain; festBookMain = function (b) { const r = F0.apply(this, arguments);
+      try { const hd = b && b.el && b.el.hd, band = hd && hd.previousElementSibling; if (band && band.classList.contains('fband') && !(band.parentElement && band.parentElement.classList.contains('fbwrap'))) {
+        const w = document.createElement('div'); w.className = 'fbwrap'; band.before(w); w.appendChild(band); } } catch (e) {}
+      return r; }; festBookMain.__fu = true; }
+} catch (e) { console.error('FIX-BND-FU', e); } })();
+// ===== END FIX-BND-FU =====
 // ===== FEST-BOOK-BANNERS (patch-fest-book-banners.py; owner 11/27) =====
 // A set's banner stays in the book's parchment and ink until the set is complete (4 / 4; Prizes: both prizes), then its colours come out.
 // Parchment from inside one card frame of the page picture; both side icons stamped alike (ink silhouette + only the art's dark lines);
