@@ -2882,7 +2882,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.896', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.897', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -12125,7 +12125,7 @@ function bndGiftStart(key) { if (BND) { clearInterval(BND.watch); cancelAnimatio
   const tier = fwTier(key), cat = bndOrder() /* BINDER-WS: the one binder order */, idx = Math.max(0, cat.indexOf(key)), own = fwAllOwned(), tot = cat.filter(k => k && FIREWORKS[k] && fwTier(k) === tier).length, ownT = own.filter(k => fwTier(k) === tier).length, before = Math.max(0, ownT - 1);
   BND = { g:G, gift:true, key, tier, R:BND_RAR.common, cat, idx, page:Math.floor(idx / 4) + 1, slot:idx % 4, tot, before, first:false, t0:performance.now() + 120, jump:0, closed:false, INS:null, RO:null, FB:null, tilt:{ x:0, y:0 }, dying:0, lastPaint:'' };
   bndBuild(); const me = BND, rt = me.root; me.raf = requestAnimationFrame(bndLoop); me.watch = setInterval(() => { if (BND !== me) clearInterval(me.watch); }, 250);
-  rt.style.background = 'rgba(8,6,28,.74)'; rt.style.transition = 'opacity .18s'; rt.style.pointerEvents = 'auto';   /* a dark backdrop over Level 1; touches stay off the board */
+  rt.style.background = 'rgba(8,6,28,.74)'; rt.style.transition = 'opacity .18s'; rt.style.pointerEvents = 'none'; /* GIFT-PASS (owner 11/28): touches go through to Level 1; the first one closes the book */ { const pass = e => { removeEventListener('pointerdown', pass, true); if (BND !== me || me.dying) return; try { glog('X', ['bgx886', Math.round(performance.now() - (me.start || performance.now()))]); } catch (e2) {} bndKill(); }; addEventListener('pointerdown', pass, true); me.passOff = () => removeEventListener('pointerdown', pass, true); }
   const wh = rt.querySelector('.b5where'); if (wh) wh.style.fontSize = '4.4cqw';   /* the gift's line is read, so it is larger */
   const stop = e => { e.stopPropagation(); if (e.type === 'pointerdown' && BND === me && gcbTap(me)) return;   /* GIFT-CARDBACK */ if (e.type === 'pointerdown' && BND === me && !me.dying && performance.now() - me.start > 600) bndKill(); }; me.start = performance.now(); ['pointerdown', 'touchstart', 'mousedown'].forEach(n => rt.addEventListener(n, stop));   /* a tap after 0.6 s dismisses it */
   setTimeout(() => { if (BND === me && !me.dying) bndKill(); }, reduced ? 2600 : 120 + Math.round((me.T.end + 6) * 1000));   /* Reduce flashing and shaking: the still book for 2.6 s; otherwise only a safety net */
@@ -36174,6 +36174,33 @@ body.s1res #topstrip .coinbox{visibility:hidden}
 #bws886 .bwskeep:active{transform:translateX(-50%) translateY(4px)}
 `;
 function s1Css886() { if (document.getElementById('s1r886css')) return; const st = document.createElement('style'); st.id = 's1r886css'; st.textContent = S1R_CSS; document.head.appendChild(st); }
+/* ===== AUTO-L2 (owner 11/28): on the FIRST Stage 1 Level 1 win, once the win screen settles, "Level 2 starts in 3" counts down under
+   Next level and then presses it; any touch cancels; once per player (seenIntro autoL2); ?al2=0 off; glog X al2886 [start|go|cancel|gone, ms]. ===== */
+var AL2 = { on:!/[?&]al2=0\b/.test(location.search), g:null, seen:0, st:null };
+{ const sg0 = startGame; startGame = function (level, run) { let was = true; try { was = !!run || done.has(+level); } catch (e) {} const r = sg0.apply(this, arguments); try { if (G) G.al2New = !was; } catch (e) {} return r; }; }   /* was this level won before this attempt? */
+function al2Here() { try { return AL2.on && !!G && G.al2New === true && G.phase === 'result' && !!G.won && G.level === levelId(1, 1) && s1Win886() && !!openLevel(levelId(1, 2)); } catch (e) { return false; } }
+function al2Covered() { try { if (typeof bndCovered886 === 'function' && bndCovered886()) return true; if (BND && (BND.INS || BND.RO || BND.FB)) return true;
+    if (BND && !BND.gift && !BND.dying && (!BND.print || (BND.stepsDone | 0) < (BND.steps | 0))) return true;   /* the level-win book is still printing */
+    const w = document.getElementById('bws886'); return !!(w && w.classList.contains('bwswin') && !w.hidden && w.getClientRects().length); } catch (e) { return false; } }
+function al2Next() { try { const r = cv.getBoundingClientRect(), k = r.width / 390, o = { clientX:r.left + 195 * k, clientY:r.top + (H * 0.46 + RSH858 + 30) * k, pointerId:9886, pointerType:'mouse', isPrimary:true, bubbles:true, cancelable:true, button:0, buttons:1 };
+    const d = new PointerEvent('pointerdown', o); d.__al2 = 1; cv.dispatchEvent(d); const u = new PointerEvent('pointerup', Object.assign({}, o, { buttons:0 })); u.__al2 = 1; cv.dispatchEvent(u); } catch (e) { console.error('al2 next', e); } }
+function al2Stop(why) { const s = AL2.st; if (!s) return; AL2.st = null; clearInterval(s.iv); removeEventListener('pointerdown', s.cancel, true); const el = document.getElementById('al2886'); if (el) el.remove(); if (why) { try { glog('X', ['al2886', why, Math.round(s.ms)]); } catch (e) {} } }
+function al2Place(el) { try { const r = cv.getBoundingClientRect(), k = r.width / 390; el.style.top = Math.round(r.top + (H * 0.46 + RSH858 + 70) * k) + 'px'; } catch (e) {} }
+function al2Begin() { seenIntro.add('autoL2'); try { saveAll(); } catch (e) {}
+  if (!document.getElementById('al2886css')) { const st = document.createElement('style'); st.id = 'al2886css';
+    st.textContent = '#al2886{position:fixed;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;border-radius:999px;background:rgba(12,10,44,.88);color:#fff;font:700 16px var(--display,system-ui),system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;pointer-events:auto}#al2886 b{color:#ffd25e;display:inline-block;min-width:1ch;text-align:center}#al2886 button{border:0;border-radius:999px;padding:6px 14px;background:rgba(255,255,255,.18);color:#fff;font:700 14px system-ui,sans-serif;cursor:pointer}';
+    document.head.appendChild(st); }
+  const esc = x => String(x).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+  const el = document.createElement('div'); el.id = 'al2886'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+  el.innerHTML = '<span>' + esc(t('Level 2 starts in {n}', { n:'@@' })).replace('@@', '<b>3</b>') + '</span><button type="button">' + esc(t('Stay')) + '</button>'; document.body.appendChild(el); al2Place(el);
+  const s = { ms:0, last:performance.now(), n:3 }; s.cancel = e => { if (e && e.__al2) return; al2Stop('cancel'); }; addEventListener('pointerdown', s.cancel, true); AL2.st = s; try { glog('X', ['al2886', 'start', 0]); } catch (e) {}
+  s.iv = setInterval(() => { const now = performance.now(), dt = now - s.last; s.last = now; if (!al2Here() || al2Covered()) { al2Stop('gone'); return; } if (document.hidden) return; s.ms += dt; al2Place(el);
+    const left = Math.max(1, 3 - Math.floor(s.ms / 1000)); if (left !== s.n) { s.n = left; const b = el.querySelector('b'); if (b) b.textContent = String(left); }
+    if (s.ms >= 3000) { al2Stop('go'); al2Next(); } }, 100); }
+setInterval(() => { try { if (!AL2.on || AL2.st) return; if (!al2Here()) { AL2.g = null; AL2.seen = 0; return; } if (AL2.g !== G) { AL2.g = G; AL2.seen = performance.now(); return; }
+    if (seenIntro.has('autoL2')) return; if (document.hidden || al2Covered()) { AL2.seen = Math.max(AL2.seen, performance.now() - 2000); return; }
+    if (performance.now() - AL2.seen >= 2800) al2Begin(); } catch (e) {} }, 200);
+/* ===== END AUTO-L2 ===== */
 function s1Win886() { try { return !!G && G.phase === 'result' && !!G.won && !G.tut && !G.run && !G.daily && !G.trap && !G.preview && !G.sky && !G.door && stageOf(G.level) === 1; } catch (e) { return false; } }
 var S1R_WATCH = 0;
 function s1Coins886() { s1Css886(); if (document.body.classList.contains('s1res')) return; document.body.classList.add('s1res'); clearInterval(S1R_WATCH);
