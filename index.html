@@ -2881,7 +2881,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.888', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.889', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -35934,11 +35934,67 @@ try { [['blossomtree', { z:0.42, cy:-6 }], ['flock', { z:0.66 }], ['platypus', {
     if (L) h = h.replace(L[0], stamp('l', L[1])); else if (R) h = h.replace(/<b /, stamp('l', R[1]) + '<b ');   /* no left icon: copy the right one */
     if (R) h = h.replace(R[0], stamp('r', R[1]));
     return h.replace('class="fband', 'class="fband fgray'); };
+  window.festGray886 = gray;   /* FEST-WIPE: the not-finished look on demand */
   if (!festBand.__book) { const fb1 = festBand; festBand = function (p, cat) { const h = fb1(p, cat); try { const st = FEST_SETS[p];
       const done = st ? festDone(st) : FEST_EXTRA.filter(k => FIREWORKS[k] && fwHas(k)).length >= FEST_EXTRA.length;   /* Prizes: both prizes */
       return done || h.indexOf('class="fband') < 0 ? h : gray(h); } catch (e) { return h; } }; festBand.__book = true; }
 } catch (e) { console.error('FEST-BOOK-BANNERS', e); } })();
 // ===== END FEST-BOOK-BANNERS =====
+// ===== FEST-WIPE (patch-fest-wipe.py; owner 11/27: "Build A") =====
+// A completed set's banner gets its colours with a wipe, once per set: in the after-find book when the card is seated, otherwise the first time
+// the page is shown in the Workshop / post-level book. Reduced motion or a "still" phone: a plain fade. Saved in fwDisc.festWiped.
+(() => { try {
+  const css = document.createElement('style'); css.id = 'festWipeCss'; css.textContent = `
+.fband.fwp-c{transform-origin:50% 50%}
+.fband.fwp-c.fwp-wait i.ok{opacity:0}
+@keyframes fwpWipe{0%{-webkit-mask-position:100% 0;mask-position:100% 0}100%{-webkit-mask-position:0% 0;mask-position:0% 0}}
+.fband.fwp-g.fwp-go{-webkit-mask-image:linear-gradient(90deg,transparent 46%,#000 54%);mask-image:linear-gradient(90deg,transparent 46%,#000 54%);-webkit-mask-size:220% 100%;mask-size:220% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;animation:fwpWipe .72s cubic-bezier(.55,.1,.35,1) .05s both}
+@keyframes fwpEdge{0%{left:-12%;opacity:0}8%{opacity:1}92%{opacity:1}100%{left:104%;opacity:0}}
+.fwp-edge{position:absolute;top:0;bottom:0;width:9%;z-index:5;pointer-events:none;background:linear-gradient(90deg,rgba(255,214,90,0),rgba(255,236,150,.95),rgba(255,214,90,0));filter:blur(1px);animation:fwpEdge .72s cubic-bezier(.55,.1,.35,1) .05s both}
+@keyframes fwpBump{0%{transform:scale(1)}45%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes fwpPill{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes fwpShine{0%{transform:translateX(-140%) skewX(-20deg)}100%{transform:translateX(560%) skewX(-20deg)}}
+.fwp-shine{position:absolute;top:-10%;bottom:-10%;left:0;width:18%;z-index:4;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55),rgba(255,255,255,0));transform:translateX(-140%)}
+.fband.fwp-c.fwp-pop{animation:fwpBump .42s ease-out .73s both}
+.fband.fwp-c.fwp-pop .fwp-shine{animation:fwpShine .5s ease-in-out .79s both}
+.fband.fwp-c.fwp-pop i.ok{animation:fwpPill .38s cubic-bezier(.3,1.5,.5,1) .75s both}
+@keyframes fwpFade{to{opacity:0}}
+.fband.fwp-g.fwp-fade{animation:fwpFade .35s ease-out both}
+`; document.head.appendChild(css);
+  const calm = () => { try { return bwsCalm() || (typeof BWM_LV !== 'undefined' && BWM_LV >= 2); } catch (e) { return false; } };
+  const idOf = p => { const st = FEST_SETS[p]; return st ? st.id : 'prizes'; };
+  const doneOf = p => { const st = FEST_SETS[p]; return st ? festDone(st) : FEST_EXTRA.filter(k => FIREWORKS[k] && fwHas(k)).length >= FEST_EXTRA.length; };
+  const isPrizes = (p, cat) => !FEST_SETS[p] && festPageName(p, cat) === t('Prizes');
+  const wiped = id => (fwDisc.festWiped || []).includes(id);
+  const markWiped = id => { fwDisc.festWiped = fwDisc.festWiped || []; if (!fwDisc.festWiped.includes(id)) { fwDisc.festWiped.push(id); try { saveAll(); } catch (e) {} } };
+  const pillBefore = p => { const st = FEST_SETS[p]; if (!st) { const n = FEST_EXTRA.length; return (n - 1) + ' / ' + n; } return (st.season ? fwEsc(t('SEASON')) + ' · ' : '') + '3 / 4'; };
+  // lay the not-finished banner over the finished one; returns a handle for go()
+  function prep(col, p) { if (typeof window.festGray886 !== 'function' || !col || col.classList.contains('fgray')) return null;
+    const h = col.outerHTML.replace(/<i class="ok">[^<]*<\/i>/, `<i class="">${pillBefore(p)}</i>`), tmp = document.createElement('div'); tmp.innerHTML = window.festGray886(h);
+    const g = tmp.firstElementChild; if (!g) return null; g.classList.add('fwp-g'); col.classList.add('fwp-c', 'fwp-wait'); col.after(g);
+    const sh = document.createElement('span'); sh.className = 'fwp-shine'; const fb = col.querySelector('.fbin'); if (fb) fb.appendChild(sh);
+    return { col, g, sh, p }; }
+  function go(H, where) { if (!H || !H.g.isConnected) return; const c = calm(); markWiped(idOf(H.p));
+    try { track('fest_wipe', { set:idOf(H.p), where, calm:c ? 1 : 0 }); } catch (e) {}
+    if (c) { H.col.classList.remove('fwp-wait'); H.g.classList.add('fwp-fade'); }
+    else { const e = document.createElement('span'); e.className = 'fwp-edge'; const fb = H.g.querySelector('.fbin'); if (fb) fb.appendChild(e); H.g.classList.add('fwp-go'); H.col.classList.remove('fwp-wait'); H.col.classList.add('fwp-pop'); }
+    setTimeout(() => { try { H.g.remove(); H.sh.remove(); H.col.classList.remove('fwp-c', 'fwp-pop', 'fwp-wait'); } catch (e) {} }, c ? 450 : 1450); }
+  window.festWipe886 = { prep, go, wiped, markWiped };
+  // after-find book: grey until the card is seated, then the wipe; outside Stage 1 the book holds 1.5 s longer
+  const B0 = bndBuild; bndBuild = function () { const r = B0.apply(this, arguments); try { const b = BND; if (!b || !b.root || !b.T) return r;
+      const st = festSetOf(b.key), p = st ? FEST_SETS.indexOf(st) : -1; if (p < 0 || !festDone(st) || wiped(st.id)) return r;
+      const H = prep(b.root.querySelector('.fband'), p); if (!H) return r;
+      if (isFinite(b.T.close)) { b.T.close += 1.5; if (isFinite(b.T.end)) b.T.end += 1.5; }
+      const wait = Math.max(0, b.t0 + b.T.seat * 1000 - performance.now()); setTimeout(() => { if (BND === b && !b.dying) go(H, 'find'); }, wait);
+    } catch (e) { console.error('fest-wipe find', e); } return r; };
+  // Workshop / post-level book: the first showing of a completed page whose wipe has not played
+  const R0 = bwsRender; bwsRender = function () { const r = R0.apply(this, arguments); try { const b = BWS; if (!b || b.scr !== 'page' || b.fwpBusy) return r;
+      const cat = bndOrder(), p = b.page; if (!FEST_SETS[p] && !isPrizes(p, cat)) return r; if (!doneOf(p) || wiped(idOf(p))) return r;
+      const H = prep(b.ov.querySelector('.fband'), p); if (!H) return r; b.fwpBusy = 1;
+      setTimeout(() => { b.fwpBusy = 0; if (BWS === b && b.scr === 'page' && b.page === p) go(H, 'book'); }, b.arrive ? 900 : 300);
+    } catch (e) { console.error('fest-wipe book', e); } return r; };
+} catch (e) { console.error('FEST-WIPE', e); } })();
+// ===== END FEST-WIPE =====
 // ===== SHOW-SLOTS (patch-show-slots.py; owner 11/27) =====
 // Owner: "When players pull a new firework, that firework is the one that shows. Otherwise use their selected firework ... players unlock
 // firework thresholds (ie 10 unlocks the 1st spot, 25 unlocks the 2nd, 50 unlocks the 3rd), they can then combine their fireworks to build
