@@ -2882,7 +2882,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.898', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.899', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -36212,6 +36212,32 @@ function rsGo(why) { if (RS.done) return false; RS.done = true; let lv = 0; if (
 setInterval(rsSave, 3000); addEventListener('pagehide', rsSave); document.addEventListener('visibilitychange', () => { if (document.hidden) rsSave(); });
 if (!/[?&]hold=1\b/.test(location.search)) { const rsBoot = setInterval(() => { if (document.getElementById('loading')) return; clearInterval(rsBoot); setTimeout(() => rsGo('open'), 600); }, 250); }   /* a game opened on its own */
 /* ===== END RESUME-1128 ===== */
+/* ===== INAPP-GUARD-1128 (owner 11/28): TikTok's pull-to-refresh and back button, top page in in-app browsers only ===== */
+(function (w, d) {
+  try { if (w.top !== w) return; } catch (e) { return; }
+  var ua = navigator.userAgent || '', inApp = /TikTok|musical_ly|BytedanceWebview|trill_|FBAN|FBAV|Instagram/i.test(ua), android = /Android/i.test(ua);
+  if (!inApp || /[?&]guard=0\b/.test(location.search)) return;
+  var LOG = function (c, a) { try { glog('X', ['gd886', c].concat(a || [])); } catch (e) {} };
+  if (android) { var pad = d.createElement('div'); pad.id = 'ptrPad'; pad.setAttribute('aria-hidden', 'true'); pad.style.cssText = 'position:absolute;left:0;top:100%;width:1px;height:3px;pointer-events:none;opacity:0';
+    var keep = function () { try { if (!pad.parentNode) d.documentElement.appendChild(pad); if ((w.pageYOffset || d.documentElement.scrollTop || 0) < 1) w.scrollTo(0, 1); } catch (e) {} };
+    keep(); d.addEventListener('DOMContentLoaded', keep); w.addEventListener('load', function () { keep(); setTimeout(keep, 300); try { LOG('pt', [Math.round(w.pageYOffset || 0)]); } catch (e) {} });
+    w.addEventListener('scroll', function () { if ((w.pageYOffset || 0) < 1) w.scrollTo(0, 1); }, { passive:true }); w.addEventListener('resize', keep); d.addEventListener('visibilitychange', keep); w.addEventListener('touchstart', keep, { passive:true, capture:true }); }
+  var armed = false, box = null, push = function () { try { history.pushState({ bobGuard:1 }, ''); } catch (e) {} };
+  w.addEventListener('pointerdown', function () { if (armed) return; armed = true; push(); }, { capture:true });
+  var hide = function () { if (box) box.hidden = true; };
+  var ask = function () { if (!box) { box = d.createElement('div'); box.id = 'leaveAsk'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
+      box.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(8,6,28,.72);font:16px/1.4 system-ui,-apple-system,sans-serif';
+      box.innerHTML = '<div style="width:min(320px,calc(100vw - 32px));padding:20px 18px 14px;border-radius:18px;background:linear-gradient(#2b2775,#221f5e);border:2px solid #4a44a8;color:#fff;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.5)">'
+        + '<div style="font:800 1.35rem system-ui,sans-serif;color:#ffd25e;margin:0 0 6px">Leave the game?</div><div style="color:#c9c4f0;margin:0 0 16px">Your progress is saved.</div>'
+        + '<button type="button" data-k="stay" style="display:block;width:100%;height:52px;border:0;border-radius:16px;background:linear-gradient(#ffdf7a,#ffb92e 62%);box-shadow:0 5px 0 #b5760f;color:#2a1600;font:800 1.15rem system-ui,sans-serif">Keep playing</button>'
+        + '<button type="button" data-k="go" style="display:block;margin:12px auto 0;background:none;border:0;color:#c9c4f2;font:700 15px system-ui,sans-serif;text-decoration:underline;padding:8px 14px">Leave</button></div>';
+      (d.body || d.documentElement).appendChild(box);
+      box.addEventListener('click', function (e) { var k = e.target && e.target.getAttribute && e.target.getAttribute('data-k'); if (k === 'stay') { hide(); push(); try { LOG('bk', ['stay']); } catch (e2) {} } else if (k === 'go') { try { LOG('bk', ['leave']); } catch (e2) {} armed = false; hide(); try { history.back(); } catch (e2) {}
+          setTimeout(function () { if (d.hidden) return; try { w.close(); } catch (e3) {} var n = d.createElement('div'); n.textContent = 'Press back again to leave.'; n.style.cssText = 'position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483647;padding:10px 16px;border-radius:999px;background:rgba(12,10,44,.92);color:#fff;font:700 15px system-ui,sans-serif;white-space:nowrap'; (d.body || d.documentElement).appendChild(n); setTimeout(function () { n.remove(); }, 2600); }, 450); } }); }   /* in TikTok the page is the only history entry, so the next native back closes the browser */
+    box.hidden = false; try { LOG('bk', ['ask']); } catch (e) {} };
+  w.addEventListener('popstate', function (e) { if (!armed) return; var st = e && e.state; if (st && (st.bobGuard || st.bwsWin)) return; if (box && !box.hidden) return; ask(); });
+})(window, document);
+/* ===== END INAPP-GUARD-1128 ===== */
 function s1Win886() { try { return !!G && G.phase === 'result' && !!G.won && !G.tut && !G.run && !G.daily && !G.trap && !G.preview && !G.sky && !G.door && stageOf(G.level) === 1; } catch (e) { return false; } }
 var S1R_WATCH = 0;
 function s1Coins886() { s1Css886(); if (document.body.classList.contains('s1res')) return; document.body.classList.add('s1res'); clearInterval(S1R_WATCH);
