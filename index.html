@@ -2584,6 +2584,23 @@ var relaxBy = false;   /* Version 707: Relaxed chosen by the player */
 .wmview svg { width:14px; height:14px; }
 #wmToMap { display:flex; margin:6px 0 10px auto; position:static; }
 </style>
+<style>/* WORLD-MAP-HOME */
+#wmHome { position:absolute; inset:0; overflow:hidden; background:#10123a; }
+#wmHome .wmhsc { height:100%; overflow-x:auto; overflow-y:hidden; touch-action:pan-x; -webkit-overflow-scrolling:touch; scrollbar-width:none; overscroll-behavior-x:contain; }
+#wmHome .wmhsc::-webkit-scrollbar { display:none; }
+#wmHome .wmhin { position:relative; height:100%; isolation:isolate; }
+#wmHome .wmhin > img { position:absolute; left:0; top:0; height:100%; width:auto; max-width:none; display:block; user-select:none; -webkit-user-drag:none; pointer-events:none; }
+#wmHome .wmtag { font-size:11px; padding:2px 8px 2px 2px; gap:5px; }
+#wmHome .wmtag .wmn { min-width:19px; height:19px; font-size:10px; }
+.wmspk { position:absolute; width:56px; height:56px; transform:translate(-50%,-78%); pointer-events:none; z-index:2; animation:wmBob 1.6s ease-in-out infinite; transition:left .9s cubic-bezier(.3,.7,.3,1), top .9s cubic-bezier(.3,.7,.3,1); }
+#wmHome .wmspk { width:46px; height:46px; }
+.wmg { transition:opacity .9s ease; }
+.wmtag.wmpop { animation:wmPop .6s ease both; }
+.wmtag.wmshake { animation:wmShake .42s ease; }
+@keyframes wmPop { 0% { transform:translate(-50%,-50%) scale(.7); } 60% { transform:translate(-50%,-50%) scale(1.16); } 100% { transform:translate(-50%,-50%) scale(1); } }
+@keyframes wmShake { 0%,100% { transform:translate(-50%,-50%); } 25% { transform:translate(calc(-50% - 5px),-50%); } 75% { transform:translate(calc(-50% + 5px),-50%); } }
+@media (prefers-reduced-motion:reduce) { .wmspk { animation:none; transition:none; } .wmtag.wmpop, .wmtag.wmshake { animation:none; } }
+</style>
   <section id="stages" class="screen" hidden>
     <div class="topbar right stagestop"><b class="scrtitle" data-t="Campaign">Campaign</b><button class="bub back" id="backStages" data-t="Back">Back</button></div>
     <div class="tourbar" id="tourBar"><button type="button" class="tourbub" data-tour="1"></button><button type="button" class="tourbub" data-tour="2"></button></div>
@@ -2864,7 +2881,7 @@ if (window.LOADING) LOADING.set(0.45); // the game script is parsed; boot runs n
 const CONFIG = { base:0.018, levelStep:0.008, growth:0.007, damage:0.1, mistake:0.45, flawFloor:0.2, gapWeight:2.5, wrongWeight:1, levelCoins:[10, 10, 15, 15, 20, 20, 25, 25], survSpinEvery:100, skipLimit:2, freezeSecs:10, freezeLimit:2, urgentFrom:0.25, urgentMax:10, shellBeat:0.22, halfFlare:2, staminaMax:10, staminaMs:300000, healPerSec:0.01, healShare:0.5, oddsFloor:0.05, retryCoins:50, relightMin:0.25, burnGrace:3, mechBonus:2, saveWindow:1, saveCoins:5, saveBeat:1.25, saveHold:1.5, videoStamina:2, videoPerDay:10, stamInfo:true, finaleBursts:3, splitBase:2, splitCap:8, splitTut:7, timeScale:1, explodeAt:1.2, explodeHazard:0.45, aimSeconds:3.5, aimMiss:0.6, boardThemes:'themed', boardLook:'A', lookByStarter:true, dimRowOnDrag:false };   // Version 388: boardThemes 'ab' | 'themed' | 'classic' (classic = today's board exactly)
 // ---- Analytics ---- A provider-agnostic event log. The schema is in ANALYTICS.md. Nothing in here may ever break the game, so every entry point is wrapped.
 // TODO: replace consent:true with a real consent flow before launch. With consent false nothing is created, stored or sent.
-CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.886.31', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
+CONFIG.analytics = { enabled:true, consent:true, appVersion:'0.888', schemaVersion:2, maxEvents:5000, maxBytes:1000000, flushEvery:20, flushMs:5000, batchSize:100, sessionGapMs:30 * 60000, ecpmUsd:10 };
 // Events are stored in chunks of 200, so a save only rewrites the newest chunk and can't cause a hitch during play, however full the log is.
 const AN_EVENTS = 'bloomboom.analytics.events.v1', AN_STATE = 'bloomboom.analytics.state.v1', AN_CHUNK = 200, an = { ready:false, events:[], state:null, dirty:0, dirtyChunks:new Set(), timer:null, sending:false, booted:false, devBoot:undefined, observer:null };
 // The backend adapter. A no-op until a backend is chosen: set one with Analytics.setSendBatch(fn), where fn may return a promise. A rejected promise keeps the batch for the next try.
@@ -19543,33 +19560,64 @@ const WM_ICON = { list:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 
 let wmOpened = 0;
 function wmView() { try { return localStorage.getItem('bob_wmView') === 'list' ? 'list' : 'map'; } catch (e) { return 'map'; } }
 function wmSetView(v) { try { localStorage.setItem('bob_wmView', v); } catch (e) {} try { track('wmap_view', { v }); } catch (e) {} renderStages(); }
+/* ===== WORLD-MAP-HOME (patch-world-map-home.py): one map drawing for the Campaign screen and the Play card ===== */
+/* owner 11/27 ("those name tags on the location look way off and too far down"): each tag placed by eye just under its landmark
+   (picture px: x, tag centre y); Sparky stands just above it */
+const WM_TAG = [[195, 905], [165, 575], [175, 335], [465, 290], [480, 625], [490, 790], [760, 945], [765, 570], [780, 320], [1090, 330], [1075, 575], [1090, 960],
+  [1345, 885], [1345, 540], [1395, 345], [1850, 370], [1880, 640], [1845, 915], [2140, 930], [2150, 665], [2120, 300], [2405, 360], [2445, 645], [2480, 905],
+  [2780, 915], [2785, 650], [2720, 350], [3040, 372], [3060, 665], [3030, 935], [3505, 920], [3545, 630], [3590, 270], [3890, 265], [3900, 625], [3890, 940],
+  [4245, 935], [4250, 642], [4265, 355], [4640, 885]];
+function wmCur() { const cur0 = devMode() ? stageNow : (STAGES.findIndex((_, i) => !stageFinished(i + 1)) + 1 || STAGES.length); return tourPlayable(cur0) && tourOf(cur0) === 1 ? cur0 : Math.min(40, tour1Last()); }
+function wmReady(n) { return devMode() || stageReached(n); }
+function wmLocked(inn, n, where) { try { track('wmap_locked', { stage:n, where }); } catch (e) {} const tg = inn.querySelector(`.wmtag[data-n="${n}"]`); if (tg) { tg.classList.remove('wmshake'); void tg.offsetWidth; tg.classList.add('wmshake'); }
+  try { showToast(t('Finish Stage {n} first', { n:stageNo(Math.max(1, n - 1)) })); } catch (e) {} }
+function wmDraw(inn, H, o) { const k = H / WM_H, Wd = Math.round(WM_W * k), img = inn.querySelector('img'); inn.style.width = Wd + 'px'; if (img.getAttribute('src') !== WM_SRC) img.src = WM_SRC;
+  inn.querySelectorAll('.wmg,.wmcell,.wmtag,.wmspk').forEach(e => e.remove());
+  const cur = wmCur(), X = v => Math.round(v * k), frag = document.createDocumentFragment(), all = Array.from({ length:40 }, (_, i) => i + 1);
+  const cellOf = n => { const p = WM_PL[n - 1]; return { x0:p[3], y0:p[4], x1:p[5], y1:p[6] }; };
+  let last = +pfGet('wmLast') || 0; if (!last) last = cur === 2 ? 1 : cur;   /* the first map view at Stage 2 hops from Kirby Park */
+  const hop = !!o.hop && !devMode() && !reduced && last >= 1 && last < cur;
+  /* grey: one mask - everything right of the current stage's column (the joins between painted sections belong to no place) plus that
+     column's places not reached yet - drawn at 1/40 size so scaling it up gives the soft edge */
+  const maskFor = (c0, rdy) => { const cc = cellOf(c0), inCol = n => { const d = cellOf(n); return Math.min(cc.x1, d.x1) - Math.max(cc.x0, d.x0) > 20; }, colX1 = Math.max(...all.filter(inCol).map(n => cellOf(n).x1)), rects = [];
+    if (all.some(n => !rdy(n) && !inCol(n))) rects.push([colX1, 0, WM_W, WM_H]); all.forEach(n => { if (!rdy(n) && inCol(n)) { const c = cellOf(n); rects.push([c.x0, c.y0, c.x1, c.y1]); } }); if (!rects.length) return [];
+    const D = 40, mk = document.createElement('canvas'); mk.width = Math.ceil(WM_W / D); mk.height = Math.ceil(WM_H / D); const g = mk.getContext('2d'); g.fillStyle = '#000'; rects.forEach(r => g.fillRect(r[0] / D, r[1] / D, (r[2] - r[0]) / D, (r[3] - r[1]) / D));
+    const url = mk.toDataURL('image/png'); return ['sat', 'dim'].map(cl => { const d = document.createElement('div'); d.className = 'wmg ' + cl; d.style.cssText = `left:0;top:0;width:100%;height:100%;-webkit-mask-image:url(${url});mask-image:url(${url});-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat`; frag.append(d); return d; }); };
+  maskFor(cur, wmReady); const oldMask = hop ? maskFor(last, n => n <= last) : [];
+  for (let n = 1; n <= 40; n++) { const p = WM_PL[n - 1], g = STAGES[n - 1], c = cellOf(n), r = wmReady(n), fin = stageFinished(n), now = n === cur, nm = t((SCENES[g.theme] || { name:g.theme }).name);
+    const cell = document.createElement('button'); cell.type = 'button'; cell.className = 'wmcell'; cell.dataset.n = n; cell.tabIndex = -1; cell.setAttribute('aria-hidden', 'true'); cell.style.cssText = `left:${X(c.x0)}px;top:${X(c.y0)}px;width:${X(c.x1) - X(c.x0)}px;height:${X(c.y1) - X(c.y0)}px`; frag.append(cell);
+    const tag = document.createElement('button'); tag.type = 'button'; tag.className = 'wmtag' + (now ? ' now' : fin ? ' done' : r ? '' : ' lock'); tag.dataset.n = n; tag.setAttribute('aria-label', t('Stage {n}', { n:stageNo(n) }) + ': ' + nm);
+    tag.innerHTML = `<i class="wmn">${stageNo(n)}</i><span>${nm}</span>${now ? '' : fin ? `<i class="wmk">${TICK}</i>` : r ? '' : `<i class="wmk">${LOCK}</i>`}`;
+    tag.style.left = X(WM_TAG[n - 1][0]) + 'px'; tag.style.top = X(WM_TAG[n - 1][1]) + 'px'; frag.append(tag); }
+  const spot = n => [WM_TAG[n - 1][0], WM_TAG[n - 1][1] - 60], from = spot(hop ? last : cur), to = spot(cur), cv = document.createElement('canvas'); cv.className = 'wmspk'; cv.width = 112; cv.height = 112; cv.style.left = X(from[0]) + 'px'; cv.style.top = X(from[1]) + 'px'; frag.append(cv);
+  inn.append(frag); try { const g2 = cv.getContext('2d'); g2.scale(2, 2); drawSparky(28, 32, 17, 'happy', g2); } catch (e) { cv.remove(); }
+  inn.onclick = e => { e.stopPropagation(); const b = e.target.closest('[data-n]'), n = b ? +b.dataset.n : 0; if (n && !wmReady(n)) { wmLocked(inn, n, o.where); return; } try { if (n) track('wmap_tap', { stage:n, ready:1, where:o.where }); } catch (e2) {} o.tap(n, cur); };
+  const sc = o.sc, mid = p => Math.max(0, X(p[0]) - sc.clientWidth / 2); requestAnimationFrame(() => { sc.scrollLeft = mid(from); });
+  if (hop) { pfSet('wmLast', cur); try { track('wmap_hop', { from:last, to:cur, where:o.where }); } catch (e) {}
+    setTimeout(() => { try { cv.style.left = X(to[0]) + 'px'; cv.style.top = X(to[1]) + 'px'; try { sc.scrollTo({ left:mid(to), behavior:'smooth' }); } catch (e) { sc.scrollLeft = mid(to); } } catch (e) {} }, 550);
+    setTimeout(() => { oldMask.forEach(d => { d.style.opacity = '0'; }); const tg = inn.querySelector(`.wmtag[data-n="${cur}"]`); if (tg) tg.classList.add('wmpop'); }, 1250);
+    setTimeout(() => { oldMask.forEach(d => d.remove()); }, 2400); }
+  else if (+pfGet('wmLast') !== cur) pfSet('wmLast', cur);
+  return { cur, k }; }
 function wmRender() { const box = $('wmap'), toMap = $('wmToMap'), list = $('stageList'); if (!box || !list) return;
   const on = stageTour === 1 && wmView() === 'map'; box.hidden = !on; list.hidden = on; toMap.hidden = !(stageTour === 1 && !on);
   toMap.innerHTML = WM_ICON.map + '<span>' + t('Map') + '</span>'; toMap.onclick = () => wmSetView('map');
   if (!on) return;
   const tb = $('tabbar'), top = box.getBoundingClientRect().top, tbTop = tb && tb.offsetParent !== null ? tb.getBoundingClientRect().top : innerHeight, H = Math.max(260, Math.round(tbTop - top - 10));
-  box.style.height = H + 'px'; const k = H / WM_H, Wd = Math.round(WM_W * k), inn = $('wmIn'), img = $('wmImg'); inn.style.width = Wd + 'px'; if (img.getAttribute('src') !== WM_SRC) img.src = WM_SRC;
-  inn.querySelectorAll('.wmg,.wmcell,.wmtag,#wmSpk').forEach(e => e.remove());
-  const cur0 = devMode() ? stageNow : (STAGES.findIndex((_, i) => !stageFinished(i + 1)) + 1 || STAGES.length), cur = tourPlayable(cur0) && tourOf(cur0) === 1 ? cur0 : Math.min(40, tour1Last());
-  const ready = n => devMode() || stageReached(n), X = v => Math.round(v * k), F = Math.round(46 * k), frag = document.createDocumentFragment();
-  const cellOf = n => { const p = WM_PL[n - 1]; return { x0:p[3], y0:p[4], x1:p[5], y1:p[6] }; };
-  /* grey: one mask over the whole picture - everything right of the current stage's column (the joins between painted sections belong to
-     no place) plus that column's places not reached yet - drawn at 1/40 size so scaling it up gives the soft edge */
-  const cc = cellOf(cur), all = Array.from({ length:40 }, (_, i) => i + 1), inCol = n => { const d = cellOf(n); return Math.min(cc.x1, d.x1) - Math.max(cc.x0, d.x0) > 20; }, colX1 = Math.max(...all.filter(inCol).map(n => cellOf(n).x1));
-  const rects = []; if (all.some(n => !ready(n) && !inCol(n))) rects.push([colX1, 0, WM_W, WM_H]); all.forEach(n => { if (!ready(n) && inCol(n)) { const c = cellOf(n); rects.push([c.x0, c.y0, c.x1, c.y1]); } });
-  if (rects.length) { const D = 40, mk = document.createElement('canvas'); mk.width = Math.ceil(WM_W / D); mk.height = Math.ceil(WM_H / D); const g = mk.getContext('2d'); g.fillStyle = '#000'; rects.forEach(r => g.fillRect(r[0] / D, r[1] / D, (r[2] - r[0]) / D, (r[3] - r[1]) / D));
-    const url = mk.toDataURL('image/png'); ['sat', 'dim'].forEach(cl => { const d = document.createElement('div'); d.className = 'wmg ' + cl; d.style.cssText = `left:0;top:0;width:100%;height:100%;-webkit-mask-image:url(${url});mask-image:url(${url});-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat`; frag.append(d); }); }
-  for (let n = 1; n <= 40; n++) { const p = WM_PL[n - 1], g = STAGES[n - 1], c = cellOf(n), r = ready(n), fin = stageFinished(n), now = n === cur, nm = t(SCENES[g.theme].name);
-    const cell = document.createElement('button'); cell.type = 'button'; cell.className = 'wmcell'; cell.dataset.n = n; cell.tabIndex = -1; cell.setAttribute('aria-hidden', 'true'); cell.style.cssText = `left:${X(c.x0)}px;top:${X(c.y0)}px;width:${X(c.x1) - X(c.x0)}px;height:${X(c.y1) - X(c.y0)}px`; frag.append(cell);
-    const tag = document.createElement('button'); tag.type = 'button'; tag.className = 'wmtag' + (now ? ' now' : fin ? ' done' : r ? '' : ' lock'); tag.dataset.n = n; tag.setAttribute('aria-label', t('Stage {n}', { n:stageNo(n) }) + ': ' + nm);
-    tag.innerHTML = `<i class="wmn">${stageNo(n)}</i><span>${nm}</span>${now ? '' : fin ? `<i class="wmk">${TICK}</i>` : r ? '' : `<i class="wmk">${LOCK}</i>`}`;
-    tag.style.left = X(p[0]) + 'px'; tag.style.top = X(p[2]) + 'px'; frag.append(tag); }
-  const pc = WM_PL[cur - 1], cv = document.createElement('canvas'); cv.id = 'wmSpk'; cv.width = 112; cv.height = 112; cv.style.left = X(pc[0]) + 'px'; cv.style.top = X(pc[1]) + 'px'; frag.append(cv);
-  inn.append(frag); try { const g2 = cv.getContext('2d'); g2.scale(2, 2); drawSparky(28, 32, 17, 'happy', g2); } catch (e) { cv.remove(); }
+  box.style.height = H + 'px';
+  const res = wmDraw($('wmIn'), H, { where:'campaign', sc:$('wmSc'), hop:true, tap:n => { if (!n) return; viewStage = n; show('levels'); } });
   const tl = $('wmToList'); tl.innerHTML = WM_ICON.list + '<span>' + t('List') + '</span>'; tl.onclick = () => wmSetView('list');
-  inn.onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; const n = +b.dataset.n; try { track('wmap_tap', { stage:n, ready:ready(n) ? 1 : 0 }); } catch (e2) {} viewStage = n; show('levels'); };
-  const sc = $('wmSc'); requestAnimationFrame(() => { sc.scrollLeft = Math.max(0, X(pc[0]) - sc.clientWidth / 2); });
-  if (!wmOpened) { wmOpened = 1; try { track('wmap_open', { stage:cur }); } catch (e) {} } }
+  if (!wmOpened) { wmOpened = 1; try { track('wmap_open', { stage:res.cur }); } catch (e) {} } }
+/* the Play card: the world map instead of the walking-map preview, for players past Stage 1 */
+let wmHomeIsOn = false, wmHomeOpened = 0, wmHomeT = 0;
+function wmHomeRender() { const pm = $('playMap'), cv = $('heroHome'); if (!pm || !cv) return; let box = $('wmHome');
+  const want = $('home').classList.contains('v582') && featureOpen('map') && wmCur() >= 2, ready = STAGES.slice(0, 40).every(g => SCENES[g.theme]), on = want && ready;
+  if (want && !ready) { clearTimeout(wmHomeT); wmHomeT = setTimeout(() => { try { if (!$('home').hidden) playMapRender(); } catch (e) {} }, 800); }   /* stage pictures that come with maps.js */
+  wmHomeIsOn = on; if (!box) { if (!on) return; box = document.createElement('div'); box.id = 'wmHome'; box.innerHTML = '<div class="wmhsc"><div class="wmhin"><img alt="" decoding="async" draggable="false"></div></div>'; cv.after(box); }
+  box.hidden = !on; cv.style.visibility = on ? 'hidden' : ''; if (!on) return;
+  const H = pm.clientHeight; if (H < 120) { clearTimeout(wmHomeT); wmHomeT = setTimeout(() => { try { if (!$('home').hidden) wmHomeRender(); } catch (e) {} }, 300); return; }
+  const res = wmDraw(box.querySelector('.wmhin'), H, { where:'home', sc:box.querySelector('.wmhsc'), hop:true, tap:(n, cur) => { if (!n || n === cur) { playMapGo(); return; } viewStage = n; show('levels'); } });
+  if (!wmHomeOpened) { wmHomeOpened = 1; try { track('wmap_home', { stage:res.cur }); } catch (e) {} } }
 addEventListener('resize', () => { try { if (!$('stages').hidden && !$('wmap').hidden) wmRender(); } catch (e) {} });
 let wmWaitT = 0;
 function renderStages() { if (STAGES.some(g => !SCENES[g.theme])) { clearTimeout(wmWaitT); wmWaitT = setTimeout(() => { try { if (!$('stages').hidden) renderStages(); } catch (e) {} }, 700); return; }   /* WORLD-MAP-1127: on the public site some stage pictures (Zermatt, Kuala Lumpur) arrive with maps.js a few seconds after start; wait for them instead of failing */ const box = $('stageList'); const cur0 = devMode() ? stageNow : (STAGES.findIndex((_, i) => !stageFinished(i + 1)) + 1 || STAGES.length), cur = tourPlayable(cur0) ? cur0 : tour1Last(); box.innerHTML = tourNote() + STAGES.map((g, i) => { const n = i + 1; if (tourOf(n) !== stageTour) return ''; const now = n === cur, past = stageFinished(n), ready = devMode() || stageReached(n); return `<button class="stagecard${now ? ' now' : ''}${ready ? '' : ' later'}${stageFinished(n) ? ' fin' : ''}" data-n="${n}"${ready ? '' : ' aria-disabled="true"'}><canvas width="640" height="300" data-key="${g.theme}"></canvas>${past ? `<i class="smark done">${TICK}</i>` : ready ? '' : `<i class="smark">${LOCK}</i>`}<span class="stext"><small>${t('Stage {n}', { n:stageNo(n) })}</small><strong>${t(SCENES[g.theme].name)}</strong>${TOUR2_ERA[g.theme] != null ? `<b class="scountry sera">${eraLabel(g.theme)}</b>` : ''}${sceneCountry(g.theme).length ? `<b class="scountry">${sceneCountry(g.theme).map(c => `${flagPic(c.id)}${countryName(c)}`).join('<i>·</i>')}</b>` : ''}<span${stageFinished(n) ? ' class="sfin"' : ''}>${stageLine(g)} · ${t('{n}s', { n:stageNums(g).s })} · ${(g.levels === 1 ? t('1 Puzzle') : t('{n} Puzzles', { n:g.levels }))}</span>${!tourPlayable(n) ? `<em class="tsoon">${t('Coming soon')}</em>` : g.mech ? (() => { const names = g.mech.split('+').map(k => t(MECHS[k][0])).join(' + '); return `<em>${!i || STAGES[i - 1].mech !== g.mech ? t('New: {m}', { m:names }) : names}</em>`; })() : ''}${ready ? stageBar(n) : ''}</span></button>`; }).join(''); $('stageProg').innerHTML = ''; tourBarShow(); box.querySelectorAll('canvas').forEach(c2 => { const c = c2.getContext('2d'); c.setTransform(2, 0, 0, 2, 0, 0); paintScene2(c, c2.dataset.key); }); box.querySelectorAll('.stagecard').forEach(b => { b.onclick = () => { viewStage = +b.dataset.n; show('levels'); }; }); try { wmRender(); } catch (e) {} }   /* WORLD-MAP-1127 */
@@ -30428,12 +30476,13 @@ function playMapSnap(m, w0, h0) { const th = WALK_THEMES[m.g.theme]; if (!th) re
     const now = performance.now(), z = m.cur * WK.gap; walk = { stage:m.st, th, bg, ids:m.ids, props:walkProps(th, m.ids.length), camZ:z, camT:z, vel:0, cur:m.cur, mZ:z, hop:null, drag:null, hits:[], shake:null, t0:now - 4000, last:0, on:false, raf:0 };
     walkSnapping = true; try { walkFrame(now, { cv, width:w0, height:h0 || Math.round(w0 * 285 / 358), noCredit:!!h0 }); } finally { walkSnapping = false; } return cv; }   /* Version 582: h0 = the Play card's real height; no credit on Play */
   finally { walk = keep.walk; walkRoute = keep.walkRoute; viewStage = keep.viewStage; } }
-function playMapRender() { const S2 = playMapState(), cv2 = $('heroHome'), cap = $('pmCap'); if (!cv2 || !cap) return; let m; try { m = playMapAt(); } catch (e) { return; }
+function playMapRender() { try { wmHomeRender(); } catch (e) { console.error(e); }   /* WORLD-MAP-HOME */
+  const S2 = playMapState(), cv2 = $('heroHome'), cap = $('pmCap'); if (!cv2 || !cap) return; let m; try { m = playMapAt(); } catch (e) { return; }
   const lab = `${t('Stage {n}', { n:stageNo(m.st) })}: ${sceneLabel(m.g.theme)} · ${t('Level {n}', { n:levelNum(m.ids[Math.min(m.cur, m.ids.length - 1)]) })}`;   /* 0.846: was Level a of b */ cap.textContent = lab; $('playMap').setAttribute('aria-label', `${lab}. ${t('Map')}`);
   const th = WALK_THEMES[m.g.theme], w0 = Math.round(cv2.getBoundingClientRect().width) || S2.w || 358, h0 = $('home').classList.contains('v582') ? Math.round(cv2.getBoundingClientRect().height) : 0, dpr = Math.min(2, devicePixelRatio || 1), key = [m.st, m.cur, m.ids.filter(k => done.has(k)).length, pick.language, pick.mapView, w0, h0, dpr].join('|');
   if (!th) { if (S2.ok) { S2.ok = false; S2.key = ''; renderHero(); } return; }
   if (S2.key === key && S2.ok) return; S2.w = w0; clearTimeout(S2.tm);
-  S2.tm = setTimeout(() => { try { const snap = playMapSnap(m, w0, h0 > 40 ? h0 : 0); if (!snap) throw new Error('no map'); const h = h0 > 40 ? snap.height : Math.round(snap.width * 200 / 358); cv2.width = snap.width; cv2.height = h; const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(snap, 0, 0, snap.width, h, 0, 0, snap.width, h);
+  S2.tm = setTimeout(() => { if (wmHomeIsOn) return;   /* WORLD-MAP-HOME: no preview under the world map */ try { const snap = playMapSnap(m, w0, h0 > 40 ? h0 : 0); if (!snap) throw new Error('no map'); const h = h0 > 40 ? snap.height : Math.round(snap.width * 200 / 358); cv2.width = snap.width; cv2.height = h; const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(snap, 0, 0, snap.width, h, 0, 0, snap.width, h);
       if (th.osm && !th.noCredit && !(h0 > 40)) { const k = snap.width / 390, Hm = h / k, cr = th.oc && th.oc.credit; c.setTransform(k, 0, 0, k, 0, 0); c.font = "600 9px 'Figtree',sans-serif"; c.textAlign = 'left'; c.textBaseline = 'alphabetic'; if (cr) { c.fillStyle = 'rgba(30,22,50,.42)'; c.beginPath(); c.roundRect(3, Hm - 19, c.measureText('© OpenStreetMap contributors').width + 10, 15, 7.5); c.fill(); } c.fillStyle = cr || 'rgba(255,255,255,.6)'; c.fillText('© OpenStreetMap contributors', 8, Hm - 7); }
       S2.ok = true; S2.key = key; } catch (e) { console.error(e); S2.ok = false; S2.key = ''; renderHero(); } }, 40); }
 const playMapGo = () => { if (!featureOpen('map')) { lockTip('map'); try { glog('X', ['lk886', 'map', 'tap']); } catch (e) {} return; } try { glog('X', ['mp886', 'home', stageNow || 0]); } catch (e) {} try { localStorage.setItem('bob_walkgrid', '0'); } catch (_) {} stats.exploreN = (stats.exploreN || 0) + 1; openCurrentStage(); };   /* Version 432 (owner): the picture always opens the map */
